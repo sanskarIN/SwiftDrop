@@ -8,9 +8,10 @@
     <VerticalStackLayout Grid.Row="0" Spacing="6">
       <Label Text="{x:Static services:AppText.TransferQueue}" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
       <Label Text="{x:Static services:AppText.QueueDescription}" FontSize="13" Opacity="0.75" />
+      <Label Text="{Binding Status}" FontSize="12" Opacity="0.7" />
     </VerticalStackLayout>
 
-    <CollectionView Grid.Row="1" x:Name="QueueList" EmptyView="{x:Static services:AppText.QueueEmpty}">
+    <CollectionView Grid.Row="1" ItemsSource="{Binding Items}" EmptyView="{x:Static services:AppText.QueueEmpty}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,0,0,8">
