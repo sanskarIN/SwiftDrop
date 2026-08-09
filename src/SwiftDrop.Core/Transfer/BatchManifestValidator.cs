@@ -1,0 +1,34 @@
+using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Protocol;
+
+namespace SwiftDrop.Core.Transfer;
+
+public static class BatchManifestValidator
+{
+    public static IReadOnlyList<FileManifestEntry> Validate(
+        IReadOnlyList<FileManifestEntry>? files,
+        long? declaredTotalBytes)
+    {
+        if (files is null || files.Count == 0 || files.Count > ProtocolConstants.MaxBatchFiles)
+            throw new InvalidDataException("Invalid batch file count.");
+
+        var validated = new FileManifestEntry[files.Count];
+        var paths = new HashSet<string>(StringComparer.Ordinal);
+        long actualTotal = 0;
+        for (var i = 0; i < files.Count; i++)
+        {
+            var entry = ManifestValidator.ValidateEntry(files[i]);
+            if (!paths.Add(entry.RelativePath))
+                throw new InvalidDataException("Batch contains duplicate relative paths.");
+            actualTotal = checked(actualTotal + entry.Length);
+            if (actualTotal > ProtocolConstants.MaxBatchBytes)
+                throw new InvalidDataException("Batch exceeds the SwiftDrop total-size safety limit.");
+            validated[i] = entry;
+        }
+
+        if (declaredTotalBytes is null || declaredTotalBytes.Value != actualTotal)
+            throw new InvalidDataException("Batch total size mismatch.");
+
+        return validated;
+    }
+}
