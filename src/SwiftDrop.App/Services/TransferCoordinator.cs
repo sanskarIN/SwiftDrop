@@ -8,13 +8,41 @@ namespace SwiftDrop.App.Services;
 public sealed class TransferCoordinator
 {
     private readonly DeviceIdentityService _identity;
+    private readonly TransferQueueService _queue;
 
-    public TransferCoordinator(DeviceIdentityService identity)
+    public TransferCoordinator(DeviceIdentityService identity, TransferQueueService queue)
     {
         _identity = identity;
+        _queue = queue;
     }
 
-    public async Task SendAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
+    public Task SendAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
+        => _queue.ExecuteAsync(
+            $"Send {Path.GetFileName(path)}",
+            token => SendCoreAsync(remote, path, progress, token),
+            ct);
+
+    public Task<BatchSendResult> SendBatchAsync(
+        PairingPayload remote,
+        IEnumerable<string> paths,
+        IProgress<BatchProgress>? progress,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        var materialized = paths.ToArray();
+        var label = materialized.Length == 1
+            ? $"Send {Path.GetFileName(materialized[0])}"
+            : $"Send {materialized.Length:N0} files";
+        return _queue.ExecuteAsync(
+            label,
+            token => SendBatchCoreAsync(remote, materialized, progress, token),
+            ct);
+    }
+
+    public Task SendTextAsync(PairingPayload remote, string text, CancellationToken ct)
+        => _queue.ExecuteAsync("Send text snippet", token => SendTextCoreAsync(remote, text, token), ct);
+
+    private async Task SendCoreAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(remote);
         if (!File.Exists(path)) throw new FileNotFoundException("Selected file cannot be opened.", path);
@@ -40,7 +68,7 @@ public sealed class TransferCoordinator
         if (!completed.Accepted) throw new IOException(completed.Message ?? "Receiver reported failure.");
     }
 
-    public async Task<BatchSendResult> SendBatchAsync(
+    private async Task<BatchSendResult> SendBatchCoreAsync(
         PairingPayload remote,
         IEnumerable<string> paths,
         IProgress<BatchProgress>? progress,
@@ -133,7 +161,7 @@ public sealed class TransferCoordinator
         return new BatchSendResult(completedSources, skipped);
     }
 
-    public async Task SendTextAsync(PairingPayload remote, string text, CancellationToken ct)
+    private async Task SendTextCoreAsync(PairingPayload remote, string text, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(remote);
         var now = DateTimeOffset.UtcNow;
