@@ -12,6 +12,7 @@
         </VerticalStackLayout>
         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
           <Button Text="Devices" Clicked="OpenDevicesClicked" SemanticProperties.Description="Open nearby devices" />
+          <Button Text="Queue" Clicked="OpenQueueClicked" SemanticProperties.Description="Open transfer queue" />
           <Button Text="History" Clicked="OpenHistoryClicked" SemanticProperties.Description="Open transfer history" />
           <Button Text="Settings" Clicked="OpenSettingsClicked" SemanticProperties.Description="Open SwiftDrop settings" />
         </HorizontalStackLayout>
@@ -23,6 +24,7 @@
           <Label x:Name="DeviceNameLabel" />
           <Label x:Name="DeviceIdLabel" FontSize="12" Opacity="0.65" LineBreakMode="TailTruncation" />
           <Label x:Name="DeviceFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
+          <Label x:Name="ReceiveFolderLabel" FontSize="11" Opacity="0.7" LineBreakMode="MiddleTruncation" />
           <HorizontalStackLayout Spacing="10">
             <Button Text="Create QR/link" Clicked="CreatePairingClicked" SemanticProperties.Description="Create an expiring one-time pairing link and QR code" />
             <Button Text="Create 8-digit code" Clicked="CreatePairingCodeClicked" SemanticProperties.Description="Create an expiring eight digit nearby pairing code" />
@@ -60,6 +62,8 @@
           <ProgressBar x:Name="TransferProgress" Progress="0" SemanticProperties.Description="Single file transfer progress" />
           <HorizontalStackLayout Spacing="10">
             <Button x:Name="SendFileButton" Text="Send selected file" Clicked="SendFileClicked" />
+            <Button x:Name="PauseSendButton" Text="Pause" Clicked="PauseSendClicked" IsEnabled="False" />
+            <Button x:Name="ResumeSendButton" Text="Resume" Clicked="ResumeSendClicked" IsEnabled="False" />
             <Button x:Name="CancelSendButton" Text="Cancel" Clicked="CancelSendClicked" IsEnabled="False" />
           </HorizontalStackLayout>
           <Label x:Name="TransferStatusLabel" />
@@ -75,6 +79,8 @@
           <ProgressBar x:Name="BatchTransferProgress" Progress="0" SemanticProperties.Description="Multiple file transfer progress" />
           <HorizontalStackLayout Spacing="10">
             <Button x:Name="SendBatchButton" Text="Send selected files" Clicked="SendBatchClicked" />
+            <Button x:Name="PauseBatchButton" Text="Pause" Clicked="PauseBatchClicked" IsEnabled="False" />
+            <Button x:Name="ResumeBatchButton" Text="Resume" Clicked="ResumeBatchClicked" IsEnabled="False" />
             <Button x:Name="CancelBatchButton" Text="Cancel" Clicked="CancelBatchClicked" IsEnabled="False" />
           </HorizontalStackLayout>
           <Label x:Name="BatchTransferStatusLabel" FontSize="12" />
