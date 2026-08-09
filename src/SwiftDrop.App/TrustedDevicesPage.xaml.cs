@@ -1,26 +1,30 @@
 using SwiftDrop.App.Services;
-using SwiftDrop.Core.Models;
-using SwiftDrop.Core.Security;
+using SwiftDrop.App.ViewModels;
 
 namespace SwiftDrop.App;
 
 public partial class TrustedDevicesPage : ContentPage
 {
-    private readonly TrustedDevicesService _trusted;
+    private readonly TrustedDevicesViewModel _viewModel;
 
-    public TrustedDevicesPage(TrustedDevicesService trusted)
+    public TrustedDevicesPage(TrustedDevicesViewModel viewModel)
     {
         InitializeComponent();
-        _trusted = trusted;
+        _viewModel = viewModel;
+        BindingContext = viewModel;
         Loaded += async (_, _) => await RefreshAsync();
     }
 
     private async Task RefreshAsync()
     {
-        var rows = (await _trusted.GetAllAsync())
-            .Select(TrustedDeviceRow.FromPeer)
-            .ToArray();
-        TrustedList.ItemsSource = rows;
+        try
+        {
+            await _viewModel.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync(AppText.Get("TrustedDevices"), ex.Message, "OK");
+        }
     }
 
     private async void RefreshClicked(object? sender, EventArgs e) => await RefreshAsync();
@@ -28,31 +32,23 @@ public partial class TrustedDevicesPage : ContentPage
     private async void RevokeClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not string deviceId) return;
-        var confirmed = await DisplayAlertAsync("Revoke trusted device?", "Future transfers from this device will require explicit confirmation again.", "Revoke", "Cancel");
+        var confirmed = await DisplayAlertAsync(
+            "Revoke trusted device?",
+            "Future transfers from this device will require explicit confirmation again.",
+            AppText.Get("Revoke"),
+            AppText.Get("Cancel"));
         if (!confirmed) return;
-        await _trusted.RevokeAsync(deviceId);
-        await RefreshAsync();
+        await _viewModel.RevokeAsync(deviceId);
     }
 
     private async void ClearAllClicked(object? sender, EventArgs e)
     {
-        var confirmed = await DisplayAlertAsync("Clear all trusted devices?", "This removes all locally stored trust decisions.", "Clear", "Cancel");
+        var confirmed = await DisplayAlertAsync(
+            "Clear all trusted devices?",
+            "This removes all locally stored trust decisions.",
+            AppText.Get("ClearAll"),
+            AppText.Get("Cancel"));
         if (!confirmed) return;
-        await _trusted.ClearAsync();
-        await RefreshAsync();
-    }
-
-    public sealed record TrustedDeviceRow(
-        string DeviceId,
-        string DeviceName,
-        string FingerprintText,
-        string TrustedText)
-    {
-        public static TrustedDeviceRow FromPeer(TrustedPeer peer)
-            => new(
-                peer.DeviceId,
-                peer.DeviceName,
-                Fingerprint.Pretty(peer.CertificateFingerprint),
-                $"Trusted {peer.TrustedAtUtc.LocalDateTime:g} • Last seen {peer.LastSeenUtc.LocalDateTime:g}");
+        await _viewModel.ClearAsync();
     }
 }
