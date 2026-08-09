@@ -33,14 +33,14 @@ public sealed class TransferActivityService
     private static void StartPlatformActivity()
     {
 #if ANDROID
-        Platforms.Android.AndroidTransferForegroundService.Start();
+        global::SwiftDrop.App.Platforms.Android.AndroidTransferForegroundService.Start();
 #endif
     }
 
     private static void StopPlatformActivity()
     {
 #if ANDROID
-        Platforms.Android.AndroidTransferForegroundService.Stop();
+        global::SwiftDrop.App.Platforms.Android.AndroidTransferForegroundService.Stop();
 #endif
     }
 
