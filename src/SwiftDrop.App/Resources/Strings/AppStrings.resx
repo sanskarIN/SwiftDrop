@@ -19,4 +19,31 @@
   <data name="Pause" xml:space="preserve"><value>Pause</value></data>
   <data name="Resume" xml:space="preserve"><value>Resume</value></data>
   <data name="Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="ClearFinished" xml:space="preserve"><value>Clear finished</value></data>
+  <data name="ClearHistory" xml:space="preserve"><value>Clear history</value></data>
+  <data name="QueueDescription" xml:space="preserve"><value>Queued transfers obey the concurrency limit in Settings. Finished queue rows contain status metadata only.</value></data>
+  <data name="QueueEmpty" xml:space="preserve"><value>No queued or recent transfer work.</value></data>
+  <data name="HistoryDescription" xml:space="preserve"><value>Stored only on this device. File contents and text contents are never stored in history.</value></data>
+  <data name="HistoryEmpty" xml:space="preserve"><value>No transfer history yet.</value></data>
+  <data name="AboutSummary" xml:space="preserve"><value>Open-source, account-free local-network file and text transfer built with .NET MAUI, C#, XAML, SQLite metadata, and TLS.</value></data>
+  <data name="OpenSource" xml:space="preserve"><value>Open source</value></data>
+  <data name="OpenRepository" xml:space="preserve"><value>Open repository</value></data>
+  <data name="OpenCreatorProfile" xml:space="preserve"><value>Open creator profile</value></data>
+  <data name="SupportDevelopment" xml:space="preserve"><value>Support development</value></data>
+  <data name="SupportDevelopmentDescription" xml:space="preserve"><value>SwiftDrop is open source. If you want to support continued development, you can use Buy Me a Coffee. Support is optional and does not unlock transfer features, priority handling, or access to private data.</value></data>
+  <data name="BuyMeACoffee" xml:space="preserve"><value>Buy Me a Coffee</value></data>
+  <data name="ContactAndSecurity" xml:space="preserve"><value>Contact and security</value></data>
+  <data name="SecurityReportNotice" xml:space="preserve"><value>Security vulnerabilities should be reported privately to sanskarin@outlook.in. Do not post secrets, private transfers, or exploit details in public issues.</value></data>
+  <data name="Privacy" xml:space="preserve"><value>Privacy</value></data>
+  <data name="PrivacySummary" xml:space="preserve"><value>SwiftDrop does not require an account and the current release does not upload transferred content to a SwiftDrop cloud service. Transfer metadata history stays local to this device.</value></data>
+  <data name="RepositoryLabel" xml:space="preserve"><value>Repository: https://github.com/sanskarIN/SwiftDrop</value></data>
+  <data name="CreatorLabel" xml:space="preserve"><value>Creator: https://www.github.com/sanskarIN</value></data>
+  <data name="LicenseLabel" xml:space="preserve"><value>License: Apache-2.0</value></data>
+  <data name="BusinessLabel" xml:space="preserve"><value>Business: sanskarin@outlook.in</value></data>
+  <data name="SupportLabel" xml:space="preserve"><value>Support: supportramsandesh@gmail.com</value></data>
+  <data name="SwiftDropIconDescription" xml:space="preserve"><value>SwiftDrop app icon</value></data>
+  <data name="OpenRepositoryDescription" xml:space="preserve"><value>Open the SwiftDrop GitHub repository</value></data>
+  <data name="OpenCreatorProfileDescription" xml:space="preserve"><value>Open the creator GitHub profile</value></data>
+  <data name="BuyMeACoffeeDescription" xml:space="preserve"><value>Open the SwiftDrop Buy Me a Coffee support page</value></data>
 </root>
