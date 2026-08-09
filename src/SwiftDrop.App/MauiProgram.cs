@@ -17,12 +17,14 @@ public static class MauiProgram
         builder.Services.AddSingleton<TransferCoordinator>();
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<TransferHistoryService>();
+        builder.Services.AddSingleton<TrustedDevicesService>();
         builder.Services.AddSingleton<NetworkDiagnosticsService>();
         builder.Services.AddSingleton<NearbyDiscoveryService>();
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<HistoryPage>();
         builder.Services.AddTransient<DevicesPage>();
+        builder.Services.AddTransient<TrustedDevicesPage>();
         return builder.Build();
     }
 }
