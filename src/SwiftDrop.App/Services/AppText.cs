@@ -8,11 +8,15 @@ public static class AppText
     private static readonly ResourceManager Resources = new(
         "SwiftDrop.App.Resources.Strings.AppStrings",
         typeof(AppText).Assembly);
+    private static readonly ResourceManager MainResources = new(
+        "SwiftDrop.App.Resources.Strings.MainStrings",
+        typeof(AppText).Assembly);
 
     public static string Get(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        return Resources.GetString(key, CultureInfo.CurrentUICulture) ?? key;
+        var culture = CultureInfo.CurrentUICulture;
+        return Resources.GetString(key, culture) ?? MainResources.GetString(key, culture) ?? key;
     }
 
     public static string AppName => Get(nameof(AppName));
