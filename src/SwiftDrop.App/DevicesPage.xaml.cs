@@ -1,5 +1,5 @@
 using SwiftDrop.App.Services;
-using SwiftDrop.Core.Models;
+using SwiftDrop.App.ViewModels;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 
@@ -7,62 +7,51 @@ namespace SwiftDrop.App;
 
 public partial class DevicesPage : ContentPage
 {
-    private readonly NearbyDiscoveryService _discovery;
+    private readonly DevicesViewModel _viewModel;
     private readonly NearbyPairingService _pairing;
     private readonly PairingSelectionService _selection;
 
     public DevicesPage(
-        NearbyDiscoveryService discovery,
+        DevicesViewModel viewModel,
         NearbyPairingService pairing,
         PairingSelectionService selection)
     {
         InitializeComponent();
-        _discovery = discovery;
+        _viewModel = viewModel;
         _pairing = pairing;
         _selection = selection;
+        BindingContext = viewModel;
         ManualPortEntry.Text = ProtocolConstants.DefaultPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     private async void OnLoaded(object? sender, EventArgs e)
-    {
-        _discovery.PeersChanged += DiscoveryOnPeersChanged;
-        try
-        {
-            await _discovery.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            await DisplayAlertAsync("Discovery unavailable", ex.Message, "OK");
-        }
-        RefreshList();
-    }
+        => await StartOrRefreshAsync();
 
     private void OnUnloaded(object? sender, EventArgs e)
-    {
-        _discovery.PeersChanged -= DiscoveryOnPeersChanged;
-    }
+        => _viewModel.Dispose();
 
-    private void DiscoveryOnPeersChanged(object? sender, EventArgs e) => RefreshList();
-
-    private async void RefreshClicked(object? sender, EventArgs e)
+    private async Task StartOrRefreshAsync()
     {
         try
         {
-            await _discovery.StartAsync();
+            await _viewModel.StartOrRefreshAsync();
         }
         catch (Exception ex)
         {
             await DisplayAlertAsync("Discovery unavailable", ex.Message, "OK");
+            _viewModel.RefreshSnapshot();
         }
-        RefreshList();
     }
+
+    private async void RefreshClicked(object? sender, EventArgs e)
+        => await StartOrRefreshAsync();
 
     private async void PairClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not string id) return;
-        var peer = _discovery.Snapshot().FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+        var peer = _viewModel.FindPeer(id);
         if (peer is null)
         {
             await DisplayAlertAsync("Device unavailable", "The device is no longer advertising. Refresh and try again.", "OK");
@@ -76,11 +65,11 @@ public partial class DevicesPage : ContentPage
 
         var mode = await DisplayActionSheetAsync(
             $"Pair with {peer.Name}",
-            "Cancel",
+            AppText.Get("Cancel"),
             null,
-            "Request pairing",
+            AppText.Get("RequestPairing"),
             "Use 8-digit code");
-        if (string.IsNullOrWhiteSpace(mode) || string.Equals(mode, "Cancel", StringComparison.Ordinal)) return;
+        if (string.IsNullOrWhiteSpace(mode) || string.Equals(mode, AppText.Get("Cancel"), StringComparison.Ordinal)) return;
 
         string? code = null;
         if (string.Equals(mode, "Use 8-digit code", StringComparison.Ordinal))
@@ -89,7 +78,7 @@ public partial class DevicesPage : ContentPage
                 "One-time pairing code",
                 "Enter the 8-digit code shown on the receiving device. The code expires quickly and is still combined with TLS certificate verification and receiver approval.",
                 "Continue",
-                "Cancel",
+                AppText.Get("Cancel"),
                 keyboard: Keyboard.Numeric,
                 maxLength: 8))?.Trim();
             if (string.IsNullOrWhiteSpace(code)) return;
@@ -105,7 +94,7 @@ public partial class DevicesPage : ContentPage
                 "Request pairing?",
                 $"Device: {peer.Name}\nAddress: {peer.Host}:{peer.Port}\nCertificate: {Fingerprint.Pretty(peer.CertificateFingerprint)}\n\nThe other device must approve this request.",
                 "Request",
-                "Cancel");
+                AppText.Get("Cancel"));
             if (!requested) return;
         }
 
@@ -128,7 +117,7 @@ public partial class DevicesPage : ContentPage
         }
         finally
         {
-            button.Text = "Request pairing";
+            button.Text = AppText.Get("RequestPairing");
             button.IsEnabled = true;
         }
     }
@@ -152,7 +141,7 @@ public partial class DevicesPage : ContentPage
             "Manual pairing bootstrap",
             "Manual IP pairing initially connects before the receiver certificate fingerprint is known. The 8-digit code and receiver approval authorize the bootstrap. SwiftDrop then binds the returned invitation to the exact TLS certificate it observed and will ask you to visually confirm that fingerprint before sending. Continue only on a network and device you expect.",
             "Continue",
-            "Cancel");
+            AppText.Get("Cancel"));
         if (!confirmed) return;
 
         try
@@ -175,36 +164,6 @@ public partial class DevicesPage : ContentPage
         finally
         {
             if (sender is Button button) button.IsEnabled = true;
-        }
-    }
-
-    private void RefreshList()
-    {
-        var peers = _discovery.Snapshot()
-            .Select(DeviceRow.FromPeer)
-            .ToArray();
-        DevicesList.ItemsSource = peers;
-        StatusLabel.Text = peers.Length == 1 ? "1 device" : $"{peers.Length} devices";
-    }
-
-    public sealed record DeviceRow(
-        string Id,
-        string Name,
-        string Platform,
-        string AddressText,
-        string LastSeenText)
-    {
-        public static DeviceRow FromPeer(PeerDevice peer)
-        {
-            var lastSeen = peer.LastSeenUtc is null
-                ? "Last seen: unknown"
-                : $"Last seen: {peer.LastSeenUtc.Value.LocalDateTime:T}";
-            return new DeviceRow(
-                peer.Id,
-                peer.Name,
-                peer.Platform,
-                $"{peer.Host}:{peer.Port}",
-                lastSeen);
         }
     }
 }
