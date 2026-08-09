@@ -1,0 +1,234 @@
+name: Apply platform hardening patch
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-time-platform-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply idempotent source hardening
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          def write(path, text):
+              Path(path).write_text(text, encoding='utf-8', newline='\n')
+
+          # Receiver: enforce shared batch manifest validation and cumulative remaining capacity.
+          p = Path('src/SwiftDrop.App/Services/ReceiveServerService.cs')
+          text = p.read_text(encoding='utf-8')
+          if 'BatchManifestValidator.Validate(files, declaredTotal)' not in text:
+              pattern = re.compile(
+                  r'        if \(files is null \|\| files\.Count == 0 \|\| files\.Count > BatchTransferSourceBuilder\.MaxFilesPerBatch\)\n'
+                  r'            throw new InvalidDataException\("Invalid batch file count\."\);\n\n'
+                  r'        var safe = files\.Select\(ValidateAndSanitizeEntry\)\.ToArray\(\);\n'
+                  r'        if \(safe\.Select\(x => x\.RelativePath\)\.Distinct\(StringComparer\.Ordinal\)\.Count\(\) != safe\.Length\)\n'
+                  r'            throw new InvalidDataException\("Duplicate batch path\."\);\n'
+                  r'        foreach \(var file in safe\) _ = PathGuard\.ResolveUnderRoot\(_receiveRoot, file\.RelativePath\);\n'
+                  r'        var actualTotal = checked\(safe\.Sum\(x => x\.Length\)\);\n'
+                  r'        if \(declaredTotal is null \|\| declaredTotal\.Value != actualTotal\)\n'
+                  r'            throw new InvalidDataException\("Batch total size mismatch\."\);\n'
+                  r'        return safe;')
+              replacement = '''        var validated = BatchManifestValidator.Validate(files, declaredTotal);
+          var safe = validated.Select(ValidateAndSanitizeEntry).ToArray();
+          if (safe.Select(x => x.RelativePath).Distinct(StringComparer.Ordinal).Count() != safe.Length)
+              throw new InvalidDataException("Duplicate batch path after filename sanitation.");
+          foreach (var file in safe) _ = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+          return safe;'''.replace('          ', '        ')
+              text, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit('Could not locate old ReceiveServer batch validator; refusing an uncertain edit.')
+
+          if 'remainingBatchBytes = BatchCapacityPlanner.CalculateRemainingBytes' not in text:
+              marker = '        await FrameProtocol.WriteJsonAsync(connection, new BatchTransferResponse(true, plans), ct);'
+              if marker not in text:
+                  raise SystemExit('Could not locate ReceiveServer negotiated batch response marker.')
+              insertion = '''        var resumeOffsets = receiveItems.ToDictionary(
+              x => x.EffectiveEntry.RelativePath,
+              x => x.ResumeOffset,
+              StringComparer.Ordinal);
+          var remainingBatchBytes = BatchCapacityPlanner.CalculateRemainingBytes(
+              receiveItems.Select(x => x.EffectiveEntry).ToArray(),
+              resumeOffsets);
+          var capacityProbePath = PathGuard.ResolveUnderRoot(
+              _receiveRoot,
+              receiveItems[0].EffectiveEntry.RelativePath);
+          StorageCapacityGuard.EnsureCapacity(capacityProbePath, remainingBatchBytes);
+
+          '''.replace('          ', '        ') + marker
+              text = text.replace(marker, insertion, 1)
+          write(p, text)
+
+          # Android privacy: do not include SwiftDrop application data in normal app backups.
+          p = Path('src/SwiftDrop.App/Platforms/Android/AndroidManifest.xml')
+          text = p.read_text(encoding='utf-8').replace('android:allowBackup="true"', 'android:allowBackup="false"')
+          write(p, text)
+
+          # Android share staging: preserve original filename inside unique directory and enforce single-file byte limit.
+          p = Path('src/SwiftDrop.App/Platforms/Android/MainActivity.cs')
+          text = p.read_text(encoding='utf-8')
+          if 'using SwiftDrop.Core.Protocol;' not in text:
+              anchor = 'using SwiftDrop.App.Services;\n'
+              if anchor not in text:
+                  raise SystemExit('MainActivity using anchor missing.')
+              text = text.replace(anchor, anchor + 'using SwiftDrop.Core.Protocol;\n', 1)
+          old = '''        var directory = Path.Combine(FileSystem.CacheDirectory, "shared-input");
+          Directory.CreateDirectory(directory);
+          var path = Path.Combine(directory, $"{Guid.NewGuid():N}-{safeName}");
+          await using var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+          await input.CopyToAsync(output);
+          await output.FlushAsync();
+          return path;'''.replace('          ', '        ')
+          if old in text:
+              new = '''        var root = Path.Combine(FileSystem.CacheDirectory, "shared-input");
+          var directory = Path.Combine(root, Guid.NewGuid().ToString("N"));
+          Directory.CreateDirectory(directory);
+          var path = Path.Combine(directory, safeName);
+          try
+          {
+              await using var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 128 * 1024, FileOptions.Asynchronous | FileOptions.SequentialScan);
+              var buffer = new byte[128 * 1024];
+              long total = 0;
+              while (true)
+              {
+                  var read = await input.ReadAsync(buffer);
+                  if (read == 0) break;
+                  total = checked(total + read);
+                  if (total > ProtocolConstants.MaxSingleFileBytes)
+                      throw new InvalidDataException("Shared file exceeds the SwiftDrop per-file safety limit.");
+                  await output.WriteAsync(buffer.AsMemory(0, read));
+              }
+              await output.FlushAsync();
+              return path;
+          }
+          catch
+          {
+              try { if (File.Exists(path)) File.Delete(path); } catch { }
+              try { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); } catch { }
+              throw;
+          }'''.replace('          ', '        ')
+              text = text.replace(old, new, 1)
+          elif 'total > ProtocolConstants.MaxSingleFileBytes' not in text:
+              raise SystemExit('MainActivity share staging block changed unexpectedly.')
+          write(p, text)
+
+          # Share-cache pruning must include unique staging subdirectories.
+          p = Path('src/SwiftDrop.App/Services/ExternalInputInbox.cs')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              'foreach (var path in Directory.EnumerateFiles(directory))',
+              'foreach (var path in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))')
+          if 'SearchOption.AllDirectories' not in text:
+              raise SystemExit('ExternalInputInbox recursive cache pruning patch did not apply.')
+          if 'Directory.EnumerateDirectories(directory)' not in text:
+              marker = '''        }
+      }
+
+      private static void RaiseChanged()'''.replace('      ', '    ')
+              cleanup = '''        }
+
+          foreach (var child in Directory.EnumerateDirectories(directory).OrderByDescending(x => x.Length))
+          {
+              try { if (!Directory.EnumerateFileSystemEntries(child).Any()) Directory.Delete(child); } catch { }
+          }
+      }
+
+      private static void RaiseChanged()'''.replace('      ', '    ')
+              if marker not in text:
+                  raise SystemExit('ExternalInputInbox cleanup insertion marker missing.')
+              text = text.replace(marker, cleanup, 1)
+          write(p, text)
+
+          # Prefer a real active local address for QR/link invitations, including IPv6-only LANs.
+          p = Path('src/SwiftDrop.App/Services/DeviceIdentityService.cs')
+          text = p.read_text(encoding='utf-8')
+          if 'using SwiftDrop.Core.Networking;' not in text:
+              anchor = 'using SwiftDrop.Core.Models;\n'
+              if anchor not in text:
+                  raise SystemExit('DeviceIdentityService using anchor missing.')
+              text = text.replace(anchor, anchor + 'using SwiftDrop.Core.Networking;\n', 1)
+          if 'LocalAddressSelector.SelectBest' not in text:
+              method = re.compile(r'    private static string GetLanAddress\(\)\n    \{.*?\n    \}', re.S)
+              replacement = '''    private static string GetLanAddress()
+      => LocalAddressSelector.SelectBest(NetworkInterface.GetAllNetworkInterfaces()).ToString();'''.replace('      ', '    ')
+              text, count = method.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit('DeviceIdentityService local address method missing.')
+          write(p, text)
+
+          # Hold Android multicast permission only while the discovery singleton is active.
+          p = Path('src/SwiftDrop.App/Services/NearbyDiscoveryService.cs')
+          text = p.read_text(encoding='utf-8')
+          if 'AndroidMulticastLockManager.Acquire' not in text:
+              marker = '        await _identity.InitializeAsync();'
+              if marker not in text:
+                  raise SystemExit('NearbyDiscoveryService initialization marker missing.')
+              text = text.replace(marker, marker + '''
+#if ANDROID
+          global::SwiftDrop.App.Platforms.Android.AndroidMulticastLockManager.Acquire();
+#endif'''.replace('          ', '        '), 1)
+          if 'AndroidMulticastLockManager.Release' not in text:
+              marker = '        _cts.Dispose();'
+              if marker not in text:
+                  raise SystemExit('NearbyDiscoveryService dispose marker missing.')
+              text = text.replace(marker, '''#if ANDROID
+          global::SwiftDrop.App.Platforms.Android.AndroidMulticastLockManager.Release();
+#endif
+          _cts.Dispose();'''.replace('          ', '        '), 1)
+          write(p, text)
+
+          # Release-readiness should not depend on the shell script executable bit.
+          p = Path('.github/workflows/release-readiness.yml')
+          text = p.read_text(encoding='utf-8').replace('./scripts/verify-core.sh', 'bash scripts/verify-core.sh')
+          write(p, text)
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify core tests
+        shell: bash
+        run: bash scripts/verify-core.sh
+
+      - name: Verify Android application build
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet workload install maui-android
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
+          dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
+
+      - name: Commit only verified changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          if git diff --quiet; then
+            echo "Platform hardening is already applied."
+            exit 0
+          fi
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+          git add src/SwiftDrop.App/Services/ReceiveServerService.cs \
+                  src/SwiftDrop.App/Platforms/Android/AndroidManifest.xml \
+                  src/SwiftDrop.App/Platforms/Android/MainActivity.cs \
+                  src/SwiftDrop.App/Services/ExternalInputInbox.cs \
+                  src/SwiftDrop.App/Services/DeviceIdentityService.cs \
+                  src/SwiftDrop.App/Services/NearbyDiscoveryService.cs \
+                  .github/workflows/release-readiness.yml
+          git commit -m "security: harden receive discovery and shared-input paths" \
+                     -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+          git push origin HEAD:main
