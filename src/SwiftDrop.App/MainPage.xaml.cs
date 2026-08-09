@@ -19,11 +19,13 @@ public partial class MainPage : ContentPage
     private readonly PairingSelectionService _pairingSelection;
     private readonly OneTimePairingCodeManager _pairingCodes;
     private readonly IServiceProvider _services;
+    private readonly SemaphoreSlim _receiveServerGate = new(1, 1);
 
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
     private FileResult[] _selectedBatchFiles = Array.Empty<FileResult>();
     private ReceiveServerService? _receiveServer;
+    private string? _activeReceiveRoot;
     private CancellationTokenSource? _singleCts;
     private CancellationTokenSource? _batchCts;
     private bool _pauseSingle;
@@ -52,6 +54,7 @@ public partial class MainPage : ContentPage
         _pairingSelection = pairingSelection;
         _pairingCodes = pairingCodes;
         _services = services;
+        _settings.Changed += SettingsChanged;
         Loaded += async (_, _) => await InitializeAsync();
         Unloaded += async (_, _) => await StopReceiveServerAsync();
     }
@@ -59,7 +62,14 @@ public partial class MainPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        try { await ApplyPendingPairingAsync(); } catch { }
+        try
+        {
+            await EnsureReceiveServerMatchesSettingsAsync();
+            await ApplyPendingPairingAsync();
+        }
+        catch
+        {
+        }
     }
 
     private async Task InitializeAsync()
@@ -73,26 +83,7 @@ public partial class MainPage : ContentPage
             DeviceIdLabel.Text = _identity.DeviceId;
             DeviceFingerprintLabel.Text = $"Certificate: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
 
-            if (_receiveServer is null)
-            {
-                var receiveRoot = _receiveLocation.ResolveReceiveRoot();
-                ReceiveFolderLabel.Text = $"Receive folder: {receiveRoot}";
-                _receiveServer = new ReceiveServerService(
-                    _identity.Certificate,
-                    receiveRoot,
-                    _identity.TryConsumePairingNonce,
-                    ApproveIncomingAsync,
-                    RecordIncomingAsync,
-                    ApproveIncomingTextAsync,
-                    RecordIncomingTextAsync,
-                    ApproveNearbyPairingAsync,
-                    _identity.CreatePairingLink,
-                    code => _pairingCodes.TryConsume(code, DateTimeOffset.UtcNow),
-                    ApproveIncomingBatchAsync);
-                _receiveServer.Start();
-                TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
-            }
-
+            await EnsureReceiveServerMatchesSettingsAsync();
             await ApplyPendingPairingAsync();
         }
         catch (Exception ex)
@@ -191,11 +182,91 @@ public partial class MainPage : ContentPage
     private Task RecordIncomingTextAsync(IncomingTextPreview preview, string status, CancellationToken ct)
         => _history.AddAsync("received", preview.SenderDeviceName, "Text snippet", Encoding.UTF8.GetByteCount(preview.Text), status, false, ct);
 
+    private void SettingsChanged(object? sender, AppSettingsChangedEventArgs e)
+    {
+        if (!e.ReceiveFolderChanged) return;
+
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            try
+            {
+                TransferStatusLabel.Text = "Applying the new receive folder… active incoming transfers may be interrupted.";
+                await EnsureReceiveServerMatchesSettingsAsync();
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Receive folder error", ex.Message, "OK");
+            }
+        });
+    }
+
+    private async Task EnsureReceiveServerMatchesSettingsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_identity.DeviceId))
+            return;
+
+        await _receiveServerGate.WaitAsync();
+        try
+        {
+            var receiveRoot = _receiveLocation.ResolveReceiveRoot();
+            if (_receiveServer is not null && PathsEqual(_activeReceiveRoot, receiveRoot))
+            {
+                ReceiveFolderLabel.Text = $"Receive folder: {receiveRoot}";
+                return;
+            }
+
+            if (_receiveServer is not null)
+            {
+                await _receiveServer.DisposeAsync();
+                _receiveServer = null;
+                _activeReceiveRoot = null;
+            }
+
+            var server = new ReceiveServerService(
+                _identity.Certificate,
+                receiveRoot,
+                _identity.TryConsumePairingNonce,
+                ApproveIncomingAsync,
+                RecordIncomingAsync,
+                ApproveIncomingTextAsync,
+                RecordIncomingTextAsync,
+                ApproveNearbyPairingAsync,
+                _identity.CreatePairingLink,
+                code => _pairingCodes.TryConsume(code, DateTimeOffset.UtcNow),
+                ApproveIncomingBatchAsync);
+            server.Start();
+            _receiveServer = server;
+            _activeReceiveRoot = receiveRoot;
+            ReceiveFolderLabel.Text = $"Receive folder: {receiveRoot}";
+            TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
+        }
+        finally
+        {
+            _receiveServerGate.Release();
+        }
+    }
+
     private async Task StopReceiveServerAsync()
     {
-        if (_receiveServer is null) return;
-        await _receiveServer.DisposeAsync();
-        _receiveServer = null;
+        await _receiveServerGate.WaitAsync();
+        try
+        {
+            if (_receiveServer is null) return;
+            await _receiveServer.DisposeAsync();
+            _receiveServer = null;
+            _activeReceiveRoot = null;
+        }
+        finally
+        {
+            _receiveServerGate.Release();
+        }
+    }
+
+    private static bool PathsEqual(string? left, string right)
+    {
+        if (string.IsNullOrWhiteSpace(left)) return false;
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), comparison);
     }
 
     private void CreatePairingClicked(object? sender, EventArgs e)
