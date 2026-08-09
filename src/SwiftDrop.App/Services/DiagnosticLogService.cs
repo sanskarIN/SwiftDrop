@@ -103,7 +103,7 @@ public sealed class DiagnosticLogService
     {
         var words = value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return string.Join(' ', words.Select(word =>
-            word.Contains('@', StringComparison.Ordinal) || word.Contains('\\', StringComparison.Ordinal) || word.Contains('/', StringComparison.Ordinal)
+            word.Contains('@') || word.Contains('\\') || word.Contains('/')
                 ? "[redacted]"
                 : word));
     }
