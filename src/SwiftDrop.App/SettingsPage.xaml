@@ -13,8 +13,8 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize DeviceIdentity}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <Label Text="{services:Localize DeviceName}" />
-          <Entry x:Name="DeviceNameEntry" MaxLength="64" Placeholder="{services:Localize SwiftDropDevicePlaceholder}" />
-          <Label x:Name="IdentityFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
+          <Entry Text="{Binding DeviceName, Mode=TwoWay}" MaxLength="64" Placeholder="{services:Localize SwiftDropDevicePlaceholder}" />
+          <Label Text="{Binding IdentityFingerprint}" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
           <Button Text="{services:Localize ResetDeviceIdentity}" Clicked="ResetIdentityClicked" />
           <Label Text="{services:Localize ResetIdentityDescription}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
@@ -24,18 +24,18 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize Transfers}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <Label Text="{services:Localize DefaultReceiveFolder}" />
-          <Entry x:Name="ReceiveFolderEntry" IsReadOnly="True" LineBreakMode="MiddleTruncation" />
+          <Entry Text="{Binding ReceiveFolder}" IsReadOnly="True" LineBreakMode="MiddleTruncation" />
           <HorizontalStackLayout Spacing="10">
             <Button Text="{services:Localize ChooseFolder}" Clicked="ChooseReceiveFolderClicked" />
             <Button Text="{services:Localize UseAppFolder}" Clicked="UseAppReceiveFolderClicked" />
           </HorizontalStackLayout>
-          <Label x:Name="ReceiveFolderSupportLabel" FontSize="12" Opacity="0.7" />
+          <Label Text="{Binding ReceiveFolderSupport}" FontSize="12" Opacity="0.7" />
           <Label Text="{services:Localize ConcurrentTransfers}" />
-          <Stepper x:Name="ConcurrencyStepper" Minimum="1" Maximum="8" Increment="1" ValueChanged="ConcurrencyChanged" />
-          <Label x:Name="ConcurrencyLabel" />
+          <Stepper Value="{Binding TransferConcurrency, Mode=TwoWay}" Minimum="1" Maximum="8" Increment="1" ValueChanged="NumericSettingChanged" />
+          <Label Text="{Binding ConcurrencyText}" />
           <Label Text="{services:Localize HistoryRetentionDays}" />
-          <Stepper x:Name="RetentionStepper" Minimum="0" Maximum="3650" Increment="1" ValueChanged="RetentionChanged" />
-          <Label x:Name="RetentionLabel" />
+          <Stepper Value="{Binding HistoryRetentionDays, Mode=TwoWay}" Minimum="0" Maximum="3650" Increment="1" ValueChanged="NumericSettingChanged" />
+          <Label Text="{Binding RetentionText}" />
         </VerticalStackLayout>
       </Border>
 
@@ -43,11 +43,11 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize PrivacyAndTrust}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
-            <Switch x:Name="PrivacyModeSwitch" />
+            <Switch IsToggled="{Binding PrivacyMode, Mode=TwoWay}" />
             <Label Text="{services:Localize HideFilenamesHistory}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <HorizontalStackLayout Spacing="12">
-            <Switch x:Name="AutoAcceptSwitch" />
+            <Switch IsToggled="{Binding AutoAcceptTrustedDevices, Mode=TwoWay}" />
             <Label Text="{services:Localize AutoAcceptTrusted}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <Button Text="{services:Localize ManageTrustedDevices}" Clicked="ManageTrustedDevicesClicked" />
@@ -58,16 +58,16 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize NotificationsAndAccessibility}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
-            <Switch x:Name="NotificationsSwitch" />
+            <Switch IsEnabled="{Binding NotificationsSupported}" IsToggled="{Binding NotificationsEnabled, Mode=TwoWay}" />
             <Label Text="{services:Localize OptionalNotifications}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
-          <Label x:Name="NotificationSupportLabel" FontSize="12" Opacity="0.7" />
+          <Label Text="{Binding NotificationSupport}" FontSize="12" Opacity="0.7" />
           <HorizontalStackLayout Spacing="12">
-            <Switch x:Name="ReduceMotionSwitch" />
+            <Switch IsToggled="{Binding ReduceMotion, Mode=TwoWay}" />
             <Label Text="{services:Localize ReduceMotion}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <HorizontalStackLayout Spacing="12">
-            <Switch x:Name="LargerInterfaceSwitch" />
+            <Switch IsToggled="{Binding LargerInterface, Mode=TwoWay}" />
             <Label Text="{services:Localize LargerInterface}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <Label Text="{services:Localize NotificationRuleNote}" FontSize="12" Opacity="0.7" />
@@ -77,14 +77,14 @@
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize AppearanceAndLanguage}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
-          <Picker x:Name="ThemePicker" Title="{services:Localize Theme}">
+          <Picker SelectedItem="{Binding Theme, Mode=TwoWay}" Title="{services:Localize Theme}">
             <Picker.Items>
               <x:String>System</x:String>
               <x:String>Light</x:String>
               <x:String>Dark</x:String>
             </Picker.Items>
           </Picker>
-          <Picker x:Name="LanguagePicker" Title="{services:Localize Language}">
+          <Picker SelectedItem="{Binding Language, Mode=TwoWay}" Title="{services:Localize Language}">
             <Picker.Items>
               <x:String>English</x:String>
               <x:String>Hindi</x:String>
@@ -98,7 +98,7 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize DeveloperOptions}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
-            <Switch x:Name="DeveloperOptionsSwitch" />
+            <Switch IsToggled="{Binding DeveloperOptionsEnabled, Mode=TwoWay}" />
             <Label Text="{services:Localize EnableSafeDeveloperDiagnostics}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <Label Text="{services:Localize DeveloperDiagnosticsNote}" FontSize="12" Opacity="0.7" />
