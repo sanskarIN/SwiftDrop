@@ -13,6 +13,7 @@ public sealed class ProtocolCompatibilityTests
     [Fact]
     public void PairingCodec_RejectsUnknownFutureVersion()
     {
+        var now = DateTimeOffset.UtcNow;
         var payload = new PairingPayload(
             "999",
             "device-id",
@@ -21,14 +22,16 @@ public sealed class ProtocolCompatibilityTests
             ProtocolConstants.DefaultPort,
             new string('A', 64),
             PairingCodec.CreateNonce(),
-            DateTimeOffset.UtcNow.AddMinutes(1).ToUnixTimeSeconds());
+            now.AddMinutes(1).ToUnixTimeSeconds());
 
-        Assert.Throws<InvalidDataException>(() => PairingCodec.Encode(payload));
+        var link = PairingCodec.Encode(payload);
+        Assert.Throws<NotSupportedException>(() => PairingCodec.Decode(link, now));
     }
 
     [Fact]
     public void PairingCodec_RejectsExcessiveInvitationLifetime()
     {
+        var now = DateTimeOffset.UtcNow;
         var payload = new PairingPayload(
             ProtocolConstants.CurrentVersion,
             "device-id",
@@ -37,8 +40,9 @@ public sealed class ProtocolCompatibilityTests
             ProtocolConstants.DefaultPort,
             new string('A', 64),
             PairingCodec.CreateNonce(),
-            DateTimeOffset.UtcNow.AddMinutes(30).ToUnixTimeSeconds());
+            now.AddMinutes(30).ToUnixTimeSeconds());
 
-        Assert.Throws<InvalidDataException>(() => PairingCodec.Encode(payload));
+        var link = PairingCodec.Encode(payload);
+        Assert.Throws<InvalidOperationException>(() => PairingCodec.Decode(link, now));
     }
 }
