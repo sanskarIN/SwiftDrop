@@ -46,4 +46,68 @@
   <data name="OpenRepositoryDescription" xml:space="preserve"><value>SwiftDrop GitHub रिपॉज़िटरी खोलें</value></data>
   <data name="OpenCreatorProfileDescription" xml:space="preserve"><value>निर्माता की GitHub प्रोफ़ाइल खोलें</value></data>
   <data name="BuyMeACoffeeDescription" xml:space="preserve"><value>SwiftDrop की Buy Me a Coffee सहायता पेज खोलें</value></data>
+  <data name="SwiftDropSettings" xml:space="preserve"><value>SwiftDrop सेटिंग्स</value></data>
+  <data name="SettingsSummary" xml:space="preserve"><value>ट्रांसफ़र आपके स्थानीय नेटवर्क पर रहते हैं। ऑटो-स्वीकार डिफ़ॉल्ट रूप से बंद है।</value></data>
+  <data name="DeviceIdentity" xml:space="preserve"><value>डिवाइस पहचान</value></data>
+  <data name="DeviceName" xml:space="preserve"><value>डिवाइस नाम</value></data>
+  <data name="SwiftDropDevicePlaceholder" xml:space="preserve"><value>SwiftDrop डिवाइस</value></data>
+  <data name="ResetDeviceIdentity" xml:space="preserve"><value>डिवाइस पहचान रीसेट करें</value></data>
+  <data name="ResetIdentityDescription" xml:space="preserve"><value>रीसेट करने पर नया डिवाइस ID और प्रमाणपत्र बनता है और सभी स्थानीय विश्वसनीय-डिवाइस संबंध हट जाते हैं।</value></data>
+  <data name="Transfers" xml:space="preserve"><value>ट्रांसफ़र</value></data>
+  <data name="DefaultReceiveFolder" xml:space="preserve"><value>डिफ़ॉल्ट प्राप्ति फ़ोल्डर</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>फ़ोल्डर चुनें</value></data>
+  <data name="UseAppFolder" xml:space="preserve"><value>ऐप फ़ोल्डर उपयोग करें</value></data>
+  <data name="ConcurrentTransfers" xml:space="preserve"><value>समवर्ती ट्रांसफ़र</value></data>
+  <data name="HistoryRetentionDays" xml:space="preserve"><value>इतिहास रखने की अवधि (दिन)</value></data>
+  <data name="PrivacyAndTrust" xml:space="preserve"><value>गोपनीयता और भरोसा</value></data>
+  <data name="HideFilenamesHistory" xml:space="preserve"><value>ट्रांसफ़र इतिहास में फ़ाइल नाम छिपाएँ</value></data>
+  <data name="AutoAcceptTrusted" xml:space="preserve"><value>स्पष्ट रूप से विश्वसनीय डिवाइस से सामान्य फ़ाइलें स्वतः स्वीकार करें</value></data>
+  <data name="ManageTrustedDevices" xml:space="preserve"><value>विश्वसनीय डिवाइस प्रबंधित करें</value></data>
+  <data name="NotificationsAndAccessibility" xml:space="preserve"><value>सूचनाएँ और सुलभता</value></data>
+  <data name="OptionalNotifications" xml:space="preserve"><value>जहाँ समर्थित हो वहाँ वैकल्पिक ट्रांसफ़र पूर्ण/विफल सूचनाएँ अनुमति दें</value></data>
+  <data name="ReduceMotion" xml:space="preserve"><value>गैर-आवश्यक एनीमेशन कम करें</value></data>
+  <data name="LargerInterface" xml:space="preserve"><value>बड़ा इंटरफ़ेस टेक्स्ट और नियंत्रण उपयोग करें</value></data>
+  <data name="NotificationRuleNote" xml:space="preserve"><value>वैकल्पिक सूचनाओं के बिना भी SwiftDrop काम करता है। जहाँ ऑपरेटिंग सिस्टम अग्रभूमि सेवा स्थिति आवश्यक करता है, वह प्लेटफ़ॉर्म नियमों से अलग नियंत्रित होती है।</value></data>
+  <data name="AppearanceAndLanguage" xml:space="preserve"><value>रूप और भाषा</value></data>
+  <data name="Theme" xml:space="preserve"><value>थीम</value></data>
+  <data name="System" xml:space="preserve"><value>सिस्टम</value></data>
+  <data name="Light" xml:space="preserve"><value>लाइट</value></data>
+  <data name="Dark" xml:space="preserve"><value>डार्क</value></data>
+  <data name="Language" xml:space="preserve"><value>भाषा</value></data>
+  <data name="English" xml:space="preserve"><value>अंग्रेज़ी</value></data>
+  <data name="Hindi" xml:space="preserve"><value>हिंदी</value></data>
+  <data name="LocalizationFallbackNote" xml:space="preserve"><value>अंग्रेज़ी फ़ॉलबैक भाषा है। हिंदी स्ट्रिंग उसी संसाधन कैटलॉग का उपयोग करती हैं और अनुवाद न होने पर सुरक्षित रूप से अंग्रेज़ी दिखती है।</value></data>
+  <data name="DeveloperOptions" xml:space="preserve"><value>डेवलपर विकल्प</value></data>
+  <data name="EnableSafeDeveloperDiagnostics" xml:space="preserve"><value>सुरक्षित डेवलपर डायग्नोस्टिक्स सक्षम करें</value></data>
+  <data name="DeveloperDiagnosticsNote" xml:space="preserve"><value>डेवलपर डायग्नोस्टिक्स में ट्रांसफ़र सामग्री, निजी कुंजियाँ, पेयरिंग नॉन्स या पूर्ण पेयरिंग निमंत्रण कभी उजागर नहीं होने चाहिए।</value></data>
+  <data name="OpenDiagnostics" xml:space="preserve"><value>डायग्नोस्टिक्स खोलें</value></data>
+  <data name="SaveSettings" xml:space="preserve"><value>सेटिंग्स सहेजें</value></data>
+  <data name="ResetSettingsDefaults" xml:space="preserve"><value>सेटिंग्स को डिफ़ॉल्ट पर रीसेट करें</value></data>
+  <data name="NearbyDescription" xml:space="preserve"><value>SwiftDrop mDNS/Bonjour और UDP फ़ॉलबैक से पास के डिवाइस खोजता है। घोषणा बंद होने पर डिवाइस अपने-आप सूची से हट जाते हैं।</value></data>
+  <data name="ManualIpFallback" xml:space="preserve"><value>मैनुअल IP फ़ॉलबैक</value></data>
+  <data name="ManualIpDescription" xml:space="preserve"><value>इसे तभी उपयोग करें जब स्वतः खोज अवरुद्ध हो। रिसीवर का IP और उसका नया 8-अंकीय एक-बार कोड दर्ज करें। ट्रांसफ़र से पहले SwiftDrop TLS प्रमाणपत्र फ़िंगरप्रिंट दृश्य पुष्टि के लिए दिखाएगा।</value></data>
+  <data name="EightDigitCode" xml:space="preserve"><value>8-अंकीय कोड</value></data>
+  <data name="PairByIpCode" xml:space="preserve"><value>IP और कोड से पेयर करें</value></data>
+  <data name="NearbyEmpty" xml:space="preserve"><value>अभी कोई पास का डिवाइस नहीं मिला। QR, मैनुअल IP या पेस्ट किया निमंत्रण अभी भी उपलब्ध है।</value></data>
+  <data name="RequestPairing" xml:space="preserve"><value>पेयरिंग अनुरोध भेजें</value></data>
+  <data name="TrustedDevices" xml:space="preserve"><value>विश्वसनीय डिवाइस</value></data>
+  <data name="TrustedDevicesDescription" xml:space="preserve"><value>भरोसा डिवाइस ID और प्रमाणपत्र फ़िंगरप्रिंट से जुड़ा है। डिवाइस खो जाए, बदले या पुनः इंस्टॉल हो तो भरोसा रद्द करें।</value></data>
+  <data name="ClearAll" xml:space="preserve"><value>सभी साफ़ करें</value></data>
+  <data name="TrustedEmpty" xml:space="preserve"><value>कोई विश्वसनीय डिवाइस नहीं है।</value></data>
+  <data name="Revoke" xml:space="preserve"><value>भरोसा रद्द करें</value></data>
+  <data name="LocalNetworkDiagnostics" xml:space="preserve"><value>स्थानीय नेटवर्क डायग्नोस्टिक्स</value></data>
+  <data name="DiagnosticsPrivacyDescription" xml:space="preserve"><value>डायग्नोस्टिक्स में केवल नेटवर्क क्षमता और प्रोटोकॉल स्थिति होती है। SwiftDrop फ़ाइल/टेक्स्ट सामग्री, निजी कुंजियाँ, पूर्ण पेयरिंग निमंत्रण या पेयरिंग नॉन्स शामिल नहीं करता।</value></data>
+  <data name="DeveloperStatus" xml:space="preserve"><value>डेवलपर स्थिति</value></data>
+  <data name="QrFallbackNote" xml:space="preserve"><value>Wi-Fi नीति या प्लेटफ़ॉर्म प्रतिबंधों से स्वतः खोज रुकने पर QR और पेस्ट किए पेयरिंग निमंत्रण उपलब्ध रहते हैं।</value></data>
+  <data name="RefreshDiagnostics" xml:space="preserve"><value>डायग्नोस्टिक्स रीफ़्रेश करें</value></data>
+  <data name="ExportSafeLog" xml:space="preserve"><value>सुरक्षित लॉग निर्यात करें</value></data>
+  <data name="ClearLog" xml:space="preserve"><value>लॉग साफ़ करें</value></data>
+  <data name="SafeDeveloperSelfTests" xml:space="preserve"><value>सुरक्षित डेवलपर स्व-परीक्षण</value></data>
+  <data name="SelfTestDescription" xml:space="preserve"><value>ये परीक्षण अस्थायी संग्रह में कृत्रिम यादृच्छिक बाइट्स उपयोग करते हैं। ये उपयोगकर्ता फ़ाइलों या नेटवर्क पीयर की जाँच नहीं करते।</value></data>
+  <data name="GoodRoundTrip" xml:space="preserve"><value>सफल राउंड-ट्रिप</value></data>
+  <data name="ChecksumMismatch" xml:space="preserve"><value>चेकसम असंगति</value></data>
+  <data name="InterruptedReceive" xml:space="preserve"><value>रुका हुआ रिसीव</value></data>
+  <data name="DiagnosticsEmpty" xml:space="preserve"><value>कोई वर्तमान डायग्नोस्टिक संदेश नहीं है।</value></data>
+  <data name="PersistedEventsEmpty" xml:space="preserve"><value>कोई संग्रहीत डायग्नोस्टिक इवेंट नहीं है।</value></data>
+  <data name="RecentSafeDiagnosticEvents" xml:space="preserve"><value>हाल के सुरक्षित डायग्नोस्टिक इवेंट</value></data>
 </root>
