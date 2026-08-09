@@ -1,34 +1,98 @@
-using System.Text;
 using System.Text.Json;
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Networking;
 using SwiftDrop.Core.Protocol;
 
 namespace SwiftDrop.Core.Security;
 
 public static class PairingCodec
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private const int MaxLinkLength = 16_384;
+    private const int MaxPayloadTextLength = 12_000;
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        MaxDepth = 16
+    };
 
     public static string Encode(PairingPayload payload)
     {
+        ArgumentNullException.ThrowIfNull(payload);
         var bytes = JsonSerializer.SerializeToUtf8Bytes(payload, Json);
+        if (bytes.Length > ProtocolConstants.HeaderLimitBytes)
+            throw new InvalidDataException("Pairing payload is too large.");
         return $"swiftdrop://pair?p={Base64UrlEncode(bytes)}";
     }
 
     public static PairingPayload Decode(string text, DateTimeOffset? now = null)
     {
-        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) || uri.Scheme != "swiftdrop" || uri.Host != "pair")
+        ArgumentException.ThrowIfNullOrWhiteSpace(text);
+        if (text.Length > MaxLinkLength) throw new FormatException("SwiftDrop pairing link is too large.");
+        if (!Uri.TryCreate(text.Trim(), UriKind.Absolute, out var uri) ||
+            !string.Equals(uri.Scheme, "swiftdrop", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(uri.Host, "pair", StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrEmpty(uri.Fragment) ||
+            !string.IsNullOrEmpty(uri.UserInfo))
             throw new FormatException("Invalid SwiftDrop pairing link.");
 
-        var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Split('=', 2)).ToDictionary(p => Uri.UnescapeDataString(p[0]), p => p.Length > 1 ? Uri.UnescapeDataString(p[1]) : string.Empty);
-        if (!query.TryGetValue("p", out var encoded)) throw new FormatException("Pairing payload missing.");
-        var payload = JsonSerializer.Deserialize<PairingPayload>(Base64UrlDecode(encoded), Json) ?? throw new FormatException("Pairing payload invalid.");
-        if (payload.Version != ProtocolConstants.CurrentVersion) throw new NotSupportedException("Unsupported pairing protocol version.");
-        if (payload.ExpiresUnixSeconds < (now ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds()) throw new InvalidOperationException("Pairing link expired.");
-        if (payload.Port is <= 0 or > 65535) throw new FormatException("Invalid port.");
-        if (payload.Nonce.Length < 16) throw new FormatException("Invalid nonce.");
-        return payload;
+        var encoded = ReadSinglePayloadParameter(uri.Query);
+        if (encoded.Length is 0 or > MaxPayloadTextLength)
+            throw new FormatException("Pairing payload has an invalid size.");
+
+        PairingPayload payload;
+        try
+        {
+            var decoded = Base64UrlDecode(encoded);
+            if (decoded.Length > ProtocolConstants.HeaderLimitBytes)
+                throw new FormatException("Pairing payload is too large.");
+            payload = JsonSerializer.Deserialize<PairingPayload>(decoded, Json)
+                ?? throw new FormatException("Pairing payload is invalid.");
+        }
+        catch (Exception ex) when (ex is FormatException or JsonException)
+        {
+            throw new FormatException("Pairing payload is invalid.", ex);
+        }
+
+        return Validate(payload, now ?? DateTimeOffset.UtcNow);
+    }
+
+    public static PairingPayload Validate(PairingPayload payload, DateTimeOffset nowUtc)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+        if (!string.Equals(payload.Version, ProtocolConstants.CurrentVersion, StringComparison.Ordinal))
+            throw new NotSupportedException("Unsupported pairing protocol version.");
+        if (!IsBoundedIdentifier(payload.DeviceId, 128))
+            throw new FormatException("Invalid pairing device ID.");
+        if (!IsBoundedDisplayName(payload.DeviceName, 64))
+            throw new FormatException("Invalid pairing device name.");
+
+        var host = LocalAddressPolicy.ParseAndValidate(payload.Host).ToString();
+        if (payload.Port is < 1 or > 65_535)
+            throw new FormatException("Invalid pairing port.");
+        var fingerprint = Fingerprint.NormalizeSha256(payload.CertificateFingerprint);
+        if (!IsValidNonce(payload.Nonce))
+            throw new FormatException("Invalid pairing nonce.");
+
+        DateTimeOffset expiresUtc;
+        try
+        {
+            expiresUtc = DateTimeOffset.FromUnixTimeSeconds(payload.ExpiresUnixSeconds);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            throw new FormatException("Invalid pairing expiry.", ex);
+        }
+        if (expiresUtc <= nowUtc)
+            throw new InvalidOperationException("Pairing link expired.");
+        if (expiresUtc > nowUtc.Add(ProtocolConstants.PairingLifetime).AddMinutes(1))
+            throw new InvalidOperationException("Pairing link lifetime exceeds the protocol limit.");
+
+        return payload with
+        {
+            Host = host,
+            CertificateFingerprint = fingerprint,
+            DeviceId = payload.DeviceId.Trim(),
+            DeviceName = payload.DeviceName.Trim()
+        };
     }
 
     public static string CreateNonce()
@@ -38,9 +102,43 @@ public static class PairingCodec
         return Base64UrlEncode(bytes);
     }
 
-    private static string Base64UrlEncode(ReadOnlySpan<byte> bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    private static string ReadSinglePayloadParameter(string query)
+    {
+        string? payload = null;
+        foreach (var pair in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pieces = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(pieces[0]);
+            var value = pieces.Length == 2 ? Uri.UnescapeDataString(pieces[1]) : string.Empty;
+            if (!string.Equals(key, "p", StringComparison.Ordinal))
+                throw new FormatException("Unexpected pairing-link parameter.");
+            if (payload is not null)
+                throw new FormatException("Duplicate pairing payload parameter.");
+            payload = value;
+        }
+        return payload ?? throw new FormatException("Pairing payload missing.");
+    }
+
+    private static bool IsBoundedIdentifier(string? value, int maxLength)
+        => !string.IsNullOrWhiteSpace(value) &&
+           value.Length <= maxLength &&
+           !value.Any(char.IsControl);
+
+    private static bool IsBoundedDisplayName(string? value, int maxLength)
+        => IsBoundedIdentifier(value, maxLength) &&
+           value!.Trim().Length > 0;
+
+    private static bool IsValidNonce(string? nonce)
+        => !string.IsNullOrWhiteSpace(nonce) &&
+           nonce.Length is >= 16 and <= 128 &&
+           nonce.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_');
+
+    private static string Base64UrlEncode(ReadOnlySpan<byte> bytes)
+        => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
     private static byte[] Base64UrlDecode(string value)
     {
+        if (value.Length % 4 == 1) throw new FormatException("Invalid base64url length.");
         var s = value.Replace('-', '+').Replace('_', '/');
         s += new string('=', (4 - s.Length % 4) % 4);
         return Convert.FromBase64String(s);
