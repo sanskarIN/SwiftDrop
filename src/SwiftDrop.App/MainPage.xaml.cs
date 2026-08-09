@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
 using SwiftDrop.App.Services;
@@ -59,7 +60,9 @@ public partial class MainPage : ContentPage
                     receiveRoot,
                     _identity.TryConsumePairingNonce,
                     ApproveIncomingAsync,
-                    RecordIncomingAsync);
+                    RecordIncomingAsync,
+                    ApproveIncomingTextAsync,
+                    RecordIncomingTextAsync);
                 _receiveServer.Start();
                 TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
             }
@@ -122,6 +125,29 @@ public partial class MainPage : ContentPage
         return true;
     }
 
+    private async Task<IncomingTextDecision> ApproveIncomingTextAsync(IncomingTextPreview preview, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var displayText = preview.Text.Length <= 900 ? preview.Text : preview.Text[..900] + "…";
+        var choice = await MainThread.InvokeOnMainThreadAsync(() =>
+            DisplayActionSheet(
+                $"Text from {preview.SenderDeviceName}\n{preview.CharacterCount:N0} characters\n\n{displayText}",
+                "Reject",
+                null,
+                "Accept",
+                "Accept and copy"));
+
+        if (string.Equals(choice, "Accept and copy", StringComparison.Ordinal))
+        {
+            await MainThread.InvokeOnMainThreadAsync(() => Clipboard.Default.SetTextAsync(preview.Text));
+            return IncomingTextDecision.AcceptAndCopy;
+        }
+
+        return string.Equals(choice, "Accept", StringComparison.Ordinal)
+            ? IncomingTextDecision.Accept
+            : IncomingTextDecision.Reject;
+    }
+
     private Task RecordIncomingAsync(IncomingTransferPreview preview, string status, bool verified, CancellationToken ct)
         => _history.AddAsync(
             "received",
@@ -130,6 +156,16 @@ public partial class MainPage : ContentPage
             preview.Entry.Length,
             status,
             verified,
+            ct);
+
+    private Task RecordIncomingTextAsync(IncomingTextPreview preview, string status, CancellationToken ct)
+        => _history.AddAsync(
+            "received",
+            preview.SenderDeviceName,
+            "Text snippet",
+            Encoding.UTF8.GetByteCount(preview.Text),
+            status,
+            false,
             ct);
 
     private async Task StopReceiveServerAsync()
@@ -215,8 +251,9 @@ public partial class MainPage : ContentPage
             SendFileButton.IsEnabled = false;
             var progress = new Progress<double>(value => TransferProgress.Progress = value);
             await _transfers.SendAsync(_remote, _selectedFile.FullPath, progress, _sendCts.Token);
-            TransferStatusLabel.Text = "Completed and verified";
+            TransferStatusLabel.Text = "Completed and verified. A fresh pairing invitation is required for another transfer.";
             await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "completed", true);
+            _remote = null;
         }
         catch (OperationCanceledException)
         {
@@ -233,6 +270,63 @@ public partial class MainPage : ContentPage
         {
             CancelSendButton.IsEnabled = false;
             SendFileButton.IsEnabled = true;
+        }
+    }
+
+    private async void PasteClipboardClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            TextSnippetEditor.Text = await Clipboard.Default.GetTextAsync() ?? string.Empty;
+            TextTransferStatusLabel.Text = "Clipboard read once by your explicit action.";
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Clipboard unavailable", ex.Message, "OK");
+        }
+    }
+
+    private async void SendTextClicked(object? sender, EventArgs e)
+    {
+        if (_remote is null)
+        {
+            await DisplayAlert("Device required", "Validate a fresh pairing link first.", "OK");
+            return;
+        }
+
+        var text = TextSnippetEditor.Text ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            await DisplayAlert("Text required", "Type or explicitly paste a text snippet first.", "OK");
+            return;
+        }
+
+        try
+        {
+            TextTransferStatusLabel.Text = "Sending encrypted text…";
+            await _transfers.SendTextAsync(_remote, text, CancellationToken.None);
+            await _history.AddAsync(
+                "sent",
+                _remote.DeviceName,
+                "Text snippet",
+                Encoding.UTF8.GetByteCount(text),
+                "completed",
+                false);
+            TextSnippetEditor.Text = string.Empty;
+            TextTransferStatusLabel.Text = "Text delivered. A fresh pairing invitation is required for another transfer.";
+            _remote = null;
+        }
+        catch (Exception ex)
+        {
+            TextTransferStatusLabel.Text = "Text transfer failed.";
+            await _history.AddAsync(
+                "sent",
+                _remote.DeviceName,
+                "Text snippet",
+                Encoding.UTF8.GetByteCount(text),
+                "failed",
+                false);
+            await DisplayAlert("Text transfer failed", ex.Message, "OK");
         }
     }
 
