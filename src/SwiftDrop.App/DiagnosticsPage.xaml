@@ -13,8 +13,9 @@
       <VerticalStackLayout Spacing="6">
         <Label Text="Developer status" FontAttributes="Bold" />
         <Label x:Name="ProtocolLabel" />
+        <Label x:Name="MdnsStatusLabel" />
         <Label x:Name="UdpStatusLabel" />
-        <Label Text="mDNS/Bonjour: not enabled in this build; UDP, QR, and manual invitation fallback remain available." FontSize="12" />
+        <Label Text="QR and pasted pairing invitations remain available when automatic discovery is blocked by Wi-Fi policy or platform restrictions." FontSize="12" />
         <Button Text="Refresh diagnostics" Clicked="RefreshClicked" />
       </VerticalStackLayout>
     </Border>
