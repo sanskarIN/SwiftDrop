@@ -7,11 +7,12 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
 {
     private readonly TransferQueueService _queue;
     private string _status = string.Empty;
+    private bool _subscribed;
 
     public QueueViewModel(TransferQueueService queue)
     {
         _queue = queue;
-        _queue.Changed += QueueChanged;
+        Subscribe();
     }
 
     public ObservableCollection<QueueRow> Items { get; } = new();
@@ -24,6 +25,7 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
+        Subscribe();
         await _queue.InitializeAsync(ct);
         Refresh();
     }
@@ -45,9 +47,21 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
         Refresh();
     }
 
+    private void Subscribe()
+    {
+        if (_subscribed) return;
+        _queue.Changed += QueueChanged;
+        _subscribed = true;
+    }
+
     private void QueueChanged(object? sender, EventArgs e) => Refresh();
 
-    public void Dispose() => _queue.Changed -= QueueChanged;
+    public void Dispose()
+    {
+        if (!_subscribed) return;
+        _queue.Changed -= QueueChanged;
+        _subscribed = false;
+    }
 
     public sealed record QueueRow(string Label, string State, string TimingText, string Error)
     {
