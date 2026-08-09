@@ -1,6 +1,13 @@
 name: Platform builds
 
 on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/SwiftDrop.App/**'
+      - 'src/SwiftDrop.Core/**'
+      - 'Directory.Build.props'
+      - '.github/workflows/platform-builds.yml'
   pull_request:
     paths:
       - 'src/SwiftDrop.App/**'
