@@ -11,13 +11,18 @@ public partial class SettingsPage : ContentPage
     private readonly TransferHistoryService _history;
     private readonly DeviceIdentityService _identity;
     private readonly TrustedDevicesService _trustedDevices;
+    private readonly ReceiveLocationService _receiveLocation;
+    private readonly AppearanceService _appearance;
     private readonly IServiceProvider _services;
+    private bool _useDefaultReceiveFolder = true;
 
     public SettingsPage(
         AppSettingsService settings,
         TransferHistoryService history,
         DeviceIdentityService identity,
         TrustedDevicesService trustedDevices,
+        ReceiveLocationService receiveLocation,
+        AppearanceService appearance,
         IServiceProvider services)
     {
         InitializeComponent();
@@ -25,6 +30,8 @@ public partial class SettingsPage : ContentPage
         _history = history;
         _identity = identity;
         _trustedDevices = trustedDevices;
+        _receiveLocation = receiveLocation;
+        _appearance = appearance;
         _services = services;
         Loaded += async (_, _) => await LoadAsync();
     }
@@ -41,7 +48,19 @@ public partial class SettingsPage : ContentPage
         AutoAcceptSwitch.IsToggled = settings.AutoAcceptTrustedDevices;
         NotificationsSwitch.IsToggled = settings.NotificationsEnabled;
         ReduceMotionSwitch.IsToggled = settings.ReduceMotion;
+        LargerInterfaceSwitch.IsToggled = settings.LargerInterface;
+        DeveloperOptionsSwitch.IsToggled = settings.DeveloperOptionsEnabled;
         ThemePicker.SelectedItem = settings.Theme;
+        LanguagePicker.SelectedItem = string.Equals(settings.Language, "hi", StringComparison.OrdinalIgnoreCase) ? "Hindi" : "English";
+        _useDefaultReceiveFolder = string.IsNullOrWhiteSpace(settings.DefaultReceiveFolder);
+        ReceiveFolderEntry.Text = _useDefaultReceiveFolder
+            ? _receiveLocation.GetDefaultAppReceiveRoot()
+            : settings.DefaultReceiveFolder;
+#if WINDOWS
+        ReceiveFolderSupportLabel.Text = "Windows uses the system folder picker. SwiftDrop requests access only to the folder you choose.";
+#else
+        ReceiveFolderSupportLabel.Text = "This platform currently uses SwiftDrop's app-private Received folder. Custom external-folder selection is disabled rather than requesting broad filesystem access.";
+#endif
         UpdateLabels();
     }
 
@@ -56,11 +75,46 @@ public partial class SettingsPage : ContentPage
     private void ConcurrencyChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
     private void RetentionChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
 
+    private async void ChooseReceiveFolderClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var selected = await _receiveLocation.PickFolderAsync();
+            if (string.IsNullOrWhiteSpace(selected))
+            {
+#if WINDOWS
+                return;
+#else
+                await DisplayAlert(
+                    "Folder picker unavailable",
+                    "SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.",
+                    "OK");
+                return;
+#endif
+            }
+            _useDefaultReceiveFolder = false;
+            ReceiveFolderEntry.Text = selected;
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Folder selection failed", ex.Message, "OK");
+        }
+    }
+
+    private void UseAppReceiveFolderClicked(object? sender, EventArgs e)
+    {
+        _useDefaultReceiveFolder = true;
+        ReceiveFolderEntry.Text = _receiveLocation.GetDefaultAppReceiveRoot();
+    }
+
     private async void ManageTrustedDevicesClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<TrustedDevicesPage>());
 
     private async void OpenAboutClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<AboutPage>());
+
+    private async void OpenDiagnosticsClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<DiagnosticsPage>());
 
     private async void SaveClicked(object? sender, EventArgs e)
     {
@@ -74,15 +128,14 @@ public partial class SettingsPage : ContentPage
                 AutoAcceptSwitch.IsToggled,
                 ThemePicker.SelectedItem?.ToString() ?? "System",
                 NotificationsSwitch.IsToggled,
-                ReduceMotionSwitch.IsToggled);
+                ReduceMotionSwitch.IsToggled,
+                _useDefaultReceiveFolder ? string.Empty : ReceiveFolderEntry.Text ?? string.Empty,
+                LargerInterfaceSwitch.IsToggled,
+                string.Equals(LanguagePicker.SelectedItem?.ToString(), "Hindi", StringComparison.Ordinal) ? "hi" : "en",
+                DeveloperOptionsSwitch.IsToggled);
             _settings.Save(settings);
             await _history.ApplyRetentionAsync();
-            Application.Current!.UserAppTheme = settings.Theme switch
-            {
-                "Light" => AppTheme.Light,
-                "Dark" => AppTheme.Dark,
-                _ => AppTheme.Unspecified
-            };
+            _appearance.Apply(settings);
             DeviceNameEntry.Text = _identity.DeviceName;
             await DisplayAlert("Saved", "Settings and device name were saved on this device.", "OK");
         }
@@ -114,7 +167,7 @@ public partial class SettingsPage : ContentPage
         if (!confirm) return;
         _settings.Reset();
         await _history.ApplyRetentionAsync();
-        Application.Current!.UserAppTheme = AppTheme.Unspecified;
+        _appearance.Apply(AppSettings.Default);
         await LoadAsync();
     }
 }
