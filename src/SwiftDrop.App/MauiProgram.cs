@@ -39,6 +39,7 @@ public static class MauiProgram
         builder.Services.AddTransient<DevicesViewModel>();
         builder.Services.AddTransient<DiagnosticsViewModel>();
         builder.Services.AddTransient<SettingsViewModel>();
+        builder.Services.AddTransient<AboutViewModel>();
 
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
