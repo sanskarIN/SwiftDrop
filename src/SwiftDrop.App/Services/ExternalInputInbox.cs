@@ -51,6 +51,24 @@ public static class ExternalInputInbox
         }
     }
 
+    public static void PruneStagedCache(TimeSpan maximumAge)
+    {
+        if (maximumAge <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(maximumAge));
+        var directory = Path.Combine(FileSystem.CacheDirectory, "shared-input");
+        if (!Directory.Exists(directory)) return;
+        var cutoff = DateTimeOffset.UtcNow - maximumAge;
+        foreach (var path in Directory.EnumerateFiles(directory))
+        {
+            try
+            {
+                if (File.GetLastWriteTimeUtc(path) < cutoff.UtcDateTime) File.Delete(path);
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private static void RaiseChanged()
     {
         var handler = Changed;
