@@ -1,6 +1,7 @@
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Networking;
 using SwiftDrop.Core.Protocol;
+using SwiftDrop.Core.Security;
 using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.App.Services;
@@ -48,7 +49,13 @@ public sealed class TransferCoordinator
         if (!File.Exists(path)) throw new FileNotFoundException("Selected file cannot be opened.", path);
         var info = new FileInfo(path);
         if (info.Length > ProtocolConstants.MaxSingleFileBytes) throw new InvalidDataException("File exceeds SwiftDrop safety limit.");
-        var entry = new FileManifestEntry(Path.GetFileName(path), info.Length, await Hashing.Sha256FileAsync(path, ct), info.LastWriteTimeUtc);
+        var safeName = FileNameSanitizer.SanitizeSegment(Path.GetFileName(path));
+        var entry = ManifestValidator.ValidateEntry(new FileManifestEntry(
+            safeName,
+            info.Length,
+            await Hashing.Sha256FileAsync(path, ct),
+            info.LastWriteTimeUtc));
+
         var client = new TlsPeerClient();
         await using var ssl = await client.ConnectAsync(remote.Host, remote.Port, remote.CertificateFingerprint, _identity.Certificate, ct);
         await FrameProtocol.WriteJsonAsync(ssl, new
@@ -62,10 +69,21 @@ public sealed class TransferCoordinator
         }, ct);
         var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
         if (!response.Accepted) throw new IOException(response.Message ?? "Receiver rejected the transfer.");
-        var bytesProgress = new Progress<long>(sent => progress?.Report(info.Length == 0 ? 1 : (double)sent / info.Length));
-        await new TransferEngine().SendFileAsync(ssl, path, response.ResumeOffset, bytesProgress, ct);
+        if (response.ResumeOffset < 0 || response.ResumeOffset > entry.Length)
+            throw new InvalidDataException("Receiver returned an invalid resume offset.");
+
+        var bytesProgress = new Progress<long>(sent => progress?.Report(entry.Length == 0 ? 1 : (double)sent / entry.Length));
+        await new TransferEngine().SendFileAsync(
+            ssl,
+            path,
+            response.ResumeOffset,
+            entry.Length,
+            bytesProgress,
+            ct);
         var completed = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
         if (!completed.Accepted) throw new IOException(completed.Message ?? "Receiver reported failure.");
+        if (completed.ResumeOffset != entry.Length)
+            throw new InvalidDataException("Receiver completion length did not match the manifest.");
     }
 
     private async Task<BatchSendResult> SendBatchCoreAsync(
@@ -102,14 +120,16 @@ public sealed class TransferCoordinator
 
         var sourceByPath = batch.Items.ToDictionary(x => x.Entry.RelativePath, StringComparer.Ordinal);
         var acceptedPlans = new Dictionary<string, BatchItemPlan>(StringComparer.Ordinal);
+        var seenPlans = new HashSet<string>(StringComparer.Ordinal);
         foreach (var plan in response.Items)
         {
             if (!sourceByPath.TryGetValue(plan.RelativePath, out var source))
                 throw new InvalidDataException("Receiver returned an unknown batch item.");
+            if (!seenPlans.Add(plan.RelativePath))
+                throw new InvalidDataException("Receiver returned a duplicate batch item.");
             if (plan.ResumeOffset < 0 || plan.ResumeOffset > source.Entry.Length)
                 throw new InvalidDataException("Receiver returned an invalid resume offset.");
-            if (plan.Accepted && !acceptedPlans.TryAdd(plan.RelativePath, plan))
-                throw new InvalidDataException("Receiver returned a duplicate batch item.");
+            if (plan.Accepted) acceptedPlans.Add(plan.RelativePath, plan);
         }
 
         if (acceptedPlans.Count == 0)
@@ -136,10 +156,18 @@ public sealed class TransferCoordinator
                     acceptedTotal,
                     source.Entry.RelativePath));
             });
-            await new TransferEngine().SendFileAsync(ssl, source.LocalPath, plan.ResumeOffset, itemProgress, ct);
+            await new TransferEngine().SendFileAsync(
+                ssl,
+                source.LocalPath,
+                plan.ResumeOffset,
+                source.Entry.Length,
+                itemProgress,
+                ct);
             var itemResponse = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
             if (!itemResponse.Accepted)
                 throw new IOException(itemResponse.Message ?? $"Receiver failed while saving {source.Entry.RelativePath}.");
+            if (itemResponse.ResumeOffset != source.Entry.Length)
+                throw new InvalidDataException("Receiver item completion length did not match the manifest.");
 
             completedBefore += source.Entry.Length;
             completedItems++;
