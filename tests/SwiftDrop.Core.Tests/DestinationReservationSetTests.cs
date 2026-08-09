@@ -29,6 +29,32 @@ public sealed class DestinationReservationSetTests
     }
 
     [Fact]
+    public async Task Reserve_RemainsUniqueUnderConcurrentPressure()
+    {
+        var root = CreateTempDirectory();
+        var leases = new List<DestinationReservationSet.DestinationReservation>();
+        try
+        {
+            var requested = Path.Combine(root, "same-name.bin");
+            var reservations = new DestinationReservationSet();
+            var tasks = Enumerable.Range(0, 64)
+                .Select(_ => Task.Run(() => reservations.Reserve(requested)))
+                .ToArray();
+
+            var acquired = await Task.WhenAll(tasks);
+            leases.AddRange(acquired);
+
+            Assert.Equal(64, acquired.Select(x => x.Path).Distinct(PathComparisonPolicy.Comparer).Count());
+            Assert.All(acquired, lease => Assert.True(reservations.IsReserved(lease.Path)));
+        }
+        finally
+        {
+            foreach (var lease in leases) lease.Dispose();
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
     public void Reserve_SkipsExistingCompletedDestination()
     {
         var root = CreateTempDirectory();
