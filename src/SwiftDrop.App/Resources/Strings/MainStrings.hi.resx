@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Devices" xml:space="preserve"><value>डिवाइस</value></data>
+  <data name="Queue" xml:space="preserve"><value>कतार</value></data>
+  <data name="History" xml:space="preserve"><value>इतिहास</value></data>
+  <data name="OpenNearbyDevicesDescription" xml:space="preserve"><value>आस-पास के डिवाइस खोलें</value></data>
+  <data name="OpenTransferQueueDescription" xml:space="preserve"><value>ट्रांसफ़र कतार खोलें</value></data>
+  <data name="OpenTransferHistoryDescription" xml:space="preserve"><value>ट्रांसफ़र इतिहास खोलें</value></data>
+  <data name="OpenSettingsDescription" xml:space="preserve"><value>SwiftDrop सेटिंग्स खोलें</value></data>
+  <data name="ThisDevice" xml:space="preserve"><value>यह डिवाइस</value></data>
+  <data name="CreateQrLink" xml:space="preserve"><value>QR/लिंक बनाएँ</value></data>
+  <data name="CreateQrLinkDescription" xml:space="preserve"><value>समाप्त होने वाला एक-बार पेयरिंग लिंक और QR कोड बनाएँ</value></data>
+  <data name="CreateEightDigitCode" xml:space="preserve"><value>8-अंकीय कोड बनाएँ</value></data>
+  <data name="CreateEightDigitCodeDescription" xml:space="preserve"><value>समाप्त होने वाला 8-अंकीय पास के डिवाइस का पेयरिंग कोड बनाएँ</value></data>
+  <data name="PairingCodeDescription" xml:space="preserve"><value>वर्तमान एक-बार पेयरिंग कोड</value></data>
+  <data name="PairingQrDescription" xml:space="preserve"><value>SwiftDrop पेयरिंग QR कोड</value></data>
+  <data name="PairingLinkPlaceholder" xml:space="preserve"><value>पेयरिंग लिंक यहाँ दिखाई देगा</value></data>
+  <data name="CopyLink" xml:space="preserve"><value>लिंक कॉपी करें</value></data>
+  <data name="ShareLink" xml:space="preserve"><value>लिंक साझा करें</value></data>
+  <data name="ConnectToDevice" xml:space="preserve"><value>डिवाइस से कनेक्ट करें</value></data>
+  <data name="PastePairingLinkPlaceholder" xml:space="preserve"><value>swiftdrop:// पेयरिंग लिंक पेस्ट करें</value></data>
+  <data name="ValidatePairingLink" xml:space="preserve"><value>पेयरिंग लिंक जाँचें</value></data>
+  <data name="FingerprintSafetyNote" xml:space="preserve"><value>संवेदनशील फ़ाइल भेजने से पहले प्रमाणपत्र फ़िंगरप्रिंट को रिसीवर डिवाइस से हमेशा मिलाएँ।</value></data>
+  <data name="SendOneFile" xml:space="preserve"><value>एक फ़ाइल भेजें</value></data>
+  <data name="ChooseFile" xml:space="preserve"><value>फ़ाइल चुनें</value></data>
+  <data name="SingleTransferProgressDescription" xml:space="preserve"><value>एक फ़ाइल के ट्रांसफ़र की प्रगति</value></data>
+  <data name="SendSelectedFile" xml:space="preserve"><value>चुनी फ़ाइल भेजें</value></data>
+  <data name="SendMultipleOrFolder" xml:space="preserve"><value>कई फ़ाइलें या एक फ़ोल्डर भेजें</value></data>
+  <data name="BatchSelectionDescription" xml:space="preserve"><value>कई फ़ाइलें चुनें या, जहाँ सुरक्षित सिस्टम फ़ोल्डर पिकर उपलब्ध हो, एक फ़ोल्डर चुनें। रिसीवर सभी, चुनी फ़ाइलें स्वीकार कर सकता है या बैच अस्वीकार कर सकता है।</value></data>
+  <data name="ChooseMultipleFiles" xml:space="preserve"><value>कई फ़ाइलें चुनें</value></data>
+  <data name="NoBatchSelected" xml:space="preserve"><value>कोई बैच नहीं चुना गया</value></data>
+  <data name="BatchProgressDescription" xml:space="preserve"><value>कई फ़ाइलों के ट्रांसफ़र की प्रगति</value></data>
+  <data name="SendSelectedItems" xml:space="preserve"><value>चुने आइटम भेजें</value></data>
+  <data name="SendText" xml:space="preserve"><value>टेक्स्ट भेजें</value></data>
+  <data name="ClipboardPrivacyNote" xml:space="preserve"><value>SwiftDrop क्लिपबोर्ड तभी पढ़ता है जब आप क्लिपबोर्ड से पेस्ट दबाते हैं। यह पृष्ठभूमि में क्लिपबोर्ड की निगरानी नहीं करता।</value></data>
+  <data name="TextSnippetPlaceholder" xml:space="preserve"><value>छोटा टेक्स्ट लिखें या पेस्ट करें</value></data>
+  <data name="PasteFromClipboard" xml:space="preserve"><value>क्लिपबोर्ड से पेस्ट करें</value></data>
+  <data name="ConnectionHelp" xml:space="preserve"><value>कनेक्शन सहायता</value></data>
+  <data name="ConnectionHelpDescription" xml:space="preserve"><value>यदि पास के डिवाइस कनेक्ट नहीं हो पा रहे हैं, तो स्थानीय डायग्नोस्टिक चलाएँ। गेस्ट Wi-Fi, क्लाइंट आइसोलेशन, स्थानीय-नेटवर्क अनुमति और फ़ायरवॉल पीयर-टू-पीयर ट्रैफ़िक रोक सकते हैं।</value></data>
+  <data name="OpenLocalDiagnostics" xml:space="preserve"><value>स्थानीय नेटवर्क डायग्नोस्टिक्स खोलें</value></data>
+  <data name="IncomingFiles" xml:space="preserve"><value>आने वाली फ़ाइलें</value></data>
+  <data name="IncomingReviewNote" xml:space="preserve"><value>स्वीकार करने से पहले हर चुने आइटम की समीक्षा करें। SwiftDrop प्राप्त फ़ाइलें कभी अपने-आप नहीं खोलता।</value></data>
+  <data name="AcceptSelected" xml:space="preserve"><value>चुने आइटम स्वीकार करें</value></data>
+  <data name="AcceptAll" xml:space="preserve"><value>सभी स्वीकार करें</value></data>
+</root>
