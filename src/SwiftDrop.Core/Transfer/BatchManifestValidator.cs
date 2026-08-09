@@ -1,5 +1,6 @@
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
+using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.Core.Transfer;
 
@@ -13,13 +14,15 @@ public static class BatchManifestValidator
             throw new InvalidDataException("Invalid batch file count.");
 
         var validated = new FileManifestEntry[files.Count];
-        var paths = new HashSet<string>(StringComparer.Ordinal);
+        var portableDestinationKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long actualTotal = 0;
         for (var i = 0; i < files.Count; i++)
         {
             var entry = ManifestValidator.ValidateEntry(files[i]);
-            if (!paths.Add(entry.RelativePath))
-                throw new InvalidDataException("Batch contains duplicate relative paths.");
+            var destinationKey = FileNameSanitizer.GetPortableCollisionKey(entry.RelativePath);
+            if (!portableDestinationKeys.Add(destinationKey))
+                throw new InvalidDataException("Batch contains paths that collide after safe filename normalization.");
+
             actualTotal = checked(actualTotal + entry.Length);
             if (actualTotal > ProtocolConstants.MaxBatchBytes)
                 throw new InvalidDataException("Batch exceeds the SwiftDrop total-size safety limit.");
