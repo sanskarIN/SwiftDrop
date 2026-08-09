@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using SwiftDrop.App.Services;
+using SwiftDrop.Core.Diagnostics;
 
 namespace SwiftDrop.App;
 
@@ -14,6 +15,8 @@ public static class MauiProgram
 #endif
         builder.Services.AddSingleton<DeviceIdentityService>();
         builder.Services.AddSingleton<TransferCoordinator>();
+        builder.Services.AddSingleton<AppSettingsService>();
+        builder.Services.AddSingleton<NetworkDiagnosticsService>();
         builder.Services.AddSingleton<MainPage>();
         return builder.Build();
     }
