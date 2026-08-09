@@ -19,9 +19,7 @@ public sealed class OneTimePairingCodeManager
 
     public PairingCodeSnapshot Create(DateTimeOffset nowUtc)
     {
-        Span<byte> random = stackalloc byte[4];
-        RandomNumberGenerator.Fill(random);
-        var value = BitConverter.ToUInt32(random) % 100_000_000u;
+        var value = RandomNumberGenerator.GetInt32(0, 100_000_000);
         var code = value.ToString("D8", System.Globalization.CultureInfo.InvariantCulture);
         var expires = nowUtc.Add(_lifetime);
 
