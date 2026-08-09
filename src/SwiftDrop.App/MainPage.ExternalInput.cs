@@ -26,23 +26,27 @@ public partial class MainPage
         if (!string.IsNullOrWhiteSpace(input.SharedText))
         {
             TextSnippetEditor.Text = input.SharedText;
-            TextTransferStatusLabel.Text = "Text was received from the platform share sheet. Review it before sending.";
+            TextTransferStatusLabel.Text = "Text was received from the platform share or drop surface. Review it before sending.";
         }
 
         if (input.SharedFiles.Count > 0)
         {
             _selectedBatchFiles = input.SharedFiles
-                .Where(File.Exists)
+                .Where(path => File.Exists(path) || Directory.Exists(path))
                 .Take(2048)
                 .Select(path => new FileResult(path))
                 .ToArray();
+
+            var folderCount = _selectedBatchFiles.Count(x => Directory.Exists(x.FullPath));
+            var fileCount = _selectedBatchFiles.Length - folderCount;
             SelectedBatchLabel.Text = _selectedBatchFiles.Length switch
             {
-                0 => "Shared files were unavailable",
+                0 => "Shared files or folders were unavailable",
+                1 when folderCount == 1 => $"Shared folder: {new DirectoryInfo(_selectedBatchFiles[0].FullPath).Name}",
                 1 => $"Shared file: {_selectedBatchFiles[0].FileName}",
-                _ => $"{_selectedBatchFiles.Length:N0} shared files ready to send"
+                _ => $"{fileCount:N0} shared file(s) and {folderCount:N0} folder(s) ready to send"
             };
-            BatchTransferStatusLabel.Text = "Shared files were staged in SwiftDrop cache. Choose/verify a receiving device before sending.";
+            BatchTransferStatusLabel.Text = "Shared/dropped sources are selected locally. Review the selection and verify a receiving device before sending.";
         }
     }
 }
