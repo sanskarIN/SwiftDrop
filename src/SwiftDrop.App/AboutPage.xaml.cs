@@ -1,3 +1,5 @@
+using SwiftDrop.App.ViewModels;
+
 namespace SwiftDrop.App;
 
 public partial class AboutPage : ContentPage
@@ -6,12 +8,10 @@ public partial class AboutPage : ContentPage
     private static readonly Uri ProfileUri = new("https://www.github.com/sanskarIN");
     private static readonly Uri BuyMeACoffeeUri = new("https://buymeacoffee.com/sanskarIN");
 
-    public AboutPage()
+    public AboutPage(AboutViewModel viewModel)
     {
         InitializeComponent();
-        var version = AppInfo.Current.VersionString;
-        var build = AppInfo.Current.BuildString;
-        VersionLabel.Text = $"Version {version} • Build {build}";
+        BindingContext = viewModel;
     }
 
     private async void OpenRepositoryClicked(object? sender, EventArgs e)
