@@ -17,6 +17,8 @@ public sealed class AppSettingsService
     private const string LanguageKey = "settings_language";
     private const string DeveloperOptionsKey = "settings_developer_options";
 
+    public event EventHandler<AppSettingsChangedEventArgs>? Changed;
+
     public AppSettings Load()
     {
         var settings = new AppSettings(
@@ -36,6 +38,7 @@ public sealed class AppSettingsService
 
     public void Save(AppSettings settings)
     {
+        var previous = Load();
         settings = SettingsValidator.Validate(settings);
         Preferences.Default.Set(ConcurrencyKey, settings.TransferConcurrency);
         Preferences.Default.Set(HistoryRetentionKey, settings.HistoryRetentionDays);
@@ -48,7 +51,27 @@ public sealed class AppSettingsService
         Preferences.Default.Set(LargerInterfaceKey, settings.LargerInterface);
         Preferences.Default.Set(LanguageKey, settings.Language);
         Preferences.Default.Set(DeveloperOptionsKey, settings.DeveloperOptionsEnabled);
+
+        if (previous != settings)
+            Changed?.Invoke(this, new AppSettingsChangedEventArgs(previous, settings));
     }
 
     public void Reset() => Save(AppSettings.Default);
+}
+
+public sealed class AppSettingsChangedEventArgs : EventArgs
+{
+    public AppSettingsChangedEventArgs(AppSettings previous, AppSettings current)
+    {
+        Previous = previous ?? throw new ArgumentNullException(nameof(previous));
+        Current = current ?? throw new ArgumentNullException(nameof(current));
+    }
+
+    public AppSettings Previous { get; }
+    public AppSettings Current { get; }
+
+    public bool ReceiveFolderChanged => !string.Equals(
+        Previous.DefaultReceiveFolder,
+        Current.DefaultReceiveFolder,
+        StringComparison.OrdinalIgnoreCase);
 }
