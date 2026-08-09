@@ -10,6 +10,8 @@ public sealed class AppSettingsService
     private const string PrivacyModeKey = "settings_privacy_mode";
     private const string AutoAcceptKey = "settings_auto_accept_trusted";
     private const string ThemeKey = "settings_theme";
+    private const string NotificationsKey = "settings_notifications_enabled";
+    private const string ReduceMotionKey = "settings_reduce_motion";
 
     public AppSettings Load()
     {
@@ -18,7 +20,9 @@ public sealed class AppSettingsService
             Preferences.Default.Get(HistoryRetentionKey, AppSettings.Default.HistoryRetentionDays),
             Preferences.Default.Get(PrivacyModeKey, AppSettings.Default.PrivacyMode),
             Preferences.Default.Get(AutoAcceptKey, AppSettings.Default.AutoAcceptTrustedDevices),
-            Preferences.Default.Get(ThemeKey, AppSettings.Default.Theme));
+            Preferences.Default.Get(ThemeKey, AppSettings.Default.Theme),
+            Preferences.Default.Get(NotificationsKey, AppSettings.Default.NotificationsEnabled),
+            Preferences.Default.Get(ReduceMotionKey, AppSettings.Default.ReduceMotion));
         return SettingsValidator.Validate(settings);
     }
 
@@ -30,6 +34,8 @@ public sealed class AppSettingsService
         Preferences.Default.Set(PrivacyModeKey, settings.PrivacyMode);
         Preferences.Default.Set(AutoAcceptKey, settings.AutoAcceptTrustedDevices);
         Preferences.Default.Set(ThemeKey, settings.Theme);
+        Preferences.Default.Set(NotificationsKey, settings.NotificationsEnabled);
+        Preferences.Default.Set(ReduceMotionKey, settings.ReduceMotion);
     }
 
     public void Reset()
