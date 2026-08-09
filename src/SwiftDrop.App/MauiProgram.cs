@@ -19,6 +19,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<TransferHistoryService>();
         builder.Services.AddSingleton<NetworkDiagnosticsService>();
         builder.Services.AddSingleton<MainPage>();
+        builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<HistoryPage>();
         return builder.Build();
     }
 }
