@@ -7,6 +7,7 @@ public sealed class TransferHistoryService
 {
     private readonly TransferHistoryStore _store;
     private readonly AppSettingsService _settings;
+    private readonly SemaphoreSlim _initializationGate = new(1, 1);
     private bool _initialized;
 
     public TransferHistoryService(AppSettingsService settings)
@@ -18,21 +19,34 @@ public sealed class TransferHistoryService
     public async Task InitializeAsync(CancellationToken ct = default)
     {
         if (_initialized) return;
-        await _store.InitializeAsync(ct);
-        _initialized = true;
+        await _initializationGate.WaitAsync(ct);
+        try
+        {
+            if (_initialized) return;
+            await _store.InitializeAsync(ct);
+            _initialized = true;
+        }
+        finally
+        {
+            _initializationGate.Release();
+        }
         await ApplyRetentionAsync(ct);
     }
 
     public async Task ApplyRetentionAsync(CancellationToken ct = default)
     {
-        if (!_initialized) await InitializeAsync(ct);
+        if (!_initialized)
+        {
+            await InitializeAsync(ct);
+            return;
+        }
         var days = _settings.Load().HistoryRetentionDays;
         if (days == 0)
         {
             await _store.ClearAsync(ct);
             return;
         }
-        await _store.PruneBeforeAsync(DateTimeOffset.UtcNow.AddDays(-days), ct);
+        await _store.PruneOlderThanAsync(DateTimeOffset.UtcNow.AddDays(-days), ct);
     }
 
     public async Task AddAsync(
