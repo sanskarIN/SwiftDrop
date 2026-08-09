@@ -28,6 +28,27 @@ public sealed class BatchManifestValidatorTests
     }
 
     [Fact]
+    public void Validate_RejectsCaseOnlyPortableCollision()
+    {
+        var files = new[] { Entry("Folder/Report.txt", 1), Entry("folder/report.TXT", 1) };
+        Assert.Throws<InvalidDataException>(() => BatchManifestValidator.Validate(files, 2));
+    }
+
+    [Fact]
+    public void Validate_RejectsUnicodeNormalizationCollision()
+    {
+        var files = new[] { Entry("Café.txt", 1), Entry("Cafe\u0301.txt", 1) };
+        Assert.Throws<InvalidDataException>(() => BatchManifestValidator.Validate(files, 2));
+    }
+
+    [Fact]
+    public void Validate_RejectsSanitizationCollision()
+    {
+        var files = new[] { Entry("report?.txt", 1), Entry("report*.txt", 1) };
+        Assert.Throws<InvalidDataException>(() => BatchManifestValidator.Validate(files, 2));
+    }
+
+    [Fact]
     public void Validate_RejectsDeclaredTotalMismatch()
     {
         var files = new[] { Entry("a.txt", 5) };
