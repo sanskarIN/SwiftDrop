@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Request" xml:space="preserve"><value>Request</value></data>
+  <data name="UseEightDigitCode" xml:space="preserve"><value>Use 8-digit code</value></data>
+  <data name="DiscoveryUnavailable" xml:space="preserve"><value>Discovery unavailable</value></data>
+  <data name="DeviceUnavailable" xml:space="preserve"><value>Device unavailable</value></data>
+  <data name="DeviceUnavailableMessage" xml:space="preserve"><value>The device is no longer advertising. Refresh and try again.</value></data>
+  <data name="PairingUnavailable" xml:space="preserve"><value>Pairing unavailable</value></data>
+  <data name="PairingFingerprintMissingMessage" xml:space="preserve"><value>This discovery record does not include a certificate fingerprint. Use QR pairing instead.</value></data>
+  <data name="PairWithFormat" xml:space="preserve"><value>Pair with {0}</value></data>
+  <data name="OneTimePairingCode" xml:space="preserve"><value>One-time pairing code</value></data>
+  <data name="OneTimePairingCodePrompt" xml:space="preserve"><value>Enter the 8-digit code shown on the receiving device. The code expires quickly and is still combined with TLS certificate verification and receiver approval.</value></data>
+  <data name="InvalidCode" xml:space="preserve"><value>Invalid code</value></data>
+  <data name="InvalidCodeMessage" xml:space="preserve"><value>Enter exactly eight digits.</value></data>
+  <data name="RequestPairingQuestion" xml:space="preserve"><value>Request pairing?</value></data>
+  <data name="RequestPairingDetailsFormat" xml:space="preserve"><value>Device: {0}\nAddress: {1}:{2}\nCertificate: {3}\n\nThe other device must approve this request.</value></data>
+  <data name="WaitingForApproval" xml:space="preserve"><value>Waiting for approval…</value></data>
+  <data name="PairingTimedOut" xml:space="preserve"><value>Pairing timed out</value></data>
+  <data name="PairingTimedOutMessage" xml:space="preserve"><value>The pairing request expired before it was approved.</value></data>
+  <data name="PairingFailed" xml:space="preserve"><value>Pairing failed</value></data>
+  <data name="InvalidPort" xml:space="preserve"><value>Invalid port</value></data>
+  <data name="InvalidPortMessage" xml:space="preserve"><value>Enter a numeric port from 1 to 65535.</value></data>
+  <data name="FreshCodeMessage" xml:space="preserve"><value>Enter the fresh 8-digit code shown on the receiving device.</value></data>
+  <data name="ManualPairingBootstrap" xml:space="preserve"><value>Manual pairing bootstrap</value></data>
+  <data name="ManualPairingBootstrapMessage" xml:space="preserve"><value>Manual IP pairing initially connects before the receiver certificate fingerprint is known. The 8-digit code and receiver approval authorize the bootstrap. SwiftDrop then binds the returned invitation to the exact TLS certificate it observed and will ask you to visually confirm that fingerprint before sending. Continue only on a network and device you expect.</value></data>
+  <data name="ManualPairingTimedOutMessage" xml:space="preserve"><value>Manual pairing expired before it completed.</value></data>
+  <data name="ManualPairingFailed" xml:space="preserve"><value>Manual pairing failed</value></data>
+  <data name="SettingsError" xml:space="preserve"><value>Settings error</value></data>
+  <data name="FolderPickerUnavailable" xml:space="preserve"><value>Folder picker unavailable</value></data>
+  <data name="FolderPickerUnavailableMessage" xml:space="preserve"><value>SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.</value></data>
+  <data name="FolderSelectionFailed" xml:space="preserve"><value>Folder selection failed</value></data>
+  <data name="NotificationPermissionNotGranted" xml:space="preserve"><value>Notification permission not granted</value></data>
+  <data name="NotificationPermissionNotGrantedMessage" xml:space="preserve"><value>SwiftDrop will continue transferring normally without optional completion/failure notifications. Required foreground transfer status is controlled by Android platform rules.</value></data>
+  <data name="Saved" xml:space="preserve"><value>Saved</value></data>
+  <data name="SavedSettingsMessage" xml:space="preserve"><value>Settings and device name were saved on this device.</value></data>
+  <data name="SavedLanguageChangedMessage" xml:space="preserve"><value>Settings and device name were saved. Newly opened screens use the selected language; restart SwiftDrop to refresh screens that were already open.</value></data>
+  <data name="ResetDeviceIdentityQuestion" xml:space="preserve"><value>Reset device identity?</value></data>
+  <data name="ResetDeviceIdentityQuestionMessage" xml:space="preserve"><value>This creates a new device ID and certificate, invalidates current pairing invitations, and removes every locally trusted device. Other devices will no longer recognize this identity. Received files and transfer history are not deleted.</value></data>
+  <data name="ResetIdentityAction" xml:space="preserve"><value>Reset identity</value></data>
+  <data name="IdentityReset" xml:space="preserve"><value>Identity reset</value></data>
+  <data name="IdentityResetMessage" xml:space="preserve"><value>A new local identity and certificate were created.</value></data>
+  <data name="ResetSettings" xml:space="preserve"><value>Reset settings</value></data>
+  <data name="ResetSettingsQuestionMessage" xml:space="preserve"><value>Restore SwiftDrop settings to their defaults? Device identity and trusted devices are not changed.</value></data>
+  <data name="RevokeTrustedDeviceQuestion" xml:space="preserve"><value>Revoke trusted device?</value></data>
+  <data name="RevokeTrustedDeviceMessage" xml:space="preserve"><value>Future transfers from this device will require explicit confirmation again.</value></data>
+  <data name="ClearTrustedDevicesQuestion" xml:space="preserve"><value>Clear all trusted devices?</value></data>
+  <data name="ClearTrustedDevicesMessage" xml:space="preserve"><value>This removes all locally stored trust decisions.</value></data>
+  <data name="SwiftDropSafeDiagnostics" xml:space="preserve"><value>SwiftDrop safe diagnostics</value></data>
+  <data name="DiagnosticsRefreshFailedFormat" xml:space="preserve"><value>Diagnostics refresh failed with {0}.</value></data>
+  <data name="ExportFailed" xml:space="preserve"><value>Export failed</value></data>
+  <data name="ExportFailedFormat" xml:space="preserve"><value>Diagnostics export failed with {0}.</value></data>
+  <data name="ClearDiagnosticLogQuestion" xml:space="preserve"><value>Clear diagnostic log?</value></data>
+  <data name="ClearDiagnosticLogMessage" xml:space="preserve"><value>This removes locally stored diagnostic events. Transfer history and received files are not changed.</value></data>
+  <data name="DeveloperOptionsDisabled" xml:space="preserve"><value>Developer options disabled</value></data>
+  <data name="DeveloperOptionsDisabledMessage" xml:space="preserve"><value>Enable safe developer diagnostics in Settings first.</value></data>
+  <data name="UnableToOpenLink" xml:space="preserve"><value>Unable to open link</value></data>
+  <data name="UnableToOpenLinkFormat" xml:space="preserve"><value>SwiftDrop could not open the {0} on this device.</value></data>
+  <data name="OpeningLinkUnsupportedFormat" xml:space="preserve"><value>Opening the {0} is not supported on this device.</value></data>
+  <data name="RepositoryLinkLabel" xml:space="preserve"><value>repository</value></data>
+  <data name="CreatorProfileLinkLabel" xml:space="preserve"><value>creator profile</value></data>
+  <data name="BuyMeACoffeeLinkLabel" xml:space="preserve"><value>Buy Me a Coffee page</value></data>
+  <data name="RunningCountFormat" xml:space="preserve"><value>{0:N0} running • {1:N0} queued • {2:N0} interrupted</value></data>
+  <data name="QueuedAtFormat" xml:space="preserve"><value>Queued {0:T}</value></data>
+  <data name="StartedAtFormat" xml:space="preserve"><value>Started {0:T}</value></data>
+  <data name="InterruptedAtFormat" xml:space="preserve"><value>Interrupted {0:T}</value></data>
+  <data name="FinishedAtFormat" xml:space="preserve"><value>Finished {0:T}</value></data>
+  <data name="TrustedDeviceCountOne" xml:space="preserve"><value>1 trusted device</value></data>
+  <data name="TrustedDeviceCountFormat" xml:space="preserve"><value>{0:N0} trusted devices</value></data>
+  <data name="TrustedAtFormat" xml:space="preserve"><value>Trusted {0:g} • Last seen {1:g}</value></data>
+  <data name="NearbyDeviceCountOne" xml:space="preserve"><value>1 device</value></data>
+  <data name="NearbyDeviceCountFormat" xml:space="preserve"><value>{0:N0} devices</value></data>
+  <data name="LastSeenUnknown" xml:space="preserve"><value>Last seen: unknown</value></data>
+  <data name="LastSeenAtFormat" xml:space="preserve"><value>Last seen: {0:T}</value></data>
+</root>
