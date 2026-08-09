@@ -7,7 +7,11 @@ public sealed record AppSettings(
     bool AutoAcceptTrustedDevices,
     string Theme,
     bool NotificationsEnabled = true,
-    bool ReduceMotion = false)
+    bool ReduceMotion = false,
+    string DefaultReceiveFolder = "",
+    bool LargerInterface = false,
+    string Language = "en",
+    bool DeveloperOptionsEnabled = false)
 {
     public static AppSettings Default { get; } = new(
         TransferConcurrency: 2,
@@ -16,5 +20,9 @@ public sealed record AppSettings(
         AutoAcceptTrustedDevices: false,
         Theme: "System",
         NotificationsEnabled: true,
-        ReduceMotion: false);
+        ReduceMotion: false,
+        DefaultReceiveFolder: "",
+        LargerInterface: false,
+        Language: "en",
+        DeveloperOptionsEnabled: false);
 }
