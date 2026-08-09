@@ -9,5 +9,7 @@ public partial class App : Application
         InitializeComponent();
         appearance.Apply(settings.Load());
         MainPage = new NavigationPage(page);
+        ExternalInputInbox.Changed += async (_, _) => await page.ApplyExternalInputAsync();
+        MainThread.BeginInvokeOnMainThread(async () => await page.ApplyExternalInputAsync());
     }
 }
