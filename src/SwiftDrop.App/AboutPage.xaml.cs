@@ -28,11 +28,11 @@ public partial class AboutPage : ContentPage
         try
         {
             if (!await Launcher.Default.TryOpenAsync(uri))
-                await DisplayAlert("Unable to open link", $"SwiftDrop could not open the {label} on this device.", "OK");
+                await DisplayAlertAsync("Unable to open link", $"SwiftDrop could not open the {label} on this device.", "OK");
         }
         catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
         {
-            await DisplayAlert("Unable to open link", $"Opening the {label} is not supported on this device.", "OK");
+            await DisplayAlertAsync("Unable to open link", $"Opening the {label} is not supported on this device.", "OK");
         }
     }
 }
