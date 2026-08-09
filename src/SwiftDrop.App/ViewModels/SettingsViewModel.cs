@@ -12,7 +12,9 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly TrustedDevicesService _trustedDevices;
     private readonly ReceiveLocationService _receiveLocation;
     private readonly AppearanceService _appearance;
+#if ANDROID
     private readonly TransferNotificationService _notifications;
+#endif
 
     private string _deviceName = string.Empty;
     private string _identityFingerprint = string.Empty;
@@ -47,7 +49,9 @@ public sealed class SettingsViewModel : ObservableObject
         _trustedDevices = trustedDevices;
         _receiveLocation = receiveLocation;
         _appearance = appearance;
+#if ANDROID
         _notifications = notifications;
+#endif
     }
 
     public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
