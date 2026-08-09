@@ -18,6 +18,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<AppearanceService>();
         builder.Services.AddSingleton<ReceiveLocationService>();
+        builder.Services.AddSingleton<TransferActivityService>();
         builder.Services.AddSingleton<TransferQueueService>();
         builder.Services.AddSingleton<TransferCoordinator>();
         builder.Services.AddSingleton<TransferHistoryService>();
