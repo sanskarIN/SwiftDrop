@@ -39,6 +39,8 @@ public partial class SettingsPage : ContentPage
         RetentionStepper.Value = settings.HistoryRetentionDays;
         PrivacyModeSwitch.IsToggled = settings.PrivacyMode;
         AutoAcceptSwitch.IsToggled = settings.AutoAcceptTrustedDevices;
+        NotificationsSwitch.IsToggled = settings.NotificationsEnabled;
+        ReduceMotionSwitch.IsToggled = settings.ReduceMotion;
         ThemePicker.SelectedItem = settings.Theme;
         UpdateLabels();
     }
@@ -70,7 +72,9 @@ public partial class SettingsPage : ContentPage
                 (int)RetentionStepper.Value,
                 PrivacyModeSwitch.IsToggled,
                 AutoAcceptSwitch.IsToggled,
-                ThemePicker.SelectedItem?.ToString() ?? "System");
+                ThemePicker.SelectedItem?.ToString() ?? "System",
+                NotificationsSwitch.IsToggled,
+                ReduceMotionSwitch.IsToggled);
             _settings.Save(settings);
             await _history.ApplyRetentionAsync();
             Application.Current!.UserAppTheme = settings.Theme switch
