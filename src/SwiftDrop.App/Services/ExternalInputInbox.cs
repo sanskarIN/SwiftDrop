@@ -5,7 +5,7 @@ public static class ExternalInputInbox
     private static readonly object Gate = new();
     private static string? _pairingLink;
     private static string? _sharedText;
-    private static readonly List<string> SharedFiles = new();
+    private static readonly List<string> SharedPaths = new();
 
     public static event EventHandler? Changed;
 
@@ -26,15 +26,26 @@ public static class ExternalInputInbox
         RaiseChanged();
     }
 
-    public static void AddSharedFile(string localPath)
+    public static void AddSharedFile(string localPath) => AddSharedPath(localPath);
+
+    public static void AddSharedPath(string localPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(localPath);
-        var full = Path.GetFullPath(localPath);
-        if (!File.Exists(full)) return;
+        string full;
+        try
+        {
+            full = Path.GetFullPath(localPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return;
+        }
+
+        if (!File.Exists(full) && !Directory.Exists(full)) return;
         lock (Gate)
         {
-            if (SharedFiles.Count >= 2048) return;
-            if (!SharedFiles.Contains(full, StringComparer.Ordinal)) SharedFiles.Add(full);
+            if (SharedPaths.Count >= 2048) return;
+            if (!SharedPaths.Contains(full, PathComparer)) SharedPaths.Add(full);
         }
         RaiseChanged();
     }
@@ -43,10 +54,10 @@ public static class ExternalInputInbox
     {
         lock (Gate)
         {
-            var result = new ExternalInputBatch(_pairingLink, _sharedText, SharedFiles.ToArray());
+            var result = new ExternalInputBatch(_pairingLink, _sharedText, SharedPaths.ToArray());
             _pairingLink = null;
             _sharedText = null;
-            SharedFiles.Clear();
+            SharedPaths.Clear();
             return result;
         }
     }
@@ -68,6 +79,9 @@ public static class ExternalInputInbox
             }
         }
     }
+
+    private static StringComparer PathComparer
+        => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     private static void RaiseChanged()
     {
