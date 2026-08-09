@@ -5,12 +5,12 @@
              Title="Settings">
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
-      <Label Text="SwiftDrop Settings" FontSize="30" FontAttributes="Bold" />
+      <Label Text="SwiftDrop Settings" FontSize="30" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
       <Label Text="Transfers stay on your local network. Auto-accept is disabled by default." Opacity="0.75" />
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Device identity" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Device identity" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <Label Text="Device name" />
           <Entry x:Name="DeviceNameEntry" MaxLength="64" Placeholder="SwiftDrop device" />
           <Label x:Name="IdentityFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
@@ -21,7 +21,14 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Transfers" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Transfers" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="Default receive folder" />
+          <Entry x:Name="ReceiveFolderEntry" IsReadOnly="True" LineBreakMode="MiddleTruncation" />
+          <HorizontalStackLayout Spacing="10">
+            <Button Text="Choose folder" Clicked="ChooseReceiveFolderClicked" />
+            <Button Text="Use app folder" Clicked="UseAppReceiveFolderClicked" />
+          </HorizontalStackLayout>
+          <Label x:Name="ReceiveFolderSupportLabel" FontSize="12" Opacity="0.7" />
           <Label Text="Concurrent transfers" />
           <Stepper x:Name="ConcurrencyStepper" Minimum="1" Maximum="8" Increment="1" ValueChanged="ConcurrencyChanged" />
           <Label x:Name="ConcurrencyLabel" />
@@ -33,7 +40,7 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Privacy and trust" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Privacy and trust" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="PrivacyModeSwitch" />
             <Label Text="Hide filenames in transfer history" VerticalTextAlignment="Center" />
@@ -48,7 +55,7 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Notifications and accessibility" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Notifications and accessibility" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="NotificationsSwitch" />
             <Label Text="Allow SwiftDrop transfer-status notifications where the platform permits" VerticalTextAlignment="Center" />
@@ -57,13 +64,17 @@
             <Switch x:Name="ReduceMotionSwitch" />
             <Label Text="Reduce non-essential motion" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
+          <HorizontalStackLayout Spacing="12">
+            <Switch x:Name="LargerInterfaceSwitch" />
+            <Label Text="Use larger interface text and controls" VerticalTextAlignment="Center" />
+          </HorizontalStackLayout>
           <Label Text="SwiftDrop remains usable without notifications. Platform notification permission is requested only when a feature needs it." FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Appearance" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Appearance and language" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <Picker x:Name="ThemePicker" Title="Theme">
             <Picker.Items>
               <x:String>System</x:String>
@@ -71,6 +82,25 @@
               <x:String>Dark</x:String>
             </Picker.Items>
           </Picker>
+          <Picker x:Name="LanguagePicker" Title="Language">
+            <Picker.Items>
+              <x:String>English</x:String>
+              <x:String>Hindi</x:String>
+            </Picker.Items>
+          </Picker>
+          <Label Text="English ships as the complete UI language. Hindi resource architecture is enabled progressively; untranslated strings fall back to English." FontSize="12" Opacity="0.7" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Developer options" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <HorizontalStackLayout Spacing="12">
+            <Switch x:Name="DeveloperOptionsSwitch" />
+            <Label Text="Enable safe developer diagnostics" VerticalTextAlignment="Center" />
+          </HorizontalStackLayout>
+          <Label Text="Developer diagnostics must never expose transferred content, private keys, pairing nonces, or full pairing invitations." FontSize="12" Opacity="0.7" />
+          <Button Text="Open diagnostics" Clicked="OpenDiagnosticsClicked" />
         </VerticalStackLayout>
       </Border>
 
