@@ -13,6 +13,7 @@ public sealed class NearbyDiscoveryService : IAsyncDisposable
     private readonly CancellationTokenSource _lifetimeCts = new();
     private UdpDiscoveryService? _udp;
     private MdnsDiscoveryService? _mdns;
+    private PlatformMulticastLease? _multicastLease;
     private CancellationTokenSource? _runCts;
     private Task? _udpListenTask;
     private Task? _mdnsListenTask;
@@ -40,8 +41,17 @@ public sealed class NearbyDiscoveryService : IAsyncDisposable
 
         Exception? mdnsError = null;
         Exception? udpError = null;
-        try { _mdns = new MdnsDiscoveryService(); }
-        catch (Exception ex) when (ex is SocketException or InvalidOperationException) { mdnsError = ex; }
+        try
+        {
+            _multicastLease = PlatformMulticastLease.Acquire();
+            _mdns = new MdnsDiscoveryService();
+        }
+        catch (Exception ex) when (ex is SocketException or InvalidOperationException)
+        {
+            mdnsError = ex;
+            _multicastLease?.Dispose();
+            _multicastLease = null;
+        }
 
         try { _udp = new UdpDiscoveryService(ProtocolConstants.DefaultPort + 1); }
         catch (Exception ex) when (ex is SocketException or InvalidOperationException) { udpError = ex; }
@@ -134,6 +144,7 @@ public sealed class NearbyDiscoveryService : IAsyncDisposable
             try { await task!; } catch (OperationCanceledException) { } catch (ObjectDisposedException) { }
         }
 
+        _multicastLease?.Dispose();
         _runCts?.Dispose();
         _lifetimeCts.Dispose();
     }
