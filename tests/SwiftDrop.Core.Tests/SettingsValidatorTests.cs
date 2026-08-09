@@ -9,6 +9,10 @@ public sealed class SettingsValidatorTests
     public void AcceptsDefaults()
         => Assert.Equal(AppSettings.Default, SettingsValidator.Validate(AppSettings.Default));
 
+    [Fact]
+    public void OptionalNotifications_AreDisabledByDefault()
+        => Assert.False(AppSettings.Default.NotificationsEnabled);
+
     [Theory]
     [InlineData(0)]
     [InlineData(9)]
