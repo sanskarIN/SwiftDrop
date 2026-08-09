@@ -1,1 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>LSRequiresIPhoneOS</key><true/><key>NSLocalNetworkUsageDescription</key><string>SwiftDrop uses your local network to discover devices and transfer files directly.</string><key>CFBundleURLTypes</key><array><dict><key>CFBundleURLSchemes</key><array><string>swiftdrop</string></array></dict></array><key>UILaunchStoryboardName</key><string>LaunchScreen</string></dict></plist>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>LSRequiresIPhoneOS</key>
+  <true/>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>SwiftDrop uses your local network to discover nearby devices and transfer files or text directly.</string>
+  <key>NSBonjourServices</key>
+  <array>
+    <string>_swiftdrop._tcp</string>
+  </array>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>swiftdrop</string>
+      </array>
+    </dict>
+  </array>
+  <key>UILaunchStoryboardName</key>
+  <string>LaunchScreen</string>
+</dict>
+</plist>
