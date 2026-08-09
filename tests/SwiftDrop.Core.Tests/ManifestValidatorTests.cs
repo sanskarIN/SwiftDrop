@@ -1,4 +1,5 @@
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.Core.Tests;
@@ -27,12 +28,51 @@ public sealed class ManifestValidatorTests
     [Fact]
     public void ValidateEntry_RejectsFutureTimestamp()
     {
-        var entry = new FileManifestEntry(
+        var entry = Entry() with { LastWriteUtc = DateTimeOffset.UtcNow.AddDays(5) };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Fact]
+    public void ValidateEntry_RejectsPreUnixTimestamp()
+    {
+        var entry = Entry() with { LastWriteUtc = DateTimeOffset.UnixEpoch.AddTicks(-1) };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(long.MaxValue)]
+    public void ValidateEntry_RejectsUnsafeLength(long length)
+    {
+        var entry = Entry() with { Length = length };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Fact]
+    public void ValidateEntry_AcceptsConfiguredMaximumFileLength()
+    {
+        var entry = Entry() with { Length = ProtocolConstants.MaxSingleFileBytes };
+        Assert.Equal(entry, ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Fact]
+    public void ValidateEntry_RejectsControlCharactersInPath()
+    {
+        var entry = Entry() with { RelativePath = "folder/file\u0001.txt" };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Fact]
+    public void ValidateEntry_RejectsOversizedPathMetadata()
+    {
+        var entry = Entry() with { RelativePath = new string('a', 1025) };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    private static FileManifestEntry Entry()
+        => new(
             "file.txt",
             1,
             new string('0', 64),
-            DateTimeOffset.UtcNow.AddDays(5));
-
-        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
-    }
+            DateTimeOffset.UtcNow.AddMinutes(-1));
 }
