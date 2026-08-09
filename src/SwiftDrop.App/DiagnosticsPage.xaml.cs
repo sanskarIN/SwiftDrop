@@ -79,13 +79,13 @@ public partial class DiagnosticsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Export failed", $"Diagnostics export failed with {ex.GetType().Name}.", "OK");
+            await DisplayAlertAsync("Export failed", $"Diagnostics export failed with {ex.GetType().Name}.", "OK");
         }
     }
 
     private async void ClearLogClicked(object? sender, EventArgs e)
     {
-        var confirmed = await DisplayAlert(
+        var confirmed = await DisplayAlertAsync(
             "Clear diagnostic log?",
             "This removes locally stored diagnostic events. Transfer history and received files are not changed.",
             "Clear",
@@ -109,7 +109,7 @@ public partial class DiagnosticsPage : ContentPage
         if (!_settings.Load().DeveloperOptionsEnabled)
         {
             SelfTestPanel.IsVisible = false;
-            await DisplayAlert("Developer options disabled", "Enable safe developer diagnostics in Settings first.", "OK");
+            await DisplayAlertAsync("Developer options disabled", "Enable safe developer diagnostics in Settings first.", "OK");
             return;
         }
 
