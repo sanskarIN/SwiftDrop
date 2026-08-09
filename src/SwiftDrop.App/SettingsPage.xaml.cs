@@ -49,7 +49,15 @@ public partial class SettingsPage : ContentPage
         RetentionStepper.Value = settings.HistoryRetentionDays;
         PrivacyModeSwitch.IsToggled = settings.PrivacyMode;
         AutoAcceptSwitch.IsToggled = settings.AutoAcceptTrustedDevices;
+#if ANDROID
+        NotificationsSwitch.IsEnabled = true;
         NotificationsSwitch.IsToggled = settings.NotificationsEnabled;
+        NotificationSupportLabel.Text = "Android optional completion/failure notifications are opt-in. Android 13+ notification permission is requested only when you enable this setting and save.";
+#else
+        NotificationsSwitch.IsEnabled = false;
+        NotificationsSwitch.IsToggled = false;
+        NotificationSupportLabel.Text = "Optional completion/failure system notifications are not implemented on this target yet. Transfer status remains available inside SwiftDrop.";
+#endif
         ReduceMotionSwitch.IsToggled = settings.ReduceMotion;
         LargerInterfaceSwitch.IsToggled = settings.LargerInterface;
         DeveloperOptionsSwitch.IsToggled = settings.DeveloperOptionsEnabled;
@@ -124,8 +132,8 @@ public partial class SettingsPage : ContentPage
         try
         {
             await _identity.RenameAsync(DeviceNameEntry.Text ?? string.Empty);
-            var notificationsEnabled = NotificationsSwitch.IsToggled;
 #if ANDROID
+            var notificationsEnabled = NotificationsSwitch.IsToggled;
             if (notificationsEnabled && !await _notifications.EnsurePermissionAsync())
             {
                 notificationsEnabled = false;
@@ -135,6 +143,8 @@ public partial class SettingsPage : ContentPage
                     "SwiftDrop will continue transferring normally without optional completion/failure notifications. The required foreground transfer status is controlled by Android platform rules.",
                     "OK");
             }
+#else
+            const bool notificationsEnabled = false;
 #endif
             var settings = new AppSettings(
                 (int)ConcurrencyStepper.Value,
