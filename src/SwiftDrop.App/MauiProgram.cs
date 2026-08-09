@@ -34,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<OneTimePairingCodeManager>();
 
         builder.Services.AddTransient<HistoryViewModel>();
+        builder.Services.AddTransient<QueueViewModel>();
 
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
