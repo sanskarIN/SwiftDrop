@@ -18,11 +18,21 @@ jobs:
         run: |
           set -euo pipefail
           bad="$(find . -type f \
-            \( -iname '*.pfx' -o -iname '*.p12' -o -iname '*.jks' -o -iname '*.keystore' -o -iname '*.mobileprovision' -o -iname '*.db' -o -iname '*.db-wal' -o -iname '*.db-shm' \) \
+            \( -iname '*.pfx' -o -iname '*.p12' -o -iname '*.jks' -o -iname '*.keystore' -o -iname '*.mobileprovision' -o -iname '*.key' -o -iname '*.db' -o -iname '*.db-wal' -o -iname '*.db-shm' -o -name '.env' -o -name '.env.local' -o -name '.env.production' \) \
             -not -path './.git/*' -print)"
           if [ -n "$bad" ]; then
             echo "Disallowed private/local artifact files were committed:"
             echo "$bad"
+            exit 1
+          fi
+      - name: Reject embedded private-key PEM/OpenSSH blocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          matches="$(grep -RIlE --exclude-dir=.git --exclude='*.md' -- '-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----' . || true)"
+          if [ -n "$matches" ]; then
+            echo "Possible private-key material was committed:"
+            echo "$matches"
             exit 1
           fi
       - name: Verify required security documentation
@@ -34,3 +44,5 @@ jobs:
           test -s docs/security/THREAT_MODEL.md
           test -s docs/protocol/security.md
           test -s docs/protocol/wire-format.md
+          test -s docs/storage/database-schema.md
+          test -s docs/testing/manual-test-matrix.md
