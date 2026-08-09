@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SwiftDrop.App.Services"
              x:Class="SwiftDrop.App.BatchApprovalPage"
-             Title="Incoming files">
+             Title="{services:Localize IncomingFiles}">
   <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="6">
-      <Label Text="Incoming files" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+      <Label Text="{services:Localize IncomingFiles}" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
       <Label x:Name="SenderLabel" FontAttributes="Bold" />
       <Label x:Name="SummaryLabel" />
       <Label x:Name="RiskLabel" FontSize="13" />
-      <Label Text="Review every selected item before accepting. SwiftDrop never opens received files automatically." FontSize="12" Opacity="0.75" />
+      <Label Text="{services:Localize IncomingReviewNote}" FontSize="12" Opacity="0.75" />
     </VerticalStackLayout>
 
     <CollectionView x:Name="FilesList" Grid.Row="1" SelectionMode="None">
@@ -28,9 +29,9 @@
     </CollectionView>
 
     <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="10">
-      <Button Grid.Column="0" Text="Reject" Clicked="RejectClicked" />
-      <Button Grid.Column="1" Text="Accept selected" Clicked="AcceptSelectedClicked" />
-      <Button Grid.Column="2" Text="Accept all" Clicked="AcceptAllClicked" />
+      <Button Grid.Column="0" Text="{services:Localize Reject}" Clicked="RejectClicked" />
+      <Button Grid.Column="1" Text="{services:Localize AcceptSelected}" Clicked="AcceptSelectedClicked" />
+      <Button Grid.Column="2" Text="{services:Localize AcceptAll}" Clicked="AcceptAllClicked" />
     </Grid>
   </Grid>
 </ContentPage>
