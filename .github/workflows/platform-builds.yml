@@ -52,3 +52,17 @@ jobs:
       - run: dotnet workload install maui-ios maui-maccatalyst
       - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
       - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
+      - name: Select iOS simulator runtime
+        shell: bash
+        run: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            echo "IOS_SIMULATOR_RID=iossimulator-arm64" >> "$GITHUB_ENV"
+          else
+            echo "IOS_SIMULATOR_RID=iossimulator-x64" >> "$GITHUB_ENV"
+          fi
+      - name: Restore iOS simulator target
+        shell: bash
+        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+      - name: Build iOS simulator target
+        shell: bash
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
