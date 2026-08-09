@@ -70,7 +70,7 @@
         <VerticalStackLayout Spacing="10">
           <Label Text="Connection help" FontAttributes="Bold" FontSize="18" />
           <Label Text="If nearby devices cannot connect, run a local diagnostic. Guest Wi-Fi, client isolation, local-network permissions, and firewalls may block peer-to-peer traffic." FontSize="13" Opacity="0.75" />
-          <Button Text="Run local network diagnostics" Clicked="RunDiagnosticsClicked" />
+          <Button Text="Open local network diagnostics" Clicked="OpenDiagnosticsClicked" />
         </VerticalStackLayout>
       </Border>
 
