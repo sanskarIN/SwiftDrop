@@ -1,110 +1,52 @@
 using Microsoft.Extensions.DependencyInjection;
 using SwiftDrop.App.Services;
-using SwiftDrop.Core.Models;
-using SwiftDrop.Core.Security;
+using SwiftDrop.App.ViewModels;
 
 namespace SwiftDrop.App;
 
 public partial class SettingsPage : ContentPage
 {
-    private readonly AppSettingsService _settings;
-    private readonly TransferHistoryService _history;
-    private readonly DeviceIdentityService _identity;
-    private readonly TrustedDevicesService _trustedDevices;
-    private readonly ReceiveLocationService _receiveLocation;
-    private readonly AppearanceService _appearance;
-    private readonly TransferNotificationService _notifications;
+    private readonly SettingsViewModel _viewModel;
     private readonly IServiceProvider _services;
-    private bool _useDefaultReceiveFolder = true;
 
-    public SettingsPage(
-        AppSettingsService settings,
-        TransferHistoryService history,
-        DeviceIdentityService identity,
-        TrustedDevicesService trustedDevices,
-        ReceiveLocationService receiveLocation,
-        AppearanceService appearance,
-        TransferNotificationService notifications,
-        IServiceProvider services)
+    public SettingsPage(SettingsViewModel viewModel, IServiceProvider services)
     {
         InitializeComponent();
-        _settings = settings;
-        _history = history;
-        _identity = identity;
-        _trustedDevices = trustedDevices;
-        _receiveLocation = receiveLocation;
-        _appearance = appearance;
-        _notifications = notifications;
+        _viewModel = viewModel;
         _services = services;
+        BindingContext = viewModel;
         Loaded += async (_, _) => await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        await _identity.InitializeAsync();
-        var settings = _settings.Load();
-        DeviceNameEntry.Text = _identity.DeviceName;
-        IdentityFingerprintLabel.Text = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
-        ConcurrencyStepper.Value = settings.TransferConcurrency;
-        RetentionStepper.Value = settings.HistoryRetentionDays;
-        PrivacyModeSwitch.IsToggled = settings.PrivacyMode;
-        AutoAcceptSwitch.IsToggled = settings.AutoAcceptTrustedDevices;
-#if ANDROID
-        NotificationsSwitch.IsEnabled = true;
-        NotificationsSwitch.IsToggled = settings.NotificationsEnabled;
-        NotificationSupportLabel.Text = "Android optional completion/failure notifications are opt-in. Android 13+ notification permission is requested only when you enable this setting and save.";
-#else
-        NotificationsSwitch.IsEnabled = false;
-        NotificationsSwitch.IsToggled = false;
-        NotificationSupportLabel.Text = "Optional completion/failure system notifications are not implemented on this target yet. Transfer status remains available inside SwiftDrop.";
-#endif
-        ReduceMotionSwitch.IsToggled = settings.ReduceMotion;
-        LargerInterfaceSwitch.IsToggled = settings.LargerInterface;
-        DeveloperOptionsSwitch.IsToggled = settings.DeveloperOptionsEnabled;
-        ThemePicker.SelectedItem = settings.Theme;
-        LanguagePicker.SelectedItem = string.Equals(settings.Language, "hi", StringComparison.OrdinalIgnoreCase) ? "Hindi" : "English";
-        _useDefaultReceiveFolder = string.IsNullOrWhiteSpace(settings.DefaultReceiveFolder);
-        ReceiveFolderEntry.Text = _useDefaultReceiveFolder
-            ? _receiveLocation.GetDefaultAppReceiveRoot()
-            : settings.DefaultReceiveFolder;
-#if WINDOWS
-        ReceiveFolderSupportLabel.Text = "Windows uses the system folder picker. SwiftDrop requests access only to the folder you choose.";
-#else
-        ReceiveFolderSupportLabel.Text = "This platform currently uses SwiftDrop's app-private Received folder. Custom external-folder selection is disabled rather than requesting broad filesystem access.";
-#endif
-        UpdateLabels();
+        try
+        {
+            await _viewModel.LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Settings error", ex.Message, "OK");
+        }
     }
 
-    private void UpdateLabels()
-    {
-        ConcurrencyLabel.Text = $"{(int)ConcurrencyStepper.Value}";
-        RetentionLabel.Text = RetentionStepper.Value == 0
-            ? "Do not retain history"
-            : $"{(int)RetentionStepper.Value} days";
-    }
-
-    private void ConcurrencyChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
-    private void RetentionChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
+    private void NumericSettingChanged(object? sender, ValueChangedEventArgs e)
+        => _viewModel.UpdateComputedLabels();
 
     private async void ChooseReceiveFolderClicked(object? sender, EventArgs e)
     {
         try
         {
-            var selected = await _receiveLocation.PickFolderAsync();
-            if (string.IsNullOrWhiteSpace(selected))
-            {
+            var selected = await _viewModel.ChooseReceiveFolderAsync();
+            if (selected) return;
 #if WINDOWS
-                return;
+            return;
 #else
-                await DisplayAlertAsync(
-                    "Folder picker unavailable",
-                    "SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.",
-                    "OK");
-                return;
+            await DisplayAlertAsync(
+                "Folder picker unavailable",
+                "SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.",
+                "OK");
 #endif
-            }
-            _useDefaultReceiveFolder = false;
-            ReceiveFolderEntry.Text = selected;
         }
         catch (Exception ex)
         {
@@ -113,10 +55,7 @@ public partial class SettingsPage : ContentPage
     }
 
     private void UseAppReceiveFolderClicked(object? sender, EventArgs e)
-    {
-        _useDefaultReceiveFolder = true;
-        ReceiveFolderEntry.Text = _receiveLocation.GetDefaultAppReceiveRoot();
-    }
+        => _viewModel.UseAppReceiveFolder();
 
     private async void ManageTrustedDevicesClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<TrustedDevicesPage>());
@@ -131,38 +70,19 @@ public partial class SettingsPage : ContentPage
     {
         try
         {
-            await _identity.RenameAsync(DeviceNameEntry.Text ?? string.Empty);
-#if ANDROID
-            var notificationsEnabled = NotificationsSwitch.IsToggled;
-            if (notificationsEnabled && !await _notifications.EnsurePermissionAsync())
+            var result = await _viewModel.SaveAsync();
+            if (result.NotificationPermissionDenied)
             {
-                notificationsEnabled = false;
-                NotificationsSwitch.IsToggled = false;
                 await DisplayAlertAsync(
                     "Notification permission not granted",
                     "SwiftDrop will continue transferring normally without optional completion/failure notifications. The required foreground transfer status is controlled by Android platform rules.",
                     "OK");
             }
-#else
-            const bool notificationsEnabled = false;
-#endif
-            var settings = new AppSettings(
-                (int)ConcurrencyStepper.Value,
-                (int)RetentionStepper.Value,
-                PrivacyModeSwitch.IsToggled,
-                AutoAcceptSwitch.IsToggled,
-                ThemePicker.SelectedItem?.ToString() ?? "System",
-                notificationsEnabled,
-                ReduceMotionSwitch.IsToggled,
-                _useDefaultReceiveFolder ? string.Empty : ReceiveFolderEntry.Text ?? string.Empty,
-                LargerInterfaceSwitch.IsToggled,
-                string.Equals(LanguagePicker.SelectedItem?.ToString(), "Hindi", StringComparison.Ordinal) ? "hi" : "en",
-                DeveloperOptionsSwitch.IsToggled);
-            _settings.Save(settings);
-            await _history.ApplyRetentionAsync();
-            _appearance.Apply(settings);
-            DeviceNameEntry.Text = _identity.DeviceName;
-            await DisplayAlertAsync("Saved", "Settings and device name were saved on this device.", "OK");
+
+            var message = result.LanguageChanged
+                ? "Settings and device name were saved. Newly opened screens use the selected language; restart SwiftDrop to refresh screens that were already open."
+                : "Settings and device name were saved on this device.";
+            await DisplayAlertAsync("Saved", message, "OK");
         }
         catch (Exception ex)
         {
@@ -176,23 +96,21 @@ public partial class SettingsPage : ContentPage
             "Reset device identity?",
             "This creates a new device ID and certificate, invalidates current pairing invitations, and removes every locally trusted device. Other devices will no longer recognize this identity. Received files and transfer history are not deleted.",
             "Reset identity",
-            "Cancel");
+            AppText.Get("Cancel"));
         if (!confirm) return;
 
-        await _trustedDevices.ClearAsync();
-        await _identity.ResetIdentityAsync();
-        DeviceNameEntry.Text = _identity.DeviceName;
-        IdentityFingerprintLabel.Text = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
+        await _viewModel.ResetIdentityAsync();
         await DisplayAlertAsync("Identity reset", "A new local identity and certificate were created.", "OK");
     }
 
     private async void ResetClicked(object? sender, EventArgs e)
     {
-        var confirm = await DisplayAlertAsync("Reset settings", "Restore SwiftDrop settings to their defaults? Device identity and trusted devices are not changed.", "Reset", "Cancel");
+        var confirm = await DisplayAlertAsync(
+            "Reset settings",
+            "Restore SwiftDrop settings to their defaults? Device identity and trusted devices are not changed.",
+            "Reset",
+            AppText.Get("Cancel"));
         if (!confirm) return;
-        _settings.Reset();
-        await _history.ApplyRetentionAsync();
-        _appearance.Apply(AppSettings.Default);
-        await LoadAsync();
+        await _viewModel.ResetSettingsAsync();
     }
 }
