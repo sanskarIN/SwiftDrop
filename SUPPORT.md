@@ -17,6 +17,14 @@ For general product support, contact **supportramsandesh@gmail.com**.
 
 Contact **sanskarin@outlook.in**.
 
+## Support development
+
+If you want to support continued open-source development of SwiftDrop, you can use:
+
+https://buymeacoffee.com/sanskarIN
+
+Support is optional. It does not unlock application features, priority support, privileged security handling, or access to user transfer data.
+
 ## Security issues
 
 Do not publish vulnerability details, private transfer data, pairing invitations, certificate private keys, or other secrets in a public GitHub issue. Follow `SECURITY.md` and report security-sensitive findings privately to **sanskarin@outlook.in**.
