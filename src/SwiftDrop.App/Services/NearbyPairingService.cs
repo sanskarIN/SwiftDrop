@@ -24,15 +24,19 @@ public sealed class NearbyPairingService
         ArgumentNullException.ThrowIfNull(peer);
         if (string.IsNullOrWhiteSpace(peer.CertificateFingerprint))
             throw new InvalidOperationException("The discovered device did not advertise a certificate fingerprint. Use QR pairing instead.");
+        var expectedFingerprint = Fingerprint.NormalizeSha256(peer.CertificateFingerprint);
+        var host = LocalAddressPolicy.ParseAndValidate(peer.Host).ToString();
+        if (peer.Port is < 1 or > 65_535)
+            throw new InvalidDataException("The discovered device advertised an invalid port.");
         ValidatePairingCode(pairingCode, required: false);
 
         await _identity.InitializeAsync();
 
         var client = new TlsPeerClient();
         await using var stream = await client.ConnectAsync(
-            peer.Host,
+            host,
             peer.Port,
-            peer.CertificateFingerprint,
+            expectedFingerprint,
             _identity.Certificate,
             ct);
         await WritePairingRequestAsync(stream, pairingCode, ct);
@@ -44,8 +48,14 @@ public sealed class NearbyPairingService
         var payload = PairingCodec.Decode(response.PairingLink);
         if (!string.Equals(payload.DeviceId, peer.Id, StringComparison.Ordinal))
             throw new InvalidDataException("Nearby device identity changed during pairing.");
-        if (!Fingerprint.FixedTimeEquals(payload.CertificateFingerprint, peer.CertificateFingerprint))
+        if (!Fingerprint.FixedTimeEquals(payload.CertificateFingerprint, expectedFingerprint))
             throw new InvalidDataException("Nearby device certificate changed during pairing.");
+        if (!IPAddress.TryParse(payload.Host, out var payloadAddress) ||
+            !IPAddress.TryParse(host, out var discoveryAddress) ||
+            !payloadAddress.Equals(discoveryAddress))
+            throw new InvalidDataException("Nearby device address changed during pairing.");
+        if (payload.Port != peer.Port)
+            throw new InvalidDataException("Nearby device port changed during pairing.");
         return payload;
     }
 
@@ -56,15 +66,14 @@ public sealed class NearbyPairingService
         CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
-        if (!IPAddress.TryParse(host.Trim('[', ']'), out _))
-            throw new ArgumentException("Enter a numeric IPv4 or IPv6 address.", nameof(host));
+        var validatedHost = LocalAddressPolicy.ParseAndValidate(host.Trim('[', ']')).ToString();
         if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         ValidatePairingCode(pairingCode, required: true);
 
         await _identity.InitializeAsync();
         var client = new TlsPeerClient();
         await using var bootstrap = await client.ConnectUnpinnedBootstrapAsync(
-            host.Trim('[', ']'),
+            validatedHost,
             port,
             _identity.Certificate,
             ct);
@@ -76,6 +85,12 @@ public sealed class NearbyPairingService
         var payload = PairingCodec.Decode(response.PairingLink);
         if (!Fingerprint.FixedTimeEquals(payload.CertificateFingerprint, bootstrap.ServerFingerprint))
             throw new InvalidDataException("The pairing response certificate does not match the TLS bootstrap certificate.");
+        if (!IPAddress.TryParse(payload.Host, out var payloadAddress) ||
+            !IPAddress.TryParse(validatedHost, out var requestedAddress) ||
+            !payloadAddress.Equals(requestedAddress))
+            throw new InvalidDataException("The manual pairing response changed the receiver address.");
+        if (payload.Port != port)
+            throw new InvalidDataException("The manual pairing response changed the receiver port.");
         return payload;
     }
 
