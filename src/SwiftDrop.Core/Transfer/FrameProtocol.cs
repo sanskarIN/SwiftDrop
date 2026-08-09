@@ -6,9 +6,16 @@ namespace SwiftDrop.Core.Transfer;
 
 public static class FrameProtocol
 {
+    private const int MaxJsonDepth = 32;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        MaxDepth = 32
+        MaxDepth = MaxJsonDepth
+    };
+    private static readonly JsonDocumentOptions DocumentOptions = new()
+    {
+        MaxDepth = MaxJsonDepth,
+        AllowTrailingCommas = false,
+        CommentHandling = JsonCommentHandling.Disallow
     };
 
     public static async Task WriteJsonAsync<T>(Stream stream, T value, CancellationToken ct)
@@ -38,6 +45,8 @@ public static class FrameProtocol
         await ReadExactlyAsync(stream, payload, ct);
         try
         {
+            using var document = JsonDocument.Parse(payload, DocumentOptions);
+            EnsureNoDuplicateProperties(document.RootElement);
             return JsonSerializer.Deserialize<T>(payload, JsonOptions)
                    ?? throw new InvalidDataException("Invalid protocol frame.");
         }
@@ -66,6 +75,28 @@ public static class FrameProtocol
             }
             if (read == 0) throw new EndOfStreamException();
             total += read;
+        }
+    }
+
+    private static void EnsureNoDuplicateProperties(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+            {
+                var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (!names.Add(property.Name))
+                        throw new InvalidDataException("Protocol JSON contains duplicate property names.");
+                    EnsureNoDuplicateProperties(property.Value);
+                }
+                break;
+            }
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    EnsureNoDuplicateProperties(item);
+                break;
         }
     }
 
