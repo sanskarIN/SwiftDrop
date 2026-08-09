@@ -33,6 +33,34 @@ public sealed class BatchTransferSourceBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_DeconflictsDuplicateTopLevelFileNames()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "swiftdrop-duplicates-" + Guid.NewGuid().ToString("N"));
+        var left = Path.Combine(root, "left");
+        var right = Path.Combine(root, "right");
+        Directory.CreateDirectory(left);
+        Directory.CreateDirectory(right);
+        try
+        {
+            var first = Path.Combine(left, "photo.jpg");
+            var second = Path.Combine(right, "photo.jpg");
+            await File.WriteAllTextAsync(first, "first");
+            await File.WriteAllTextAsync(second, "second");
+
+            var batch = await BatchTransferSourceBuilder.BuildAsync(new[] { first, second });
+
+            Assert.Equal(2, batch.FileCount);
+            Assert.Equal(2, batch.Items.Select(x => x.Entry.RelativePath).Distinct(StringComparer.Ordinal).Count());
+            Assert.Contains(batch.Items, x => x.Entry.RelativePath == "photo.jpg");
+            Assert.Contains(batch.Items, x => x.Entry.RelativePath == "photo (2).jpg");
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public async Task BuildAsync_RejectsEmptySelection()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
