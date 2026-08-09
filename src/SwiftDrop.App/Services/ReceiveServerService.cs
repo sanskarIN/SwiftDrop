@@ -24,6 +24,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<string>? _createPairingLink;
     private readonly Func<string?, bool>? _consumePairingCode;
     private readonly AttemptRateLimiter _pairingAttemptLimiter = new(8, TimeSpan.FromMinutes(1));
+    private readonly DestinationReservationSet _destinationReservations = new();
     private readonly ConcurrentDictionary<long, Task> _activeHandlers = new();
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
@@ -235,9 +236,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 }
 
                 var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, safeEntry.RelativePath);
-                var final = File.Exists(requestedFinal) || Directory.Exists(requestedFinal)
-                    ? PathGuard.GetCollisionFreePath(requestedFinal)
-                    : requestedFinal;
+                using var destination = _destinationReservations.Reserve(requestedFinal);
+                var final = destination.Path;
                 var effectiveRelativePath = Path.GetRelativePath(_receiveRoot, final);
                 var effectiveEntry = safeEntry with { RelativePath = effectiveRelativePath };
                 var partial = final + ".swiftdrop.part";
@@ -313,80 +313,89 @@ public sealed class ReceiveServerService : IAsyncDisposable
         if (decision.AcceptedRelativePaths.Any(path => !knownPaths.Contains(path)))
             throw new InvalidDataException("Receiver selection contained an unknown batch path.");
 
-        var receiveItems = new List<BatchReceiveItem>();
-        var plans = new List<BatchItemPlan>(safeFiles.Count);
-        foreach (var file in safeFiles)
+        var reservations = new List<DestinationReservationSet.DestinationReservation>();
+        try
         {
-            if (!decision.AcceptedRelativePaths.Contains(file.RelativePath))
+            var receiveItems = new List<BatchReceiveItem>();
+            var plans = new List<BatchItemPlan>(safeFiles.Count);
+            foreach (var file in safeFiles)
             {
-                plans.Add(new BatchItemPlan(file.RelativePath, 0, false, "Not selected by receiver."));
-                await RecordAsync(
-                    new IncomingTransferPreview(request.SenderDeviceId!, request.SenderDeviceName!, senderFingerprint, file, FileRiskClassifier.Classify(file.RelativePath)),
-                    "not-selected",
-                    false,
-                    ct);
-                continue;
+                if (!decision.AcceptedRelativePaths.Contains(file.RelativePath))
+                {
+                    plans.Add(new BatchItemPlan(file.RelativePath, 0, false, "Not selected by receiver."));
+                    await RecordAsync(
+                        new IncomingTransferPreview(request.SenderDeviceId!, request.SenderDeviceName!, senderFingerprint, file, FileRiskClassifier.Classify(file.RelativePath)),
+                        "not-selected",
+                        false,
+                        ct);
+                    continue;
+                }
+
+                var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+                var destination = _destinationReservations.Reserve(requestedFinal);
+                reservations.Add(destination);
+                var final = destination.Path;
+                var effectiveRelativePath = Path.GetRelativePath(_receiveRoot, final);
+                var effectiveEntry = file with { RelativePath = effectiveRelativePath };
+                var partial = final + ".swiftdrop.part";
+                var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
+                plans.Add(new BatchItemPlan(file.RelativePath, offset, true));
+                receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveEntry, offset));
             }
 
-            var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
-            var final = File.Exists(requestedFinal) || Directory.Exists(requestedFinal)
-                ? PathGuard.GetCollisionFreePath(requestedFinal)
-                : requestedFinal;
-            var effectiveRelativePath = Path.GetRelativePath(_receiveRoot, final);
-            var effectiveEntry = file with { RelativePath = effectiveRelativePath };
-            var partial = final + ".swiftdrop.part";
-            var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
-            plans.Add(new BatchItemPlan(file.RelativePath, offset, true));
-            receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveEntry, offset));
-        }
-
-        if (receiveItems.Count == 0)
-        {
-            await FrameProtocol.WriteJsonAsync(
-                connection,
-                new BatchTransferResponse(false, plans, "No files were selected."),
-                ct);
-            return;
-        }
-
-        var aggregateRemainingBytes = receiveItems.Aggregate(
-            0L,
-            static (total, item) => checked(total + item.EffectiveEntry.Length - item.ResumeOffset));
-        StorageCapacityGuard.EnsureCapacity(_receiveRoot, aggregateRemainingBytes);
-
-        await FrameProtocol.WriteJsonAsync(connection, new BatchTransferResponse(true, plans), ct);
-        foreach (var item in receiveItems)
-        {
-            var start = await FrameProtocol.ReadJsonAsync<BatchItemStart>(connection, ct);
-            if (!string.Equals(start.RelativePath, item.SourceRelativePath, StringComparison.Ordinal))
-                throw new InvalidDataException("Batch item order or path did not match the negotiated plan.");
-
-            var itemPreview = new IncomingTransferPreview(
-                request.SenderDeviceId!,
-                request.SenderDeviceName!,
-                senderFingerprint,
-                item.EffectiveEntry,
-                FileRiskClassifier.Classify(item.EffectiveEntry.RelativePath));
-            try
+            if (receiveItems.Count == 0)
             {
-                await new TransferEngine().ReceiveFileAsync(
+                await FrameProtocol.WriteJsonAsync(
                     connection,
-                    _receiveRoot,
-                    item.EffectiveEntry,
-                    item.ResumeOffset,
-                    null,
+                    new BatchTransferResponse(false, plans, "No files were selected."),
                     ct);
-                await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, item.EffectiveEntry.Length, null), ct);
-                await RecordAsync(itemPreview, "completed", true, ct);
+                return;
             }
-            catch
-            {
-                await RecordBestEffortAsync(itemPreview, "failed", false);
-                throw;
-            }
-        }
 
-        await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, preview.TotalBytes, null), ct);
+            var aggregateRemainingBytes = receiveItems.Aggregate(
+                0L,
+                static (total, item) => checked(total + item.EffectiveEntry.Length - item.ResumeOffset));
+            StorageCapacityGuard.EnsureCapacity(_receiveRoot, aggregateRemainingBytes);
+
+            await FrameProtocol.WriteJsonAsync(connection, new BatchTransferResponse(true, plans), ct);
+            foreach (var item in receiveItems)
+            {
+                var start = await FrameProtocol.ReadJsonAsync<BatchItemStart>(connection, ct);
+                if (!string.Equals(start.RelativePath, item.SourceRelativePath, StringComparison.Ordinal))
+                    throw new InvalidDataException("Batch item order or path did not match the negotiated plan.");
+
+                var itemPreview = new IncomingTransferPreview(
+                    request.SenderDeviceId!,
+                    request.SenderDeviceName!,
+                    senderFingerprint,
+                    item.EffectiveEntry,
+                    FileRiskClassifier.Classify(item.EffectiveEntry.RelativePath));
+                try
+                {
+                    await new TransferEngine().ReceiveFileAsync(
+                        connection,
+                        _receiveRoot,
+                        item.EffectiveEntry,
+                        item.ResumeOffset,
+                        null,
+                        ct);
+                    await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, item.EffectiveEntry.Length, null), ct);
+                    await RecordAsync(itemPreview, "completed", true, ct);
+                }
+                catch
+                {
+                    await RecordBestEffortAsync(itemPreview, "failed", false);
+                    throw;
+                }
+            }
+
+            await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, preview.TotalBytes, null), ct);
+        }
+        finally
+        {
+            foreach (var reservation in reservations)
+                reservation.Dispose();
+        }
     }
 
     private static FileManifestEntry ValidateAndSanitizeEntry(FileManifestEntry entry)
