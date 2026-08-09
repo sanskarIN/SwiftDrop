@@ -3,7 +3,7 @@ namespace SwiftDrop.Core.Security;
 public sealed class DestinationReservationSet
 {
     private readonly object _gate = new();
-    private readonly HashSet<string> _reserved = new(PathComparer);
+    private readonly HashSet<string> _reserved = new(PathComparisonPolicy.Comparer);
 
     public DestinationReservation Reserve(string requestedPath)
     {
@@ -49,9 +49,6 @@ public sealed class DestinationReservationSet
     {
         lock (_gate) _reserved.Remove(path);
     }
-
-    private static StringComparer PathComparer
-        => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     public sealed class DestinationReservation : IDisposable
     {
