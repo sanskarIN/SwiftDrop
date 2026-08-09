@@ -18,9 +18,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<TransferHistoryService>();
         builder.Services.AddSingleton<NetworkDiagnosticsService>();
+        builder.Services.AddSingleton<NearbyDiscoveryService>();
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<HistoryPage>();
+        builder.Services.AddTransient<DevicesPage>();
         return builder.Build();
     }
 }
