@@ -1,6 +1,5 @@
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Networking;
 using SwiftDrop.Core.Protocol;
@@ -41,7 +40,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
         _approveText = approveText;
         _recordText = recordText;
         Directory.CreateDirectory(_receiveRoot);
-        _server = new TlsPeerServer(new X509Certificate2(certificate.Export(X509ContentType.Pfx)), ProtocolConstants.DefaultPort);
+        _server = new TlsPeerServer(CopyCertificateWithPrivateKey(certificate), ProtocolConstants.DefaultPort);
     }
 
     public void Start()
@@ -90,13 +89,61 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     return;
                 }
 
-                using var senderCertificate = new X509Certificate2(connection.RemoteCertificate);
+                using var senderCertificate = LoadPublicCertificate(connection.RemoteCertificate.GetRawCertData());
                 var senderFingerprint = Fingerprint.FromCertificate(senderCertificate);
                 if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, DateTimeOffset.UtcNow))
                 {
                     await RejectAsync(connection, "Too many pairing attempts. Try again shortly.", ct);
                     return;
                 }
+
+                FileManifestEntry? safeEntry = null;
+                DateTimeOffset? textExpiry = null;
+                if (request.Type == "file")
+                {
+                    if (request.Entry is null)
+                    {
+                        await RejectAsync(connection, "File metadata is required.", ct);
+                        return;
+                    }
+                    if (request.Entry.Length < 0 || request.Entry.Length > ProtocolConstants.MaxSingleFileBytes)
+                    {
+                        await RejectAsync(connection, "Unsafe file size.", ct);
+                        return;
+                    }
+
+                    string sanitizedPath;
+                    try
+                    {
+                        sanitizedPath = FileNameSanitizer.SanitizeRelativePath(request.Entry.RelativePath);
+                        _ = PathGuard.ResolveUnderRoot(_receiveRoot, sanitizedPath);
+                    }
+                    catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IOException)
+                    {
+                        await RejectAsync(connection, "Unsafe filename or destination path.", ct);
+                        return;
+                    }
+                    safeEntry = request.Entry with { RelativePath = sanitizedPath };
+                }
+                else
+                {
+                    if (_approveText is null)
+                    {
+                        await RejectAsync(connection, "Text receiving is unavailable.", ct);
+                        return;
+                    }
+                    try
+                    {
+                        textExpiry = DateTimeOffset.FromUnixTimeSeconds(request.ExpiresUnixSeconds ?? 0);
+                        TextSnippetValidator.Validate(request.Text, textExpiry.Value, DateTimeOffset.UtcNow);
+                    }
+                    catch (Exception ex) when (ex is InvalidDataException or ArgumentOutOfRangeException)
+                    {
+                        await RejectAsync(connection, "Text snippet is invalid or expired.", ct);
+                        return;
+                    }
+                }
+
                 if (!_consumePairingNonce(request.PairingNonce))
                 {
                     await RejectAsync(connection, "Pairing authorization failed.", ct);
@@ -105,18 +152,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
                 if (request.Type == "text")
                 {
-                    textPreview = await HandleTextAsync(connection, request, senderFingerprint, ct);
-                    return;
-                }
-
-                if (request.Entry is null)
-                {
-                    await RejectAsync(connection, "File metadata is required.", ct);
-                    return;
-                }
-                if (request.Entry.Length < 0 || request.Entry.Length > ProtocolConstants.MaxSingleFileBytes)
-                {
-                    await RejectAsync(connection, "Unsafe file size.", ct);
+                    textPreview = await HandleTextAsync(connection, request, senderFingerprint, textExpiry!.Value, ct);
                     return;
                 }
 
@@ -124,8 +160,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     request.SenderDeviceId,
                     request.SenderDeviceName,
                     senderFingerprint,
-                    request.Entry,
-                    FileRiskClassifier.Classify(request.Entry.RelativePath));
+                    safeEntry!,
+                    FileRiskClassifier.Classify(safeEntry!.RelativePath));
 
                 if (!await _approveTransfer(filePreview, ct))
                 {
@@ -134,12 +170,12 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     return;
                 }
 
-                var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, request.Entry.RelativePath);
+                var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, safeEntry.RelativePath);
                 var final = File.Exists(requestedFinal) || Directory.Exists(requestedFinal)
                     ? PathGuard.GetCollisionFreePath(requestedFinal)
                     : requestedFinal;
                 var effectiveRelativePath = Path.GetRelativePath(_receiveRoot, final);
-                var effectiveEntry = request.Entry with { RelativePath = effectiveRelativePath };
+                var effectiveEntry = safeEntry with { RelativePath = effectiveRelativePath };
                 var partial = final + ".swiftdrop.part";
                 var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
                 StorageCapacityGuard.EnsureCapacity(final, effectiveEntry.Length - offset);
@@ -168,54 +204,20 @@ public sealed class ReceiveServerService : IAsyncDisposable
         }
     }
 
-    private async Task<IncomingTextPreview?> HandleTextAsync(
+    private async Task<IncomingTextPreview> HandleTextAsync(
         Stream connection,
         IncomingRequest request,
         string senderFingerprint,
+        DateTimeOffset expiresUtc,
         CancellationToken ct)
     {
-        if (_approveText is null)
-        {
-            await RejectAsync(connection, "Text receiving is unavailable.", ct);
-            return null;
-        }
-        if (string.IsNullOrWhiteSpace(request.Text))
-        {
-            await RejectAsync(connection, "Text snippet is empty.", ct);
-            return null;
-        }
-        if (Encoding.UTF8.GetByteCount(request.Text) > ProtocolConstants.MaxTextBytes)
-        {
-            await RejectAsync(connection, "Text snippet is too large.", ct);
-            return null;
-        }
-
-        var expiresSeconds = request.ExpiresUnixSeconds ?? 0;
-        DateTimeOffset expiresUtc;
-        try
-        {
-            expiresUtc = DateTimeOffset.FromUnixTimeSeconds(expiresSeconds);
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            await RejectAsync(connection, "Text snippet expiry is invalid.", ct);
-            return null;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        if (expiresUtc <= now || expiresUtc > now.Add(ProtocolConstants.TextSnippetLifetime).AddSeconds(30))
-        {
-            await RejectAsync(connection, "Text snippet has expired or has an invalid expiry.", ct);
-            return null;
-        }
-
         var preview = new IncomingTextPreview(
             request.SenderDeviceId,
             request.SenderDeviceName,
             senderFingerprint,
-            request.Text,
+            request.Text!,
             expiresUtc);
-        var decision = await _approveText(preview, ct);
+        var decision = await _approveText!(preview, ct);
         if (decision == IncomingTextDecision.Reject)
         {
             await RejectAsync(connection, "Receiver declined the text snippet.", ct);
@@ -246,6 +248,22 @@ public sealed class ReceiveServerService : IAsyncDisposable
     {
         try { await RecordTextAsync(preview, status, CancellationToken.None); } catch { }
     }
+
+    private static X509Certificate2 CopyCertificateWithPrivateKey(X509Certificate2 certificate)
+    {
+        var pfx = certificate.Export(X509ContentType.Pfx);
+        try
+        {
+            return X509CertificateLoader.LoadPkcs12(pfx, null);
+        }
+        finally
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(pfx);
+        }
+    }
+
+    private static X509Certificate2 LoadPublicCertificate(byte[] rawData)
+        => X509CertificateLoader.LoadCertificate(rawData);
 
     public async ValueTask DisposeAsync()
     {
