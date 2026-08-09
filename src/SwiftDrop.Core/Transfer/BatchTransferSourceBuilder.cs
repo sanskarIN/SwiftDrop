@@ -5,7 +5,7 @@ namespace SwiftDrop.Core.Transfer;
 
 public static class BatchTransferSourceBuilder
 {
-    public const int MaxFilesPerBatch = 2048;
+    public const int MaxFilesPerBatch = ProtocolConstants.MaxBatchFiles;
 
     public static async Task<BatchTransferSource> BuildAsync(
         IEnumerable<string> paths,
@@ -14,6 +14,7 @@ public static class BatchTransferSourceBuilder
         ArgumentNullException.ThrowIfNull(paths);
         var items = new List<FileTransferSource>();
         var usedRelativePaths = new HashSet<string>(StringComparer.Ordinal);
+        long totalBytes = 0;
 
         foreach (var input in paths)
         {
@@ -23,7 +24,7 @@ public static class BatchTransferSourceBuilder
             if (File.Exists(full))
             {
                 var relative = MakeUniqueRelativePath(Path.GetFileName(full), usedRelativePaths);
-                await AddFileAsync(items, full, relative, usedRelativePaths, ct);
+                totalBytes = await AddFileAsync(items, full, relative, usedRelativePaths, totalBytes, ct);
             }
             else if (Directory.Exists(full))
             {
@@ -33,43 +34,51 @@ public static class BatchTransferSourceBuilder
                     ct.ThrowIfCancellationRequested();
                     var relative = Path.Combine(rootName, Path.GetRelativePath(full, file)).Replace('\\', '/');
                     relative = MakeUniqueRelativePath(relative, usedRelativePaths);
-                    await AddFileAsync(items, file, relative, usedRelativePaths, ct);
-                    EnsureCount(items.Count);
+                    totalBytes = await AddFileAsync(items, file, relative, usedRelativePaths, totalBytes, ct);
                 }
             }
             else
             {
                 throw new FileNotFoundException("Transfer source does not exist.", full);
             }
-
-            EnsureCount(items.Count);
         }
 
         if (items.Count == 0) throw new InvalidOperationException("Select at least one file to transfer.");
-        var total = checked(items.Sum(x => x.Entry.Length));
-        return new BatchTransferSource(Guid.NewGuid().ToString("N"), items, total);
+        return new BatchTransferSource(Guid.NewGuid().ToString("N"), items, totalBytes);
     }
 
-    private static async Task AddFileAsync(
+    private static async Task<long> AddFileAsync(
         ICollection<FileTransferSource> items,
         string path,
         string relativePath,
         ISet<string> usedRelativePaths,
+        long currentTotalBytes,
         CancellationToken ct)
     {
+        EnsureCount(items.Count + 1);
         var info = new FileInfo(path);
         if (info.Length < 0 || info.Length > ProtocolConstants.MaxSingleFileBytes)
             throw new InvalidDataException("A file exceeds the SwiftDrop per-file safety limit.");
 
+        var nextTotalBytes = checked(currentTotalBytes + info.Length);
+        if (nextTotalBytes > ProtocolConstants.MaxBatchBytes)
+            throw new InvalidDataException("The selected batch exceeds the SwiftDrop aggregate-size safety limit.");
+
         var hash = await Hashing.Sha256FileAsync(path, ct);
-        var entry = new FileManifestEntry(relativePath, info.Length, hash, info.LastWriteTimeUtc);
+        var entry = ManifestValidator.ValidateEntry(new FileManifestEntry(
+            relativePath,
+            info.Length,
+            hash,
+            info.LastWriteTimeUtc));
         items.Add(new FileTransferSource(path, entry));
         usedRelativePaths.Add(relativePath);
+        return nextTotalBytes;
     }
 
     private static string MakeUniqueRootName(string rootName, ISet<string> usedRelativePaths)
     {
         var normalized = rootName.Replace('\\', '/').Trim('/');
+        if (string.IsNullOrWhiteSpace(normalized)) normalized = "Folder";
         if (!usedRelativePaths.Any(path => string.Equals(path, normalized, StringComparison.Ordinal) || path.StartsWith(normalized + "/", StringComparison.Ordinal)))
             return normalized;
 
@@ -103,7 +112,7 @@ public static class BatchTransferSourceBuilder
 
     private static void EnsureCount(int count)
     {
-        if (count > MaxFilesPerBatch)
-            throw new InvalidDataException($"A transfer can contain at most {MaxFilesPerBatch} files.");
+        if (count > ProtocolConstants.MaxBatchFiles)
+            throw new InvalidDataException($"A transfer can contain at most {ProtocolConstants.MaxBatchFiles} files.");
     }
 }
