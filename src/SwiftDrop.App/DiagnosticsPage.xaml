@@ -13,9 +13,9 @@
     <Border Grid.Row="1" StrokeShape="RoundRectangle 16" Padding="14">
       <VerticalStackLayout Spacing="6">
         <Label Text="{services:Localize DeveloperStatus}" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
-        <Label x:Name="ProtocolLabel" />
-        <Label x:Name="MdnsStatusLabel" />
-        <Label x:Name="UdpStatusLabel" />
+        <Label Text="{Binding ProtocolStatus}" />
+        <Label Text="{Binding MdnsStatus}" />
+        <Label Text="{Binding UdpStatus}" />
         <Label Text="{services:Localize QrFallbackNote}" FontSize="12" />
         <HorizontalStackLayout Spacing="10">
           <Button Text="{services:Localize RefreshDiagnostics}" Clicked="RefreshClicked" />
@@ -25,7 +25,7 @@
       </VerticalStackLayout>
     </Border>
 
-    <Border x:Name="SelfTestPanel" Grid.Row="2" StrokeShape="RoundRectangle 16" Padding="14" IsVisible="False">
+    <Border Grid.Row="2" StrokeShape="RoundRectangle 16" Padding="14" IsVisible="{Binding DeveloperOptionsEnabled}">
       <VerticalStackLayout Spacing="8">
         <Label Text="{services:Localize SafeDeveloperSelfTests}" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
         <Label Text="{services:Localize SelfTestDescription}" FontSize="12" Opacity="0.75" />
@@ -34,11 +34,11 @@
           <Button Text="{services:Localize ChecksumMismatch}" Clicked="RunChecksumTestClicked" />
           <Button Text="{services:Localize InterruptedReceive}" Clicked="RunInterruptionTestClicked" />
         </HorizontalStackLayout>
-        <Label x:Name="SelfTestResultLabel" FontSize="12" />
+        <Label Text="{Binding SelfTestResult}" FontSize="12" />
       </VerticalStackLayout>
     </Border>
 
-    <CollectionView Grid.Row="3" x:Name="DiagnosticsList" HeightRequest="220" EmptyView="{services:Localize DiagnosticsEmpty}">
+    <CollectionView Grid.Row="3" ItemsSource="{Binding Diagnostics}" HeightRequest="220" EmptyView="{services:Localize DiagnosticsEmpty}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,0,0,10">
@@ -52,7 +52,7 @@
       </CollectionView.ItemTemplate>
     </CollectionView>
 
-    <CollectionView Grid.Row="4" x:Name="EventLogList" EmptyView="{services:Localize PersistedEventsEmpty}">
+    <CollectionView Grid.Row="4" ItemsSource="{Binding Events}" EmptyView="{services:Localize PersistedEventsEmpty}">
       <CollectionView.Header>
         <Label Text="{services:Localize RecentSafeDiagnosticEvents}" FontSize="18" FontAttributes="Bold" Margin="0,6" SemanticProperties.HeadingLevel="Level2" />
       </CollectionView.Header>
