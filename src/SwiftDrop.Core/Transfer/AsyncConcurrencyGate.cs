@@ -11,6 +11,7 @@ public sealed class AsyncConcurrencyGate
         if (limit is < 1 or > 64) throw new ArgumentOutOfRangeException(nameof(limit));
         ct.ThrowIfCancellationRequested();
 
+        Waiter waiter;
         lock (_gate)
         {
             if (_active < limit && _waiters.Count == 0)
@@ -19,18 +20,28 @@ public sealed class AsyncConcurrencyGate
                 return ValueTask.FromResult<IAsyncDisposable>(new Lease(this));
             }
 
-            var waiter = new Waiter(limit);
+            waiter = new Waiter(limit);
             _waiters.Enqueue(waiter);
-            if (ct.CanBeCanceled)
-            {
-                waiter.Registration = ct.Register(static state =>
-                {
-                    var tuple = (Tuple<AsyncConcurrencyGate, Waiter, CancellationToken>)state!;
-                    tuple.Item1.Cancel(tuple.Item2, tuple.Item3);
-                }, Tuple.Create(this, waiter, ct));
-            }
-            return new ValueTask<IAsyncDisposable>(waiter.Completion.Task);
         }
+
+        if (ct.CanBeCanceled)
+        {
+            var registration = ct.Register(static state =>
+            {
+                var tuple = (Tuple<AsyncConcurrencyGate, Waiter, CancellationToken>)state!;
+                tuple.Item1.Cancel(tuple.Item2, tuple.Item3);
+            }, Tuple.Create(this, waiter, ct));
+
+            lock (_gate)
+            {
+                if (waiter.Completed)
+                    registration.Dispose();
+                else
+                    waiter.Registration = registration;
+            }
+        }
+
+        return new ValueTask<IAsyncDisposable>(waiter.Completion.Task);
     }
 
     private void Cancel(Waiter waiter, CancellationToken ct)
