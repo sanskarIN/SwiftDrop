@@ -1,52 +1,53 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SwiftDrop.App.Services"
              x:Class="SwiftDrop.App.AboutPage"
-             Title="About">
+             Title="{x:Static services:AppText.About}">
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
-      <Image Source="appicon.svg" HeightRequest="88" WidthRequest="88" SemanticProperties.Description="SwiftDrop app icon" />
-      <Label Text="SwiftDrop" FontSize="32" FontAttributes="Bold" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="Level1" />
+      <Image Source="appicon.svg" HeightRequest="88" WidthRequest="88" SemanticProperties.Description="{x:Static services:AppText.SwiftDropIconDescription}" />
+      <Label Text="{x:Static services:AppText.AppName}" FontSize="32" FontAttributes="Bold" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="Level1" />
       <Label x:Name="VersionLabel" HorizontalTextAlignment="Center" Opacity="0.75" />
-      <Label Text="Open-source, account-free local-network file and text transfer built with .NET MAUI, C#, XAML, SQLite metadata, and TLS." HorizontalTextAlignment="Center" />
+      <Label Text="{x:Static services:AppText.AboutSummary}" HorizontalTextAlignment="Center" />
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
-          <Label Text="Open source" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="Repository: https://github.com/sanskarIN/SwiftDrop" />
-          <Label Text="Creator: https://www.github.com/sanskarIN" />
-          <Label Text="License: Apache-2.0" />
-          <Button Text="Open repository" Clicked="OpenRepositoryClicked" SemanticProperties.Description="Open the SwiftDrop GitHub repository" />
-          <Button Text="Open creator profile" Clicked="OpenProfileClicked" SemanticProperties.Description="Open the creator GitHub profile" />
+          <Label Text="{x:Static services:AppText.OpenSource}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{x:Static services:AppText.RepositoryLabel}" />
+          <Label Text="{x:Static services:AppText.CreatorLabel}" />
+          <Label Text="{x:Static services:AppText.LicenseLabel}" />
+          <Button Text="{x:Static services:AppText.OpenRepository}" Clicked="OpenRepositoryClicked" SemanticProperties.Description="{x:Static services:AppText.OpenRepositoryDescription}" />
+          <Button Text="{x:Static services:AppText.OpenCreatorProfile}" Clicked="OpenProfileClicked" SemanticProperties.Description="{x:Static services:AppText.OpenCreatorProfileDescription}" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
-          <Label Text="Support development" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="SwiftDrop is open source. If you want to support continued development, you can use Buy Me a Coffee. Support is optional and does not unlock transfer features, priority handling, or access to private data." />
+          <Label Text="{x:Static services:AppText.SupportDevelopment}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{x:Static services:AppText.SupportDevelopmentDescription}" />
           <Label Text="https://buymeacoffee.com/sanskarIN" FontSize="13" />
-          <Button Text="Buy Me a Coffee" Clicked="OpenBuyMeACoffeeClicked" SemanticProperties.Description="Open the SwiftDrop Buy Me a Coffee support page" />
+          <Button Text="{x:Static services:AppText.BuyMeACoffee}" Clicked="OpenBuyMeACoffeeClicked" SemanticProperties.Description="{x:Static services:AppText.BuyMeACoffeeDescription}" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
-          <Label Text="Contact and security" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="Business: sanskarin@outlook.in" />
-          <Label Text="Support: supportramsandesh@gmail.com" />
-          <Label Text="Security vulnerabilities should be reported privately to sanskarin@outlook.in. Do not post secrets, private transfers, or exploit details in public issues." />
+          <Label Text="{x:Static services:AppText.ContactAndSecurity}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{x:Static services:AppText.BusinessLabel}" />
+          <Label Text="{x:Static services:AppText.SupportLabel}" />
+          <Label Text="{x:Static services:AppText.SecurityReportNotice}" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
-          <Label Text="Privacy" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="SwiftDrop does not require an account and the current release does not upload transferred content to a SwiftDrop cloud service. Transfer metadata history stays local to this device." />
+          <Label Text="{x:Static services:AppText.Privacy}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{x:Static services:AppText.PrivacySummary}" />
         </VerticalStackLayout>
       </Border>
 
-      <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+      <Label Text="{x:Static services:AppText.MadeBy}" HorizontalTextAlignment="Center" FontAttributes="Bold" />
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
