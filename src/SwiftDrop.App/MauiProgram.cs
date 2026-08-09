@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using SwiftDrop.App.Services;
+using SwiftDrop.App.ViewModels;
 using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Security;
 
@@ -30,6 +31,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<NearbyPairingService>();
         builder.Services.AddSingleton<PairingSelectionService>();
         builder.Services.AddSingleton<OneTimePairingCodeManager>();
+
+        builder.Services.AddTransient<HistoryViewModel>();
+
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<HistoryPage>();
