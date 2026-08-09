@@ -29,11 +29,7 @@
             <Button Text="Create QR/link" Clicked="CreatePairingClicked" SemanticProperties.Description="Create an expiring one-time pairing link and QR code" />
             <Button Text="Create 8-digit code" Clicked="CreatePairingCodeClicked" SemanticProperties.Description="Create an expiring eight digit nearby pairing code" />
           </HorizontalStackLayout>
-          <Label x:Name="PairingCodeLabel"
-                 FontSize="22"
-                 FontAttributes="Bold"
-                 IsVisible="False"
-                 SemanticProperties.Description="Current one-time pairing code" />
+          <Label x:Name="PairingCodeLabel" FontSize="22" FontAttributes="Bold" IsVisible="False" SemanticProperties.Description="Current one-time pairing code" />
           <Label x:Name="PairingCodeExpiryLabel" FontSize="12" Opacity="0.7" IsVisible="False" />
           <Image x:Name="QrImage" HeightRequest="240" WidthRequest="240" IsVisible="False" SemanticProperties.Description="SwiftDrop pairing QR code" />
           <Entry x:Name="PairingLinkEntry" Placeholder="Pairing link appears here" IsReadOnly="True" />
@@ -72,13 +68,16 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send multiple files" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="Choose several files in one encrypted transfer. The receiver can accept all, accept selected files, or reject the batch." FontSize="12" Opacity="0.75" />
-          <Button Text="Choose multiple files" Clicked="ChooseMultipleFilesClicked" />
+          <Label Text="Send multiple files or a folder" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="Choose several files or, where the platform exposes a safe system folder picker, one folder. The receiver can accept all, accept selected files, or reject the batch." FontSize="12" Opacity="0.75" />
+          <HorizontalStackLayout Spacing="10">
+            <Button Text="Choose multiple files" Clicked="ChooseMultipleFilesClicked" />
+            <Button Text="Choose folder" Clicked="ChooseFolderClicked" />
+          </HorizontalStackLayout>
           <Label x:Name="SelectedBatchLabel" Text="No batch selected" LineBreakMode="TailTruncation" />
           <ProgressBar x:Name="BatchTransferProgress" Progress="0" SemanticProperties.Description="Multiple file transfer progress" />
           <HorizontalStackLayout Spacing="10">
-            <Button x:Name="SendBatchButton" Text="Send selected files" Clicked="SendBatchClicked" />
+            <Button x:Name="SendBatchButton" Text="Send selected items" Clicked="SendBatchClicked" />
             <Button x:Name="PauseBatchButton" Text="Pause" Clicked="PauseBatchClicked" IsEnabled="False" />
             <Button x:Name="ResumeBatchButton" Text="Resume" Clicked="ResumeBatchClicked" IsEnabled="False" />
             <Button x:Name="CancelBatchButton" Text="Cancel" Clicked="CancelBatchClicked" IsEnabled="False" />
