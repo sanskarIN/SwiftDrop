@@ -41,7 +41,7 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Send file" FontAttributes="Bold" FontSize="18" />
           <Button Text="Choose file" Clicked="ChooseFileClicked" />
           <Label x:Name="SelectedFileLabel" LineBreakMode="MiddleTruncation" />
           <ProgressBar x:Name="TransferProgress" Progress="0" />
@@ -50,6 +50,19 @@
             <Button x:Name="CancelSendButton" Text="Cancel" Clicked="CancelSendClicked" IsEnabled="False" />
           </HorizontalStackLayout>
           <Label x:Name="TransferStatusLabel" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Send text" FontAttributes="Bold" FontSize="18" />
+          <Label Text="SwiftDrop reads the clipboard only when you press Paste from clipboard. It never monitors the clipboard in the background." FontSize="12" Opacity="0.7" />
+          <Editor x:Name="TextSnippetEditor" Placeholder="Type or paste a short text snippet" AutoSize="TextChanges" MaximumHeightRequest="180" />
+          <HorizontalStackLayout Spacing="10">
+            <Button Text="Paste from clipboard" Clicked="PasteClipboardClicked" />
+            <Button Text="Send text" Clicked="SendTextClicked" />
+          </HorizontalStackLayout>
+          <Label x:Name="TextTransferStatusLabel" FontSize="12" />
         </VerticalStackLayout>
       </Border>
 
