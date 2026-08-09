@@ -1,3 +1,5 @@
+using SwiftDrop.Core.Security;
+
 namespace SwiftDrop.App.Services;
 
 public static class ExternalInputInbox
@@ -45,7 +47,7 @@ public static class ExternalInputInbox
         lock (Gate)
         {
             if (SharedPaths.Count >= 2048) return;
-            if (!SharedPaths.Contains(full, PathComparer)) SharedPaths.Add(full);
+            if (!SharedPaths.Contains(full, PathComparisonPolicy.Comparer)) SharedPaths.Add(full);
         }
         RaiseChanged();
     }
@@ -79,9 +81,6 @@ public static class ExternalInputInbox
             }
         }
     }
-
-    private static StringComparer PathComparer
-        => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     private static void RaiseChanged()
     {
