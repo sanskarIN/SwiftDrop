@@ -21,3 +21,4 @@ jobs:
       - run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
       - run: dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release --no-restore
       - run: dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
+      - run: dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release
