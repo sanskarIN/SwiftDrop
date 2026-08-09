@@ -1,38 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SwiftDrop.App.Services"
              x:Class="SwiftDrop.App.SettingsPage"
-             Title="Settings">
+             Title="{services:Localize Settings}">
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="16">
-      <Label Text="SwiftDrop Settings" FontSize="30" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
-      <Label Text="Transfers stay on your local network. Auto-accept is disabled by default." Opacity="0.75" />
+      <Label Text="{services:Localize SwiftDropSettings}" FontSize="30" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+      <Label Text="{services:Localize SettingsSummary}" Opacity="0.75" />
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Device identity" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="Device name" />
-          <Entry x:Name="DeviceNameEntry" MaxLength="64" Placeholder="SwiftDrop device" />
+          <Label Text="{services:Localize DeviceIdentity}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize DeviceName}" />
+          <Entry x:Name="DeviceNameEntry" MaxLength="64" Placeholder="{services:Localize SwiftDropDevicePlaceholder}" />
           <Label x:Name="IdentityFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
-          <Button Text="Reset device identity" Clicked="ResetIdentityClicked" />
-          <Label Text="Resetting creates a new device ID and certificate and removes all local trusted-device relationships." FontSize="12" Opacity="0.7" />
+          <Button Text="{services:Localize ResetDeviceIdentity}" Clicked="ResetIdentityClicked" />
+          <Label Text="{services:Localize ResetIdentityDescription}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Transfers" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="Default receive folder" />
+          <Label Text="{services:Localize Transfers}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize DefaultReceiveFolder}" />
           <Entry x:Name="ReceiveFolderEntry" IsReadOnly="True" LineBreakMode="MiddleTruncation" />
           <HorizontalStackLayout Spacing="10">
-            <Button Text="Choose folder" Clicked="ChooseReceiveFolderClicked" />
-            <Button Text="Use app folder" Clicked="UseAppReceiveFolderClicked" />
+            <Button Text="{services:Localize ChooseFolder}" Clicked="ChooseReceiveFolderClicked" />
+            <Button Text="{services:Localize UseAppFolder}" Clicked="UseAppReceiveFolderClicked" />
           </HorizontalStackLayout>
           <Label x:Name="ReceiveFolderSupportLabel" FontSize="12" Opacity="0.7" />
-          <Label Text="Concurrent transfers" />
+          <Label Text="{services:Localize ConcurrentTransfers}" />
           <Stepper x:Name="ConcurrencyStepper" Minimum="1" Maximum="8" Increment="1" ValueChanged="ConcurrencyChanged" />
           <Label x:Name="ConcurrencyLabel" />
-          <Label Text="History retention (days)" />
+          <Label Text="{services:Localize HistoryRetentionDays}" />
           <Stepper x:Name="RetentionStepper" Minimum="0" Maximum="3650" Increment="1" ValueChanged="RetentionChanged" />
           <Label x:Name="RetentionLabel" />
         </VerticalStackLayout>
@@ -40,75 +41,75 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Privacy and trust" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize PrivacyAndTrust}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="PrivacyModeSwitch" />
-            <Label Text="Hide filenames in transfer history" VerticalTextAlignment="Center" />
+            <Label Text="{services:Localize HideFilenamesHistory}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="AutoAcceptSwitch" />
-            <Label Text="Auto-accept normal files from explicitly trusted devices" VerticalTextAlignment="Center" />
+            <Label Text="{services:Localize AutoAcceptTrusted}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
-          <Button Text="Manage trusted devices" Clicked="ManageTrustedDevicesClicked" />
+          <Button Text="{services:Localize ManageTrustedDevices}" Clicked="ManageTrustedDevicesClicked" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Notifications and accessibility" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize NotificationsAndAccessibility}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="NotificationsSwitch" />
-            <Label Text="Allow optional transfer completion/failure notifications where supported" VerticalTextAlignment="Center" />
+            <Label Text="{services:Localize OptionalNotifications}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <Label x:Name="NotificationSupportLabel" FontSize="12" Opacity="0.7" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="ReduceMotionSwitch" />
-            <Label Text="Reduce non-essential motion" VerticalTextAlignment="Center" />
+            <Label Text="{services:Localize ReduceMotion}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="LargerInterfaceSwitch" />
-            <Label Text="Use larger interface text and controls" VerticalTextAlignment="Center" />
+            <Label Text="{services:Localize LargerInterface}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
-          <Label Text="SwiftDrop remains usable without optional notifications. Required foreground-service status, where imposed by an operating system, is controlled separately by platform rules." FontSize="12" Opacity="0.7" />
+          <Label Text="{services:Localize NotificationRuleNote}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Appearance and language" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
-          <Picker x:Name="ThemePicker" Title="Theme">
+          <Label Text="{services:Localize AppearanceAndLanguage}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Picker x:Name="ThemePicker" Title="{services:Localize Theme}">
             <Picker.Items>
               <x:String>System</x:String>
               <x:String>Light</x:String>
               <x:String>Dark</x:String>
             </Picker.Items>
           </Picker>
-          <Picker x:Name="LanguagePicker" Title="Language">
+          <Picker x:Name="LanguagePicker" Title="{services:Localize Language}">
             <Picker.Items>
               <x:String>English</x:String>
               <x:String>Hindi</x:String>
             </Picker.Items>
           </Picker>
-          <Label Text="English ships as the complete UI language. Hindi resource architecture is enabled progressively; untranslated strings fall back to English." FontSize="12" Opacity="0.7" />
+          <Label Text="{services:Localize LocalizationFallbackNote}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Developer options" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize DeveloperOptions}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="DeveloperOptionsSwitch" />
-            <Label Text="Enable safe developer diagnostics" VerticalTextAlignment="Center" />
+            <Label Text="{services:Localize EnableSafeDeveloperDiagnostics}" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
-          <Label Text="Developer diagnostics must never expose transferred content, private keys, pairing nonces, or full pairing invitations." FontSize="12" Opacity="0.7" />
-          <Button Text="Open diagnostics" Clicked="OpenDiagnosticsClicked" />
+          <Label Text="{services:Localize DeveloperDiagnosticsNote}" FontSize="12" Opacity="0.7" />
+          <Button Text="{services:Localize OpenDiagnostics}" Clicked="OpenDiagnosticsClicked" />
         </VerticalStackLayout>
       </Border>
 
-      <Button Text="Save settings" Clicked="SaveClicked" />
-      <Button Text="Reset settings to defaults" Clicked="ResetClicked" />
-      <Button Text="About SwiftDrop" Clicked="OpenAboutClicked" />
-      <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" />
+      <Button Text="{services:Localize SaveSettings}" Clicked="SaveClicked" />
+      <Button Text="{services:Localize ResetSettingsDefaults}" Clicked="ResetClicked" />
+      <Button Text="{services:Localize About}" Clicked="OpenAboutClicked" />
+      <Label Text="{services:Localize MadeBy}" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" />
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
