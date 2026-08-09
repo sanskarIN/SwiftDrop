@@ -15,11 +15,17 @@ public sealed class NearbyPairingService
         _identity = identity;
     }
 
-    public async Task<PairingPayload> RequestAsync(PeerDevice peer, CancellationToken ct = default)
+    public async Task<PairingPayload> RequestAsync(
+        PeerDevice peer,
+        string? pairingCode = null,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(peer);
         if (string.IsNullOrWhiteSpace(peer.CertificateFingerprint))
             throw new InvalidOperationException("The discovered device did not advertise a certificate fingerprint. Use QR pairing instead.");
+        if (pairingCode is not null && (pairingCode.Length != 8 || pairingCode.Any(ch => ch is < '0' or > '9')))
+            throw new ArgumentException("Pairing code must contain exactly eight digits.", nameof(pairingCode));
+
         await _identity.InitializeAsync();
 
         var client = new TlsPeerClient();
@@ -34,7 +40,8 @@ public sealed class NearbyPairingService
             type = "pair-request",
             protocolVersion = ProtocolConstants.CurrentVersion,
             senderDeviceId = _identity.DeviceId,
-            senderDeviceName = _identity.DeviceName
+            senderDeviceName = _identity.DeviceName,
+            pairingCode
         }, ct);
 
         var response = await FrameProtocol.ReadJsonAsync<PairingResponse>(stream, ct);
