@@ -1,5 +1,6 @@
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
+using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.Core.Transfer;
 
@@ -79,8 +80,9 @@ public static class BatchTransferSourceBuilder
             throw new InvalidDataException("The selected batch exceeds the SwiftDrop aggregate-size safety limit.");
 
         var safeRelativePath = FileNameSanitizer.SanitizeRelativePath(relativePath);
+        safeRelativePath = MakeUniqueRelativePath(safeRelativePath, usedRelativePaths);
         if (!usedRelativePaths.Add(safeRelativePath))
-            throw new InvalidDataException("Batch contains duplicate relative paths after filename normalization.");
+            throw new InvalidDataException("Batch path deconfliction failed.");
 
         pending.Add(new PendingFile(path, safeRelativePath, info.Length, info.LastWriteTimeUtc));
         totalBytes = nextTotal;
@@ -88,7 +90,7 @@ public static class BatchTransferSourceBuilder
 
     private static string MakeUniqueRootName(string rootName, ISet<string> usedRelativePaths)
     {
-        var normalized = rootName.Replace('\\', '/').Trim('/');
+        var normalized = FileNameSanitizer.SanitizeRelativePath(rootName.Replace('\\', '/').Trim('/'));
         if (string.IsNullOrWhiteSpace(normalized)) normalized = "Folder";
         if (!usedRelativePaths.Any(path => string.Equals(path, normalized, StringComparison.Ordinal) || path.StartsWith(normalized + "/", StringComparison.Ordinal)))
             return normalized;
