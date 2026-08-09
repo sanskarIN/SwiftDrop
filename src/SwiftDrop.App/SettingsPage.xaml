@@ -10,6 +10,17 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
+          <Label Text="Device identity" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Device name" />
+          <Entry x:Name="DeviceNameEntry" MaxLength="64" Placeholder="SwiftDrop device" />
+          <Label x:Name="IdentityFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
+          <Button Text="Reset device identity" Clicked="ResetIdentityClicked" />
+          <Label Text="Resetting creates a new device ID and certificate and removes all local trusted-device relationships." FontSize="12" Opacity="0.7" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
           <Label Text="Transfers" FontSize="18" FontAttributes="Bold" />
           <Label Text="Concurrent transfers" />
           <Stepper x:Name="ConcurrencyStepper" Minimum="1" Maximum="8" Increment="1" ValueChanged="ConcurrencyChanged" />
@@ -29,7 +40,7 @@
           </HorizontalStackLayout>
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="AutoAcceptSwitch" />
-            <Label Text="Auto-accept from explicitly trusted devices" VerticalTextAlignment="Center" />
+            <Label Text="Auto-accept normal files from explicitly trusted devices" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
           <Button Text="Manage trusted devices" Clicked="ManageTrustedDevicesClicked" />
         </VerticalStackLayout>
@@ -49,7 +60,8 @@
       </Border>
 
       <Button Text="Save settings" Clicked="SaveClicked" />
-      <Button Text="Reset to defaults" Clicked="ResetClicked" />
+      <Button Text="Reset settings to defaults" Clicked="ResetClicked" />
+      <Button Text="About SwiftDrop" Clicked="OpenAboutClicked" />
       <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" />
     </VerticalStackLayout>
   </ScrollView>
