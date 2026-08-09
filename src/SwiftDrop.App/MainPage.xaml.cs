@@ -15,14 +15,22 @@ public partial class MainPage : ContentPage
     private readonly TransferHistoryService _history;
     private readonly TrustedDevicesService _trustedDevices;
     private readonly AppSettingsService _settings;
+    private readonly ReceiveLocationService _receiveLocation;
     private readonly PairingSelectionService _pairingSelection;
     private readonly OneTimePairingCodeManager _pairingCodes;
     private readonly IServiceProvider _services;
+
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
     private FileResult[] _selectedBatchFiles = Array.Empty<FileResult>();
     private ReceiveServerService? _receiveServer;
-    private CancellationTokenSource? _sendCts;
+
+    private CancellationTokenSource? _singleSendCts;
+    private CancellationTokenSource? _batchSendCts;
+    private bool _singlePauseRequested;
+    private bool _batchPauseRequested;
+    private string? _pausedSinglePath;
+    private string[] _pausedBatchPaths = Array.Empty<string>();
 
     public MainPage(
         DeviceIdentityService identity,
@@ -30,6 +38,7 @@ public partial class MainPage : ContentPage
         TransferHistoryService history,
         TrustedDevicesService trustedDevices,
         AppSettingsService settings,
+        ReceiveLocationService receiveLocation,
         PairingSelectionService pairingSelection,
         OneTimePairingCodeManager pairingCodes,
         IServiceProvider services)
@@ -40,6 +49,7 @@ public partial class MainPage : ContentPage
         _history = history;
         _trustedDevices = trustedDevices;
         _settings = settings;
+        _receiveLocation = receiveLocation;
         _pairingSelection = pairingSelection;
         _pairingCodes = pairingCodes;
         _services = services;
@@ -60,7 +70,8 @@ public partial class MainPage : ContentPage
 
             if (_receiveServer is null)
             {
-                var receiveRoot = Path.Combine(FileSystem.AppDataDirectory, "Received");
+                var receiveRoot = _receiveLocation.ResolveReceiveRoot();
+                ReceiveFolderLabel.Text = $"Receive folder: {receiveRoot}";
                 _receiveServer = new ReceiveServerService(
                     _identity.Certificate,
                     receiveRoot,
@@ -106,7 +117,9 @@ public partial class MainPage : ContentPage
         if (trustedMatch && settings.AutoAcceptTrustedDevices && preview.RiskLevel == FileRiskLevel.Normal)
             return true;
 
-        var trustState = trustedMatch ? "\nTrusted device: certificate matches the stored fingerprint." : string.Empty;
+        var trustState = trustedMatch
+            ? "\nTrusted device: certificate matches the stored fingerprint."
+            : string.Empty;
         var risk = preview.RiskLevel switch
         {
             FileRiskLevel.High => "\n\nWARNING: This file type can execute code or install software. Only accept it if you expected it and trust the sender.",
@@ -261,7 +274,13 @@ public partial class MainPage : ContentPage
     private async void ShareLinkClicked(object? sender, EventArgs e)
     {
         if (!string.IsNullOrWhiteSpace(PairingLinkEntry.Text))
-            await Share.Default.RequestAsync(new ShareTextRequest { Text = PairingLinkEntry.Text, Title = "SwiftDrop pairing link" });
+        {
+            await Share.Default.RequestAsync(new ShareTextRequest
+            {
+                Text = PairingLinkEntry.Text,
+                Title = "SwiftDrop pairing link"
+            });
+        }
     }
 
     private async void ValidatePairingClicked(object? sender, EventArgs e)
@@ -300,7 +319,10 @@ public partial class MainPage : ContentPage
 
     private async void ChooseFileClicked(object? sender, EventArgs e)
     {
-        _selectedFile = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Choose a file to send" });
+        _selectedFile = await FilePicker.Default.PickAsync(new PickOptions
+        {
+            PickerTitle = "Choose a file to send"
+        });
         SelectedFileLabel.Text = _selectedFile?.FullPath ?? "No file selected";
     }
 
@@ -308,7 +330,10 @@ public partial class MainPage : ContentPage
     {
         try
         {
-            var selected = await FilePicker.Default.PickMultipleAsync(new PickOptions { PickerTitle = "Choose files to send" });
+            var selected = await FilePicker.Default.PickMultipleAsync(new PickOptions
+            {
+                PickerTitle = "Choose files to send"
+            });
             _selectedBatchFiles = selected
                 .Where(x => !string.IsNullOrWhiteSpace(x.FullPath))
                 .Take(2048)
@@ -327,86 +352,161 @@ public partial class MainPage : ContentPage
 
     private async void SendFileClicked(object? sender, EventArgs e)
     {
-        if (_remote is null)
-        {
-            await DisplayAlert("Device required", "Validate a pairing link first.", "OK");
-            return;
-        }
         if (_selectedFile is null)
         {
             await DisplayAlert("File required", "Choose a file first.", "OK");
             return;
         }
+        if (!TryTakeRemote(out var remote))
+        {
+            await DisplayAlert("Device required", "Validate a fresh pairing invitation first.", "OK");
+            return;
+        }
 
-        var remote = _remote;
-        _sendCts?.Dispose();
-        _sendCts = new CancellationTokenSource();
-        var fileInfo = new FileInfo(_selectedFile.FullPath);
+        _pausedSinglePath = null;
+        ResumeSendButton.IsEnabled = false;
+        await RunSingleSendAsync(remote, _selectedFile.FullPath);
+    }
+
+    private async void ResumeSendClicked(object? sender, EventArgs e)
+    {
+        var path = _pausedSinglePath;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            _pausedSinglePath = null;
+            ResumeSendButton.IsEnabled = false;
+            await DisplayAlert("Resume unavailable", "The original source file is no longer available.", "OK");
+            return;
+        }
+        if (!TryTakeRemote(out var remote))
+        {
+            await DisplayAlert("Fresh pairing required", "Pair with the receiver again, verify its fingerprint, then press Resume.", "OK");
+            return;
+        }
+
+        await RunSingleSendAsync(remote, path);
+    }
+
+    private async Task RunSingleSendAsync(PairingPayload remote, string path)
+    {
+        _singleSendCts?.Dispose();
+        _singleSendCts = new CancellationTokenSource();
+        _singlePauseRequested = false;
+        var fileInfo = new FileInfo(path);
         try
         {
-            TransferStatusLabel.Text = "Sending…";
-            CancelSendButton.IsEnabled = true;
+            TransferStatusLabel.Text = _pausedSinglePath is null ? "Sending…" : "Resuming…";
             SendFileButton.IsEnabled = false;
+            PauseSendButton.IsEnabled = true;
+            ResumeSendButton.IsEnabled = false;
+            CancelSendButton.IsEnabled = true;
             var progress = new Progress<double>(value => TransferProgress.Progress = value);
-            await _transfers.SendAsync(remote, _selectedFile.FullPath, progress, _sendCts.Token);
+            await _transfers.SendAsync(remote, path, progress, _singleSendCts.Token);
+            TransferProgress.Progress = 1;
             TransferStatusLabel.Text = "Completed and verified. A fresh pairing invitation is required for another transfer.";
+            _pausedSinglePath = null;
             await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "completed", true);
         }
         catch (OperationCanceledException)
         {
-            TransferStatusLabel.Text = "Cancelled. Use a fresh pairing invitation to resume safely.";
-            await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "cancelled", false);
+            if (_singlePauseRequested)
+            {
+                _pausedSinglePath = path;
+                TransferStatusLabel.Text = "Paused safely. Pair with the same receiver again, verify its fingerprint, then press Resume.";
+                ResumeSendButton.IsEnabled = true;
+                await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "paused", false);
+            }
+            else
+            {
+                _pausedSinglePath = null;
+                TransferStatusLabel.Text = "Cancelled.";
+                await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "cancelled", false);
+            }
         }
         catch (Exception ex)
         {
-            TransferStatusLabel.Text = "Failed. Use a fresh pairing invitation before retrying.";
-            await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "failed", false);
+            _pausedSinglePath = File.Exists(path) ? path : null;
+            ResumeSendButton.IsEnabled = _pausedSinglePath is not null;
+            TransferStatusLabel.Text = _pausedSinglePath is null
+                ? "Failed."
+                : "Failed safely. Pair with the receiver again and press Resume to reuse any verified partial offset.";
+            await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Exists ? fileInfo.Length : 0, "failed", false);
             await DisplayAlert("Transfer failed", ex.Message, "OK");
         }
         finally
         {
-            _remote = null;
+            PauseSendButton.IsEnabled = false;
             CancelSendButton.IsEnabled = false;
             SendFileButton.IsEnabled = true;
+            ResumeSendButton.IsEnabled = _pausedSinglePath is not null;
         }
     }
 
     private async void SendBatchClicked(object? sender, EventArgs e)
     {
-        if (_remote is null)
-        {
-            await DisplayAlert("Device required", "Validate a fresh pairing invitation first.", "OK");
-            return;
-        }
         if (_selectedBatchFiles.Length == 0)
         {
             await DisplayAlert("Files required", "Choose one or more files first.", "OK");
             return;
         }
+        if (!TryTakeRemote(out var remote))
+        {
+            await DisplayAlert("Device required", "Validate a fresh pairing invitation first.", "OK");
+            return;
+        }
 
-        var remote = _remote;
-        var selectedPaths = _selectedBatchFiles.Select(x => x.FullPath).ToArray();
-        _sendCts?.Dispose();
-        _sendCts = new CancellationTokenSource();
+        _pausedBatchPaths = Array.Empty<string>();
+        ResumeBatchButton.IsEnabled = false;
+        await RunBatchSendAsync(remote, _selectedBatchFiles.Select(x => x.FullPath).ToArray());
+    }
+
+    private async void ResumeBatchClicked(object? sender, EventArgs e)
+    {
+        var paths = _pausedBatchPaths.Where(File.Exists).ToArray();
+        if (paths.Length == 0)
+        {
+            _pausedBatchPaths = Array.Empty<string>();
+            ResumeBatchButton.IsEnabled = false;
+            await DisplayAlert("Resume unavailable", "The original batch source files are no longer available.", "OK");
+            return;
+        }
+        if (!TryTakeRemote(out var remote))
+        {
+            await DisplayAlert("Fresh pairing required", "Pair with the receiver again, verify its fingerprint, then press Resume.", "OK");
+            return;
+        }
+
+        await RunBatchSendAsync(remote, paths);
+    }
+
+    private async Task RunBatchSendAsync(PairingPayload remote, string[] selectedPaths)
+    {
+        _batchSendCts?.Dispose();
+        _batchSendCts = new CancellationTokenSource();
+        _batchPauseRequested = false;
         var stopwatch = Stopwatch.StartNew();
         try
         {
             SendBatchButton.IsEnabled = false;
+            PauseBatchButton.IsEnabled = true;
+            ResumeBatchButton.IsEnabled = false;
             CancelBatchButton.IsEnabled = true;
             BatchTransferProgress.Progress = 0;
-            BatchTransferStatusLabel.Text = "Preparing checksums…";
+            BatchTransferStatusLabel.Text = _pausedBatchPaths.Length == 0 ? "Preparing checksums…" : "Preparing resume checksums…";
             var progress = new Progress<BatchProgress>(value =>
             {
                 BatchTransferProgress.Progress = value.Fraction;
                 var seconds = Math.Max(stopwatch.Elapsed.TotalSeconds, 0.001);
                 var speed = value.CompletedBytes / seconds;
                 var remaining = Math.Max(0, value.TotalBytes - value.CompletedBytes);
-                var eta = speed <= 1 ? "calculating" : TimeSpan.FromSeconds(remaining / speed).ToString(@"hh\:mm\:ss");
+                var eta = speed <= 1
+                    ? "calculating"
+                    : TimeSpan.FromSeconds(remaining / speed).ToString(@"hh\:mm\:ss");
                 BatchTransferStatusLabel.Text =
                     $"{value.CompletedItems}/{value.TotalItems} files • {FormatBytes(value.CompletedBytes)}/{FormatBytes(value.TotalBytes)} • {FormatBytes((long)speed)}/s • ETA {eta}\n{value.CurrentFile}";
             });
 
-            var result = await _transfers.SendBatchAsync(remote, selectedPaths, progress, _sendCts.Token);
+            var result = await _transfers.SendBatchAsync(remote, selectedPaths, progress, _batchSendCts.Token);
             foreach (var item in result.Completed)
             {
                 await _history.AddAsync(
@@ -428,29 +528,50 @@ public partial class MainPage : ContentPage
                     false);
             }
 
+            _pausedBatchPaths = Array.Empty<string>();
             BatchTransferProgress.Progress = 1;
             BatchTransferStatusLabel.Text = $"Completed {result.Completed.Count:N0} file(s); receiver skipped {result.Skipped.Count:N0}. A fresh pairing invitation is required for another transfer.";
         }
         catch (OperationCanceledException)
         {
-            BatchTransferStatusLabel.Text = "Batch cancelled. Partial files remain staged on the receiver for a future verified resume.";
-            foreach (var file in _selectedBatchFiles)
+            if (_batchPauseRequested)
             {
-                var info = new FileInfo(file.FullPath);
-                await _history.AddAsync("sent", remote.DeviceName, file.FileName, info.Exists ? info.Length : 0, "cancelled", false);
+                _pausedBatchPaths = selectedPaths.Where(File.Exists).ToArray();
+                BatchTransferStatusLabel.Text = "Paused safely. Pair with the same receiver again and press Resume. Existing partial files can supply resume offsets.";
+                ResumeBatchButton.IsEnabled = _pausedBatchPaths.Length > 0;
+                foreach (var path in _pausedBatchPaths)
+                {
+                    var info = new FileInfo(path);
+                    await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "paused", false);
+                }
+            }
+            else
+            {
+                _pausedBatchPaths = Array.Empty<string>();
+                BatchTransferStatusLabel.Text = "Batch cancelled.";
+                foreach (var path in selectedPaths)
+                {
+                    var info = new FileInfo(path);
+                    await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Exists ? info.Length : 0, "cancelled", false);
+                }
             }
         }
         catch (Exception ex)
         {
-            BatchTransferStatusLabel.Text = "Batch failed safely. Use a fresh pairing invitation before retrying.";
+            _pausedBatchPaths = selectedPaths.Where(File.Exists).ToArray();
+            ResumeBatchButton.IsEnabled = _pausedBatchPaths.Length > 0;
+            BatchTransferStatusLabel.Text = _pausedBatchPaths.Length == 0
+                ? "Batch failed."
+                : "Batch failed safely. Pair with the receiver again and press Resume to reuse any available partial offsets.";
             await DisplayAlert("Batch transfer failed", ex.Message, "OK");
         }
         finally
         {
             stopwatch.Stop();
-            _remote = null;
             SendBatchButton.IsEnabled = true;
+            PauseBatchButton.IsEnabled = false;
             CancelBatchButton.IsEnabled = false;
+            ResumeBatchButton.IsEnabled = _pausedBatchPaths.Length > 0;
         }
     }
 
@@ -469,17 +590,15 @@ public partial class MainPage : ContentPage
 
     private async void SendTextClicked(object? sender, EventArgs e)
     {
-        if (_remote is null)
-        {
-            await DisplayAlert("Device required", "Validate a fresh pairing link first.", "OK");
-            return;
-        }
-
-        var remote = _remote;
         var text = TextSnippetEditor.Text ?? string.Empty;
         if (string.IsNullOrWhiteSpace(text))
         {
             await DisplayAlert("Text required", "Type or explicitly paste a text snippet first.", "OK");
+            return;
+        }
+        if (!TryTakeRemote(out var remote))
+        {
+            await DisplayAlert("Device required", "Validate a fresh pairing invitation first.", "OK");
             return;
         }
 
@@ -509,17 +628,111 @@ public partial class MainPage : ContentPage
                 false);
             await DisplayAlert("Text transfer failed", ex.Message, "OK");
         }
-        finally
+    }
+
+    private bool TryTakeRemote(out PairingPayload remote)
+    {
+        if (_remote is null)
         {
-            _remote = null;
+            remote = null!;
+            return false;
+        }
+
+        remote = _remote;
+        _remote = null;
+        RemotePeerLabel.Text = $"{remote.DeviceName} invitation in use. Pair again for another transfer or resume.";
+        return true;
+    }
+
+    private void PauseSendClicked(object? sender, EventArgs e)
+    {
+        _singlePauseRequested = true;
+        _singleSendCts?.Cancel();
+    }
+
+    private void ResumeSendClicked(object? sender, EventArgs e)
+    {
+        _ = ResumeSingleWithErrorBoundaryAsync();
+    }
+
+    private async Task ResumeSingleWithErrorBoundaryAsync()
+    {
+        try
+        {
+            var path = _pausedSinglePath;
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                _pausedSinglePath = null;
+                ResumeSendButton.IsEnabled = false;
+                await DisplayAlert("Resume unavailable", "The original source file is no longer available.", "OK");
+                return;
+            }
+            if (!TryTakeRemote(out var remote))
+            {
+                await DisplayAlert("Fresh pairing required", "Pair with the receiver again, verify its fingerprint, then press Resume.", "OK");
+                return;
+            }
+            await RunSingleSendAsync(remote, path);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Resume failed", ex.Message, "OK");
         }
     }
 
-    private void CancelSendClicked(object? sender, EventArgs e) => _sendCts?.Cancel();
-    private void CancelBatchClicked(object? sender, EventArgs e) => _sendCts?.Cancel();
+    private void CancelSendClicked(object? sender, EventArgs e)
+    {
+        _singlePauseRequested = false;
+        _singleSendCts?.Cancel();
+    }
+
+    private void PauseBatchClicked(object? sender, EventArgs e)
+    {
+        _batchPauseRequested = true;
+        _batchSendCts?.Cancel();
+    }
+
+    private void ResumeBatchClicked(object? sender, EventArgs e)
+    {
+        _ = ResumeBatchWithErrorBoundaryAsync();
+    }
+
+    private async Task ResumeBatchWithErrorBoundaryAsync()
+    {
+        try
+        {
+            var paths = _pausedBatchPaths.Where(File.Exists).ToArray();
+            if (paths.Length == 0)
+            {
+                _pausedBatchPaths = Array.Empty<string>();
+                ResumeBatchButton.IsEnabled = false;
+                await DisplayAlert("Resume unavailable", "The original batch source files are no longer available.", "OK");
+                return;
+            }
+            if (!TryTakeRemote(out var remote))
+            {
+                await DisplayAlert("Fresh pairing required", "Pair with the receiver again, verify its fingerprint, then press Resume.", "OK");
+                return;
+            }
+            await RunBatchSendAsync(remote, paths);
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Resume failed", ex.Message, "OK");
+        }
+    }
+
+    private void CancelBatchClicked(object? sender, EventArgs e)
+    {
+        _batchPauseRequested = false;
+        _batchSendCts?.Cancel();
+    }
 
     private async void OpenDevicesClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<DevicesPage>());
+
+    private async void OpenQueueClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<QueuePage>());
 
     private async void OpenSettingsClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<SettingsPage>());
