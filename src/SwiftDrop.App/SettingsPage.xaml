@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SwiftDrop.App.SettingsPage"
+             Title="Settings">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <Label Text="SwiftDrop Settings" FontSize="30" FontAttributes="Bold" />
+      <Label Text="Transfers stay on your local network. Auto-accept is disabled by default." Opacity="0.75" />
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Transfers" FontSize="18" FontAttributes="Bold" />
+          <Label Text="Concurrent transfers" />
+          <Stepper x:Name="ConcurrencyStepper" Minimum="1" Maximum="8" Increment="1" ValueChanged="ConcurrencyChanged" />
+          <Label x:Name="ConcurrencyLabel" />
+          <Label Text="History retention (days)" />
+          <Stepper x:Name="RetentionStepper" Minimum="0" Maximum="3650" Increment="1" ValueChanged="RetentionChanged" />
+          <Label x:Name="RetentionLabel" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Privacy and trust" FontSize="18" FontAttributes="Bold" />
+          <HorizontalStackLayout Spacing="12">
+            <Switch x:Name="PrivacyModeSwitch" />
+            <Label Text="Hide filenames in transfer history" VerticalTextAlignment="Center" />
+          </HorizontalStackLayout>
+          <HorizontalStackLayout Spacing="12">
+            <Switch x:Name="AutoAcceptSwitch" />
+            <Label Text="Auto-accept from explicitly trusted devices" VerticalTextAlignment="Center" />
+          </HorizontalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Appearance" FontSize="18" FontAttributes="Bold" />
+          <Picker x:Name="ThemePicker" Title="Theme">
+            <Picker.Items>
+              <x:String>System</x:String>
+              <x:String>Light</x:String>
+              <x:String>Dark</x:String>
+            </Picker.Items>
+          </Picker>
+        </VerticalStackLayout>
+      </Border>
+
+      <Button Text="Save settings" Clicked="SaveClicked" />
+      <Button Text="Reset to defaults" Clicked="ResetClicked" />
+      <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" />
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>
