@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SwiftDrop.App.HistoryPage"
+             Title="Transfer history">
+  <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="14">
+    <VerticalStackLayout Grid.Row="0" Spacing="6">
+      <Label Text="Transfer history" FontSize="30" FontAttributes="Bold" />
+      <Label Text="Stored only on this device. File contents are never stored in history." Opacity="0.75" />
+    </VerticalStackLayout>
+    <CollectionView x:Name="HistoryList" Grid.Row="1" EmptyView="No transfer history yet.">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,5">
+            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
+              <Label Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" FontAttributes="Bold" LineBreakMode="MiddleTruncation" />
+              <Label Grid.Row="0" Grid.Column="1" Text="{Binding Direction}" Opacity="0.7" />
+              <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PeerDeviceName}" />
+              <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="12">
+                <Label Text="{Binding SizeBytes, StringFormat='{0:N0} bytes'}" FontSize="12" Opacity="0.7" />
+                <Label Text="{Binding Status}" FontSize="12" Opacity="0.7" />
+                <Label Text="{Binding TimestampUtc, StringFormat='{0:g}'}" FontSize="12" Opacity="0.7" />
+              </HorizontalStackLayout>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+    <HorizontalStackLayout Grid.Row="2" Spacing="12">
+      <Button Text="Refresh" Clicked="RefreshClicked" />
+      <Button Text="Clear history" Clicked="ClearClicked" />
+    </HorizontalStackLayout>
+  </Grid>
+</ContentPage>
