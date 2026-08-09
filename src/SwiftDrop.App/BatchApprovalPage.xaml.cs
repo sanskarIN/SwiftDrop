@@ -28,6 +28,7 @@ public partial class BatchApprovalPage : ContentPage
             FileRiskLevel.Caution => "Caution: at least one selected item is an archive, disk image, or active-content file.",
             _ => "No high-risk extension was identified. Extension checks are warnings only, not malware scanning."
         };
+        Disappearing += (_, _) => _completion.TrySetResult(IncomingBatchDecision.Reject);
     }
 
     public Task<IncomingBatchDecision> DecisionTask => _completion.Task;
@@ -54,12 +55,6 @@ public partial class BatchApprovalPage : ContentPage
     {
         if (!_completion.TrySetResult(decision)) return;
         await Navigation.PopModalAsync();
-    }
-
-    protected override bool OnBackButtonPressed()
-    {
-        _completion.TrySetResult(IncomingBatchDecision.Reject);
-        return base.OnBackButtonPressed();
     }
 
     private static string FormatBytes(long bytes)
