@@ -37,6 +37,7 @@ public static class MauiProgram
         builder.Services.AddTransient<QueueViewModel>();
         builder.Services.AddTransient<TrustedDevicesViewModel>();
         builder.Services.AddTransient<DevicesViewModel>();
+        builder.Services.AddTransient<DiagnosticsViewModel>();
 
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
