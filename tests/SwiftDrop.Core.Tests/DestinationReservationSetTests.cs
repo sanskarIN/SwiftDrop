@@ -18,7 +18,7 @@ public sealed class DestinationReservationSetTests
 
             Assert.Equal(Path.GetFullPath(requested), first.Path);
             Assert.NotEqual(first.Path, second.Path);
-            Assert.EndsWith("report (1).pdf", second.Path, StringComparison.Ordinal);
+            Assert.True(second.Path.EndsWith("report (1).pdf", StringComparison.Ordinal));
             Assert.True(reservations.IsReserved(first.Path));
             Assert.True(reservations.IsReserved(second.Path));
         }
@@ -40,7 +40,7 @@ public sealed class DestinationReservationSetTests
             using var reservation = reservations.Reserve(requested);
 
             Assert.NotEqual(Path.GetFullPath(requested), reservation.Path);
-            Assert.EndsWith("photo (1).jpg", reservation.Path, StringComparison.Ordinal);
+            Assert.True(reservation.Path.EndsWith("photo (1).jpg", StringComparison.Ordinal));
         }
         finally
         {
