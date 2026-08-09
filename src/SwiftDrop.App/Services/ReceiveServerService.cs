@@ -105,13 +105,18 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     return;
                 }
 
-                var final = PathGuard.ResolveUnderRoot(_receiveRoot, request.Entry.RelativePath);
+                var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, request.Entry.RelativePath);
+                var final = File.Exists(requestedFinal) || Directory.Exists(requestedFinal)
+                    ? PathGuard.GetCollisionFreePath(requestedFinal)
+                    : requestedFinal;
+                var effectiveRelativePath = Path.GetRelativePath(_receiveRoot, final);
+                var effectiveEntry = request.Entry with { RelativePath = effectiveRelativePath };
                 var partial = final + ".swiftdrop.part";
-                var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, request.Entry.Length) : 0;
+                var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
                 await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, offset, null), ct);
-                await new TransferEngine().ReceiveFileAsync(connection, _receiveRoot, request.Entry, offset, null, ct);
-                await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, request.Entry.Length, null), ct);
-                await RecordAsync(preview, "completed", true, ct);
+                await new TransferEngine().ReceiveFileAsync(connection, _receiveRoot, effectiveEntry, offset, null, ct);
+                await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, effectiveEntry.Length, null), ct);
+                await RecordAsync(preview with { Entry = effectiveEntry }, "completed", true, ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
