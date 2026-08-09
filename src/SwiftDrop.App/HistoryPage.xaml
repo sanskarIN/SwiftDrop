@@ -6,7 +6,7 @@
   <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="6">
       <Label Text="Transfer history" FontSize="30" FontAttributes="Bold" />
-      <Label Text="Stored only on this device. File contents are never stored in history." Opacity="0.75" />
+      <Label Text="Stored only on this device. File contents and text contents are never stored in history." Opacity="0.75" />
     </VerticalStackLayout>
     <CollectionView x:Name="HistoryList" Grid.Row="1" EmptyView="No transfer history yet.">
       <CollectionView.ItemTemplate>
@@ -14,9 +14,10 @@
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,5">
             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
               <Label Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" FontAttributes="Bold" LineBreakMode="MiddleTruncation" />
-              <Label Grid.Row="0" Grid.Column="1" Text="{Binding Direction}" Opacity="0.7" />
+              <Button Grid.Row="0" Grid.Column="1" Text="Delete" CommandParameter="{Binding Id}" Clicked="DeleteClicked" />
               <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PeerDeviceName}" />
               <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="12">
+                <Label Text="{Binding Direction}" FontSize="12" Opacity="0.7" />
                 <Label Text="{Binding SizeBytes, StringFormat='{0:N0} bytes'}" FontSize="12" Opacity="0.7" />
                 <Label Text="{Binding Status}" FontSize="12" Opacity="0.7" />
                 <Label Text="{Binding TimestampUtc, StringFormat='{0:g}'}" FontSize="12" Opacity="0.7" />
