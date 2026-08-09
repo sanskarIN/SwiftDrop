@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SwiftDrop.App.AboutPage"
+             Title="About">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="16">
+      <Image Source="appicon.svg" HeightRequest="88" WidthRequest="88" />
+      <Label Text="SwiftDrop" FontSize="32" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+      <Label x:Name="VersionLabel" HorizontalTextAlignment="Center" Opacity="0.75" />
+      <Label Text="Open-source, account-free local-network file and text transfer built with .NET MAUI, C#, XAML, SQLite metadata, and TLS." HorizontalTextAlignment="Center" />
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="10">
+          <Label Text="Open source" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Repository: https://github.com/sanskarIN/SwiftDrop" />
+          <Label Text="Creator: https://www.github.com/sanskarIN" />
+          <Label Text="License: Apache-2.0" />
+          <Button Text="Open repository" Clicked="OpenRepositoryClicked" />
+          <Button Text="Open creator profile" Clicked="OpenProfileClicked" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="10">
+          <Label Text="Contact and security" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Business: sanskarin@outlook.in" />
+          <Label Text="Support: supportramsandesh@gmail.com" />
+          <Label Text="Security vulnerabilities should be reported privately to sanskarin@outlook.in. Do not post secrets, private transfers, or exploit details in public issues." />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="10">
+          <Label Text="Privacy" FontAttributes="Bold" FontSize="18" />
+          <Label Text="SwiftDrop does not require an account and the current release does not upload transferred content to a SwiftDrop cloud service. Transfer metadata history stays local to this device." />
+        </VerticalStackLayout>
+      </Border>
+
+      <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontAttributes="Bold" />
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>
