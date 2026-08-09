@@ -58,4 +58,20 @@ public sealed class FileNameSanitizerTests
     {
         Assert.Equal("unnamed", FileNameSanitizer.SanitizeSegment("<>:?*"));
     }
+
+    [Fact]
+    public void PortableCollisionKey_Normalizes_Separators_And_Unicode()
+    {
+        var composed = FileNameSanitizer.GetPortableCollisionKey("Folder/Café.txt");
+        var decomposed = FileNameSanitizer.GetPortableCollisionKey("Folder\\Cafe\u0301.txt");
+        Assert.Equal(composed, decomposed, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PortableCollisionKey_Reflects_Sanitized_Destination()
+    {
+        var first = FileNameSanitizer.GetPortableCollisionKey("report?.txt");
+        var second = FileNameSanitizer.GetPortableCollisionKey("report*.txt");
+        Assert.Equal(first, second, StringComparer.OrdinalIgnoreCase);
+    }
 }
