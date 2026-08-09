@@ -3,9 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SwiftDrop.App.DevicesPage"
              Title="Nearby devices">
-  <Grid RowDefinitions="Auto,*" Padding="20" RowSpacing="14">
+  <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="8">
-      <Label Text="Nearby devices" FontSize="28" FontAttributes="Bold" />
+      <Label Text="Nearby devices" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
       <Label Text="SwiftDrop discovers peers through mDNS/Bonjour with UDP fallback. Devices expire automatically when they stop announcing." FontSize="13" Opacity="0.75" />
       <HorizontalStackLayout Spacing="10">
         <Button Text="Refresh" Clicked="RefreshClicked" />
@@ -13,7 +13,20 @@
       </HorizontalStackLayout>
     </VerticalStackLayout>
 
-    <CollectionView Grid.Row="1" x:Name="DevicesList" EmptyView="No nearby devices found yet. QR or pasted invitations remain available.">
+    <Border Grid.Row="1" StrokeShape="RoundRectangle 16" Padding="14">
+      <VerticalStackLayout Spacing="8">
+        <Label Text="Manual IP fallback" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+        <Label Text="Use this only when automatic discovery is blocked. Enter the receiver IP address and its fresh 8-digit one-time code. SwiftDrop will still show the TLS certificate fingerprint for visual confirmation before transfer." FontSize="12" Opacity="0.75" />
+        <Grid ColumnDefinitions="2*,Auto,Auto" ColumnSpacing="8">
+          <Entry x:Name="ManualIpEntry" Grid.Column="0" Placeholder="192.168.1.20" Keyboard="Url" />
+          <Entry x:Name="ManualPortEntry" Grid.Column="1" Placeholder="47821" Keyboard="Numeric" MaxLength="5" WidthRequest="90" />
+          <Entry x:Name="ManualCodeEntry" Grid.Column="2" Placeholder="8-digit code" Keyboard="Numeric" MaxLength="8" WidthRequest="130" IsPassword="True" />
+        </Grid>
+        <Button Text="Pair by IP and code" Clicked="ManualPairClicked" />
+      </VerticalStackLayout>
+    </Border>
+
+    <CollectionView Grid.Row="2" x:Name="DevicesList" EmptyView="No nearby devices found yet. QR, manual IP, or pasted invitations remain available.">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 16" Padding="14" Margin="0,0,0,10">
