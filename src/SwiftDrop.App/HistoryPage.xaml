@@ -29,7 +29,7 @@
       </CollectionView.ItemTemplate>
     </CollectionView>
     <HorizontalStackLayout Grid.Row="2" Spacing="12">
-      <Button Text="Refresh" Clicked="RefreshClicked" IsEnabled="{Binding IsBusy, Converter={x:Static InvertBoolConverter.Instance}}" />
+      <Button Text="Refresh" Clicked="RefreshClicked" />
       <Button Text="Clear history" Clicked="ClearClicked" />
     </HorizontalStackLayout>
   </Grid>
