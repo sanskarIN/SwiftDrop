@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SwiftDrop.App.DiagnosticsPage"
              Title="Diagnostics">
-  <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="20" RowSpacing="14">
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="6">
       <Label Text="Local network diagnostics" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
       <Label Text="Diagnostics contain network capability and protocol status only. SwiftDrop does not include file contents, text contents, private keys, full pairing invitations, or pairing nonces." FontSize="13" Opacity="0.75" />
@@ -24,7 +24,20 @@
       </VerticalStackLayout>
     </Border>
 
-    <CollectionView Grid.Row="2" x:Name="DiagnosticsList" HeightRequest="220" EmptyView="No current diagnostic messages.">
+    <Border x:Name="SelfTestPanel" Grid.Row="2" StrokeShape="RoundRectangle 16" Padding="14" IsVisible="False">
+      <VerticalStackLayout Spacing="8">
+        <Label Text="Safe developer self-tests" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
+        <Label Text="These tests use synthetic random bytes in temporary storage. They do not inspect user files or network peers." FontSize="12" Opacity="0.75" />
+        <HorizontalStackLayout Spacing="10">
+          <Button Text="Good round-trip" Clicked="RunRoundTripTestClicked" />
+          <Button Text="Checksum mismatch" Clicked="RunChecksumTestClicked" />
+          <Button Text="Interrupted receive" Clicked="RunInterruptionTestClicked" />
+        </HorizontalStackLayout>
+        <Label x:Name="SelfTestResultLabel" FontSize="12" />
+      </VerticalStackLayout>
+    </Border>
+
+    <CollectionView Grid.Row="3" x:Name="DiagnosticsList" HeightRequest="220" EmptyView="No current diagnostic messages.">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,0,0,10">
@@ -38,7 +51,7 @@
       </CollectionView.ItemTemplate>
     </CollectionView>
 
-    <CollectionView Grid.Row="3" x:Name="EventLogList" EmptyView="No persisted diagnostic events.">
+    <CollectionView Grid.Row="4" x:Name="EventLogList" EmptyView="No persisted diagnostic events.">
       <CollectionView.Header>
         <Label Text="Recent safe diagnostic events" FontSize="18" FontAttributes="Bold" Margin="0,6" SemanticProperties.HeadingLevel="Level2" />
       </CollectionView.Header>
