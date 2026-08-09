@@ -9,6 +9,11 @@ public static class SettingsValidator
         "System", "Light", "Dark"
     };
 
+    private static readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "en", "hi"
+    };
+
     public static AppSettings Validate(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -18,6 +23,16 @@ public static class SettingsValidator
             throw new ArgumentOutOfRangeException(nameof(settings.HistoryRetentionDays), "History retention must be between 0 and 3650 days.");
         if (!Themes.Contains(settings.Theme))
             throw new ArgumentException("Theme must be System, Light, or Dark.", nameof(settings.Theme));
-        return settings with { Theme = Themes.First(t => string.Equals(t, settings.Theme, StringComparison.OrdinalIgnoreCase)) };
+        if (!Languages.Contains(settings.Language))
+            throw new ArgumentException("Language must be en or hi in this release.", nameof(settings.Language));
+        if (settings.DefaultReceiveFolder.Length > 1024 || settings.DefaultReceiveFolder.Any(char.IsControl))
+            throw new ArgumentException("Receive folder contains unsupported characters or is too long.", nameof(settings.DefaultReceiveFolder));
+
+        return settings with
+        {
+            Theme = Themes.First(t => string.Equals(t, settings.Theme, StringComparison.OrdinalIgnoreCase)),
+            Language = Languages.First(t => string.Equals(t, settings.Language, StringComparison.OrdinalIgnoreCase)),
+            DefaultReceiveFolder = settings.DefaultReceiveFolder.Trim()
+        };
     }
 }
