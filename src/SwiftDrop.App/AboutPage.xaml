@@ -8,7 +8,7 @@
     <VerticalStackLayout Padding="24" Spacing="16">
       <Image Source="appicon.svg" HeightRequest="88" WidthRequest="88" SemanticProperties.Description="{x:Static services:AppText.SwiftDropIconDescription}" />
       <Label Text="{x:Static services:AppText.AppName}" FontSize="32" FontAttributes="Bold" HorizontalTextAlignment="Center" SemanticProperties.HeadingLevel="Level1" />
-      <Label x:Name="VersionLabel" HorizontalTextAlignment="Center" Opacity="0.75" />
+      <Label Text="{Binding VersionText}" HorizontalTextAlignment="Center" Opacity="0.75" />
       <Label Text="{x:Static services:AppText.AboutSummary}" HorizontalTextAlignment="Center" />
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
