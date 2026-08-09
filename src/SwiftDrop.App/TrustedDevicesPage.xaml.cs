@@ -28,7 +28,7 @@ public partial class TrustedDevicesPage : ContentPage
     private async void RevokeClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not string deviceId) return;
-        var confirmed = await DisplayAlert("Revoke trusted device?", "Future transfers from this device will require explicit confirmation again.", "Revoke", "Cancel");
+        var confirmed = await DisplayAlertAsync("Revoke trusted device?", "Future transfers from this device will require explicit confirmation again.", "Revoke", "Cancel");
         if (!confirmed) return;
         await _trusted.RevokeAsync(deviceId);
         await RefreshAsync();
@@ -36,7 +36,7 @@ public partial class TrustedDevicesPage : ContentPage
 
     private async void ClearAllClicked(object? sender, EventArgs e)
     {
-        var confirmed = await DisplayAlert("Clear all trusted devices?", "This removes all locally stored trust decisions.", "Clear", "Cancel");
+        var confirmed = await DisplayAlertAsync("Clear all trusted devices?", "This removes all locally stored trust decisions.", "Clear", "Cancel");
         if (!confirmed) return;
         await _trusted.ClearAsync();
         await RefreshAsync();
