@@ -88,6 +88,27 @@ public sealed class TransferHistoryStore
         return results;
     }
 
+    public async Task<int> PruneBeforeAsync(DateTimeOffset cutoffUtc, CancellationToken ct = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM transfer_history WHERE timestamp_utc < $cutoff;";
+        command.Parameters.AddWithValue("$cutoff", cutoffUtc.UtcDateTime.ToString("O"));
+        return await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task DeleteAsync(string id, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM transfer_history WHERE id=$id;";
+        command.Parameters.AddWithValue("$id", id);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
     public async Task ClearAsync(CancellationToken ct = default)
     {
         await using var connection = new SqliteConnection(_connectionString);
