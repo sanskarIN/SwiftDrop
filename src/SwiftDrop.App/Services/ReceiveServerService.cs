@@ -18,6 +18,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<IncomingTransferPreview, string, bool, CancellationToken, Task>? _recordTransfer;
     private readonly Func<IncomingTextPreview, CancellationToken, Task<IncomingTextDecision>>? _approveText;
     private readonly Func<IncomingTextPreview, string, CancellationToken, Task>? _recordText;
+    private readonly Func<IncomingPairingRequest, CancellationToken, Task<bool>>? _approvePairing;
+    private readonly Func<string>? _createPairingLink;
     private readonly AttemptRateLimiter _pairingAttemptLimiter = new(8, TimeSpan.FromMinutes(1));
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
@@ -29,7 +31,9 @@ public sealed class ReceiveServerService : IAsyncDisposable
         Func<IncomingTransferPreview, CancellationToken, Task<bool>> approveTransfer,
         Func<IncomingTransferPreview, string, bool, CancellationToken, Task>? recordTransfer = null,
         Func<IncomingTextPreview, CancellationToken, Task<IncomingTextDecision>>? approveText = null,
-        Func<IncomingTextPreview, string, CancellationToken, Task>? recordText = null)
+        Func<IncomingTextPreview, string, CancellationToken, Task>? recordText = null,
+        Func<IncomingPairingRequest, CancellationToken, Task<bool>>? approvePairing = null,
+        Func<string>? createPairingLink = null)
     {
         ArgumentNullException.ThrowIfNull(certificate);
         ArgumentException.ThrowIfNullOrWhiteSpace(receiveRoot);
@@ -39,6 +43,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
         _recordTransfer = recordTransfer;
         _approveText = approveText;
         _recordText = recordText;
+        _approvePairing = approvePairing;
+        _createPairingLink = createPairingLink;
         Directory.CreateDirectory(_receiveRoot);
         _server = new TlsPeerServer(CopyCertificateWithPrivateKey(certificate), ProtocolConstants.DefaultPort);
     }
@@ -78,9 +84,14 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try
             {
                 var request = await FrameProtocol.ReadJsonAsync<IncomingRequest>(connection, ct);
-                if (request.ProtocolVersion != ProtocolConstants.CurrentVersion || request.Type is not ("file" or "text"))
+                if (request.ProtocolVersion != ProtocolConstants.CurrentVersion || request.Type is not ("file" or "text" or "pair-request"))
                 {
                     await RejectAsync(connection, "Unsupported transfer request.", ct);
+                    return;
+                }
+                if (!IsValidSenderIdentity(request.SenderDeviceId, request.SenderDeviceName))
+                {
+                    await RejectAsync(connection, "Invalid sender identity metadata.", ct);
                     return;
                 }
                 if (connection.RemoteCertificate is null)
@@ -94,6 +105,12 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, DateTimeOffset.UtcNow))
                 {
                     await RejectAsync(connection, "Too many pairing attempts. Try again shortly.", ct);
+                    return;
+                }
+
+                if (request.Type == "pair-request")
+                {
+                    await HandlePairingRequestAsync(connection, request, senderFingerprint, ct);
                     return;
                 }
 
@@ -144,7 +161,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     }
                 }
 
-                if (!_consumePairingNonce(request.PairingNonce))
+                if (string.IsNullOrWhiteSpace(request.PairingNonce) || !_consumePairingNonce(request.PairingNonce))
                 {
                     await RejectAsync(connection, "Pairing authorization failed.", ct);
                     return;
@@ -157,8 +174,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 }
 
                 filePreview = new IncomingTransferPreview(
-                    request.SenderDeviceId,
-                    request.SenderDeviceName,
+                    request.SenderDeviceId!,
+                    request.SenderDeviceName!,
                     senderFingerprint,
                     safeEntry!,
                     FileRiskClassifier.Classify(safeEntry!.RelativePath));
@@ -204,6 +221,29 @@ public sealed class ReceiveServerService : IAsyncDisposable
         }
     }
 
+    private async Task HandlePairingRequestAsync(
+        Stream connection,
+        IncomingRequest request,
+        string senderFingerprint,
+        CancellationToken ct)
+    {
+        if (_approvePairing is null || _createPairingLink is null)
+        {
+            await FrameProtocol.WriteJsonAsync(connection, new PairingResponse(false, "Nearby pairing is unavailable.", null), ct);
+            return;
+        }
+
+        var preview = new IncomingPairingRequest(request.SenderDeviceId!, request.SenderDeviceName!, senderFingerprint);
+        if (!await _approvePairing(preview, ct))
+        {
+            await FrameProtocol.WriteJsonAsync(connection, new PairingResponse(false, "Receiver declined pairing.", null), ct);
+            return;
+        }
+
+        var link = _createPairingLink();
+        await FrameProtocol.WriteJsonAsync(connection, new PairingResponse(true, null, link), ct);
+    }
+
     private async Task<IncomingTextPreview> HandleTextAsync(
         Stream connection,
         IncomingRequest request,
@@ -212,8 +252,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
         CancellationToken ct)
     {
         var preview = new IncomingTextPreview(
-            request.SenderDeviceId,
-            request.SenderDeviceName,
+            request.SenderDeviceId!,
+            request.SenderDeviceName!,
             senderFingerprint,
             request.Text!,
             expiresUtc);
@@ -229,6 +269,11 @@ public sealed class ReceiveServerService : IAsyncDisposable
         await RecordTextAsync(preview, decision == IncomingTextDecision.AcceptAndCopy ? "copied" : "accepted", ct);
         return preview;
     }
+
+    private static bool IsValidSenderIdentity(string? deviceId, string? deviceName)
+        => !string.IsNullOrWhiteSpace(deviceId) && deviceId.Length <= 128 &&
+           !string.IsNullOrWhiteSpace(deviceName) && deviceName.Length <= 128 &&
+           !deviceName.Any(char.IsControl);
 
     private static Task RejectAsync(Stream connection, string message, CancellationToken ct)
         => FrameProtocol.WriteJsonAsync(connection, new TransferResponse(false, 0, message), ct);
@@ -279,12 +324,13 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private sealed record IncomingRequest(
         string Type,
         string ProtocolVersion,
-        string PairingNonce,
-        string SenderDeviceId,
-        string SenderDeviceName,
+        string? PairingNonce,
+        string? SenderDeviceId,
+        string? SenderDeviceName,
         FileManifestEntry? Entry,
         string? Text,
         long? ExpiresUnixSeconds);
 
     private sealed record TransferResponse(bool Accepted, long ResumeOffset, string? Message);
+    private sealed record PairingResponse(bool Accepted, string? Message, string? PairingLink);
 }
