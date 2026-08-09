@@ -1,0 +1,115 @@
+name: Apply pending hardening patch
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-time-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  harden-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply deterministic hardening edits
+        shell: python
+        run: |
+          from pathlib import Path
+
+          receive = Path('src/SwiftDrop.App/Services/ReceiveServerService.cs')
+          text = receive.read_text(encoding='utf-8')
+          old = '''        if (files is null || files.Count == 0 || files.Count > BatchTransferSourceBuilder.MaxFilesPerBatch)
+                      throw new InvalidDataException("Invalid batch file count.");
+
+                  var safe = files.Select(ValidateAndSanitizeEntry).ToArray();
+                  if (safe.Select(x => x.RelativePath).Distinct(StringComparer.Ordinal).Count() != safe.Length)
+                      throw new InvalidDataException("Duplicate batch path.");
+                  foreach (var file in safe) _ = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+                  var actualTotal = checked(safe.Sum(x => x.Length));
+                  if (declaredTotal is null || declaredTotal.Value != actualTotal)
+                      throw new InvalidDataException("Batch total size mismatch.");
+                  return safe;'''.replace('                  ', '        ')
+          new = '''        var validated = BatchManifestValidator.Validate(files, declaredTotal);
+                  var safe = validated.Select(ValidateAndSanitizeEntry).ToArray();
+                  if (safe.Select(x => x.RelativePath).Distinct(StringComparer.Ordinal).Count() != safe.Length)
+                      throw new InvalidDataException("Duplicate batch path after filename sanitation.");
+                  foreach (var file in safe) _ = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+                  return safe;'''.replace('                  ', '        ')
+          if old not in text:
+              raise SystemExit('ReceiveServer batch validation block did not match expected source; refusing partial patch.')
+          text = text.replace(old, new, 1)
+
+          marker = '''        await FrameProtocol.WriteJsonAsync(connection, new BatchTransferResponse(true, plans), ct);'''
+          if marker not in text:
+              raise SystemExit('ReceiveServer batch response marker missing; refusing partial patch.')
+          insertion = '''        var resumeOffsets = receiveItems.ToDictionary(
+                  x => x.EffectiveEntry.RelativePath,
+                  x => x.ResumeOffset,
+                  StringComparer.Ordinal);
+              var remainingBatchBytes = BatchCapacityPlanner.CalculateRemainingBytes(
+                  receiveItems.Select(x => x.EffectiveEntry).ToArray(),
+                  resumeOffsets);
+              var capacityProbePath = PathGuard.ResolveUnderRoot(
+                  _receiveRoot,
+                  receiveItems[0].EffectiveEntry.RelativePath);
+              StorageCapacityGuard.EnsureCapacity(capacityProbePath, remainingBatchBytes);
+
+          '''.replace('              ', '        ') + marker
+          text = text.replace(marker, insertion, 1)
+          receive.write_text(text, encoding='utf-8', newline='\n')
+
+          manifest = Path('src/SwiftDrop.App/Platforms/Android/AndroidManifest.xml')
+          manifest_text = manifest.read_text(encoding='utf-8')
+          if 'android:allowBackup="true"' not in manifest_text:
+              raise SystemExit('Android backup setting did not match expected source; refusing partial patch.')
+          manifest.write_text(
+              manifest_text.replace('android:allowBackup="true"', 'android:allowBackup="false"', 1),
+              encoding='utf-8',
+              newline='\n')
+
+          release = Path('.github/workflows/release-readiness.yml')
+          release_text = release.read_text(encoding='utf-8')
+          if './scripts/verify-core.sh' in release_text:
+              release_text = release_text.replace('./scripts/verify-core.sh', 'bash scripts/verify-core.sh', 1)
+              release.write_text(release_text, encoding='utf-8', newline='\n')
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify portable core and tests
+        shell: bash
+        run: bash scripts/verify-core.sh
+
+      - name: Verify Android app compilation
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet workload install maui-android
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
+          dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
+
+      - name: Commit verified hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          if git diff --quiet; then
+            echo "Hardening changes are already present."
+            exit 0
+          fi
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+          git add src/SwiftDrop.App/Services/ReceiveServerService.cs \
+                  src/SwiftDrop.App/Platforms/Android/AndroidManifest.xml \
+                  .github/workflows/release-readiness.yml
+          git commit -m "security: enforce aggregate batch receive limits" \
+                     -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+          git push origin HEAD:main
