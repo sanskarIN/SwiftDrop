@@ -168,7 +168,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
         }
     }
 
-    private async Task<IncomingTextPreview> HandleTextAsync(
+    private async Task<IncomingTextPreview?> HandleTextAsync(
         Stream connection,
         IncomingRequest request,
         string senderFingerprint,
@@ -177,23 +177,36 @@ public sealed class ReceiveServerService : IAsyncDisposable
         if (_approveText is null)
         {
             await RejectAsync(connection, "Text receiving is unavailable.", ct);
-            throw new InvalidOperationException("Text receiving is unavailable.");
+            return null;
         }
         if (string.IsNullOrWhiteSpace(request.Text))
         {
             await RejectAsync(connection, "Text snippet is empty.", ct);
-            throw new InvalidDataException("Text snippet is empty.");
+            return null;
         }
         if (Encoding.UTF8.GetByteCount(request.Text) > ProtocolConstants.MaxTextBytes)
         {
             await RejectAsync(connection, "Text snippet is too large.", ct);
-            throw new InvalidDataException("Text snippet is too large.");
+            return null;
         }
-        var expiresUtc = DateTimeOffset.FromUnixTimeSeconds(request.ExpiresUnixSeconds ?? 0);
-        if (expiresUtc <= DateTimeOffset.UtcNow || expiresUtc > DateTimeOffset.UtcNow.Add(ProtocolConstants.TextSnippetLifetime).AddSeconds(30))
+
+        var expiresSeconds = request.ExpiresUnixSeconds ?? 0;
+        DateTimeOffset expiresUtc;
+        try
+        {
+            expiresUtc = DateTimeOffset.FromUnixTimeSeconds(expiresSeconds);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            await RejectAsync(connection, "Text snippet expiry is invalid.", ct);
+            return null;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (expiresUtc <= now || expiresUtc > now.Add(ProtocolConstants.TextSnippetLifetime).AddSeconds(30))
         {
             await RejectAsync(connection, "Text snippet has expired or has an invalid expiry.", ct);
-            throw new InvalidDataException("Text snippet expiry is invalid.");
+            return null;
         }
 
         var preview = new IncomingTextPreview(
