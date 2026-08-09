@@ -13,6 +13,7 @@ public partial class SettingsPage : ContentPage
     private readonly TrustedDevicesService _trustedDevices;
     private readonly ReceiveLocationService _receiveLocation;
     private readonly AppearanceService _appearance;
+    private readonly TransferNotificationService _notifications;
     private readonly IServiceProvider _services;
     private bool _useDefaultReceiveFolder = true;
 
@@ -23,6 +24,7 @@ public partial class SettingsPage : ContentPage
         TrustedDevicesService trustedDevices,
         ReceiveLocationService receiveLocation,
         AppearanceService appearance,
+        TransferNotificationService notifications,
         IServiceProvider services)
     {
         InitializeComponent();
@@ -32,6 +34,7 @@ public partial class SettingsPage : ContentPage
         _trustedDevices = trustedDevices;
         _receiveLocation = receiveLocation;
         _appearance = appearance;
+        _notifications = notifications;
         _services = services;
         Loaded += async (_, _) => await LoadAsync();
     }
@@ -121,13 +124,25 @@ public partial class SettingsPage : ContentPage
         try
         {
             await _identity.RenameAsync(DeviceNameEntry.Text ?? string.Empty);
+            var notificationsEnabled = NotificationsSwitch.IsToggled;
+#if ANDROID
+            if (notificationsEnabled && !await _notifications.EnsurePermissionAsync())
+            {
+                notificationsEnabled = false;
+                NotificationsSwitch.IsToggled = false;
+                await DisplayAlertAsync(
+                    "Notification permission not granted",
+                    "SwiftDrop will continue transferring normally without optional completion/failure notifications. The required foreground transfer status is controlled by Android platform rules.",
+                    "OK");
+            }
+#endif
             var settings = new AppSettings(
                 (int)ConcurrencyStepper.Value,
                 (int)RetentionStepper.Value,
                 PrivacyModeSwitch.IsToggled,
                 AutoAcceptSwitch.IsToggled,
                 ThemePicker.SelectedItem?.ToString() ?? "System",
-                NotificationsSwitch.IsToggled,
+                notificationsEnabled,
                 ReduceMotionSwitch.IsToggled,
                 _useDefaultReceiveFolder ? string.Empty : ReceiveFolderEntry.Text ?? string.Empty,
                 LargerInterfaceSwitch.IsToggled,
