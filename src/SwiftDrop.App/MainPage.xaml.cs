@@ -129,9 +129,10 @@ public partial class MainPage : ContentPage
     {
         ct.ThrowIfCancellationRequested();
         var displayText = preview.Text.Length <= 900 ? preview.Text : preview.Text[..900] + "…";
+        var fingerprint = Fingerprint.Pretty(preview.SenderCertificateFingerprint);
         var choice = await MainThread.InvokeOnMainThreadAsync(() =>
             DisplayActionSheet(
-                $"Text from {preview.SenderDeviceName}\n{preview.CharacterCount:N0} characters\n\n{displayText}",
+                $"Text from {preview.SenderDeviceName}\nCertificate: {fingerprint}\n{preview.CharacterCount:N0} characters\n\n{displayText}",
                 "Reject",
                 null,
                 "Accept",
@@ -340,6 +341,9 @@ public partial class MainPage : ContentPage
 
     private async void OpenHistoryClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<HistoryPage>());
+
+    private async void OpenDiagnosticsClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<DiagnosticsPage>());
 
     private async void RunDiagnosticsClicked(object? sender, EventArgs e)
     {
