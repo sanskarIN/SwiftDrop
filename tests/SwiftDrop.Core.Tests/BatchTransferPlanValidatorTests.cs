@@ -23,6 +23,14 @@ public sealed class BatchTransferPlanValidatorTests
     }
 
     [Fact]
+    public void Validate_RejectsDuplicateSourceManifestPath()
+    {
+        var sources = new[] { Entry("a.txt", 10), Entry("a.txt", 10) };
+        var response = new BatchTransferResponse(true, new[] { new BatchItemPlan("a.txt", 0, true) });
+        Assert.Throws<InvalidDataException>(() => BatchTransferPlanValidator.Validate(sources, response));
+    }
+
+    [Fact]
     public void Validate_RejectsUnknownPath()
     {
         var sources = new[] { Entry("a.txt", 10) };
