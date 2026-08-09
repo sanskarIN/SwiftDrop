@@ -4,16 +4,10 @@ namespace SwiftDrop.App;
 
 public partial class App : Application
 {
-    public App(AppSettingsService settings, MainPage page)
+    public App(AppSettingsService settings, AppearanceService appearance, MainPage page)
     {
         InitializeComponent();
-        var saved = settings.Load();
-        UserAppTheme = saved.Theme switch
-        {
-            "Light" => AppTheme.Light,
-            "Dark" => AppTheme.Dark,
-            _ => AppTheme.Unspecified
-        };
+        appearance.Apply(settings.Load());
         MainPage = new NavigationPage(page);
     }
 }
