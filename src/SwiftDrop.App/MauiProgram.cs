@@ -17,6 +17,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeviceIdentityService>();
         builder.Services.AddSingleton<TransferCoordinator>();
         builder.Services.AddSingleton<AppSettingsService>();
+        builder.Services.AddSingleton<AppearanceService>();
         builder.Services.AddSingleton<ReceiveLocationService>();
         builder.Services.AddSingleton<TransferHistoryService>();
         builder.Services.AddSingleton<TrustedDevicesService>();
