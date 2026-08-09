@@ -16,6 +16,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<string, bool> _consumePairingNonce;
     private readonly Func<IncomingTransferPreview, CancellationToken, Task<bool>> _approveTransfer;
     private readonly Func<IncomingTransferPreview, string, bool, CancellationToken, Task>? _recordTransfer;
+    private readonly Func<IncomingBatchPreview, CancellationToken, Task<IncomingBatchDecision>>? _approveBatch;
     private readonly Func<IncomingTextPreview, CancellationToken, Task<IncomingTextDecision>>? _approveText;
     private readonly Func<IncomingTextPreview, string, CancellationToken, Task>? _recordText;
     private readonly Func<IncomingPairingRequest, CancellationToken, Task<bool>>? _approvePairing;
@@ -35,7 +36,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
         Func<IncomingTextPreview, string, CancellationToken, Task>? recordText = null,
         Func<IncomingPairingRequest, CancellationToken, Task<bool>>? approvePairing = null,
         Func<string>? createPairingLink = null,
-        Func<string?, bool>? consumePairingCode = null)
+        Func<string?, bool>? consumePairingCode = null,
+        Func<IncomingBatchPreview, CancellationToken, Task<IncomingBatchDecision>>? approveBatch = null)
     {
         ArgumentNullException.ThrowIfNull(certificate);
         ArgumentException.ThrowIfNullOrWhiteSpace(receiveRoot);
@@ -43,6 +45,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
         _consumePairingNonce = consumePairingNonce ?? throw new ArgumentNullException(nameof(consumePairingNonce));
         _approveTransfer = approveTransfer ?? throw new ArgumentNullException(nameof(approveTransfer));
         _recordTransfer = recordTransfer;
+        _approveBatch = approveBatch;
         _approveText = approveText;
         _recordText = recordText;
         _approvePairing = approvePairing;
@@ -87,7 +90,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try
             {
                 var request = await FrameProtocol.ReadJsonAsync<IncomingRequest>(connection, ct);
-                if (request.ProtocolVersion != ProtocolConstants.CurrentVersion || request.Type is not ("file" or "text" or "pair-request"))
+                if (request.ProtocolVersion != ProtocolConstants.CurrentVersion ||
+                    request.Type is not ("file" or "batch" or "text" or "pair-request"))
                 {
                     await RejectAsync(connection, "Unsupported transfer request.", ct);
                     return;
@@ -118,6 +122,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 }
 
                 FileManifestEntry? safeEntry = null;
+                IReadOnlyList<FileManifestEntry>? safeFiles = null;
                 DateTimeOffset? textExpiry = null;
                 if (request.Type == "file")
                 {
@@ -126,24 +131,24 @@ public sealed class ReceiveServerService : IAsyncDisposable
                         await RejectAsync(connection, "File metadata is required.", ct);
                         return;
                     }
-                    if (request.Entry.Length < 0 || request.Entry.Length > ProtocolConstants.MaxSingleFileBytes)
+                    safeEntry = ValidateAndSanitizeEntry(request.Entry);
+                }
+                else if (request.Type == "batch")
+                {
+                    if (_approveBatch is null)
                     {
-                        await RejectAsync(connection, "Unsafe file size.", ct);
+                        await RejectAsync(connection, "Batch receiving is unavailable.", ct);
                         return;
                     }
-
-                    string sanitizedPath;
                     try
                     {
-                        sanitizedPath = FileNameSanitizer.SanitizeRelativePath(request.Entry.RelativePath);
-                        _ = PathGuard.ResolveUnderRoot(_receiveRoot, sanitizedPath);
+                        safeFiles = ValidateAndSanitizeBatch(request.Files, request.TotalBytes);
                     }
-                    catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IOException)
+                    catch (Exception ex) when (ex is InvalidDataException or ArgumentException or IOException or OverflowException)
                     {
-                        await RejectAsync(connection, "Unsafe filename or destination path.", ct);
+                        await RejectAsync(connection, "Unsafe batch metadata.", ct);
                         return;
                     }
-                    safeEntry = request.Entry with { RelativePath = sanitizedPath };
                 }
                 else
                 {
@@ -173,6 +178,12 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 if (request.Type == "text")
                 {
                     textPreview = await HandleTextAsync(connection, request, senderFingerprint, textExpiry!.Value, ct);
+                    return;
+                }
+
+                if (request.Type == "batch")
+                {
+                    await HandleBatchAsync(connection, request, senderFingerprint, safeFiles!, ct);
                     return;
                 }
 
@@ -222,6 +233,148 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 if (textPreview is not null) await RecordTextBestEffortAsync(textPreview, "failed");
             }
         }
+    }
+
+    private async Task HandleBatchAsync(
+        Stream connection,
+        IncomingRequest request,
+        string senderFingerprint,
+        IReadOnlyList<FileManifestEntry> safeFiles,
+        CancellationToken ct)
+    {
+        var transferId = request.TransferId;
+        if (string.IsNullOrWhiteSpace(transferId) || transferId.Length > 128 || transferId.Any(char.IsControl))
+        {
+            await FrameProtocol.WriteJsonAsync(
+                connection,
+                new BatchTransferResponse(false, Array.Empty<BatchItemPlan>(), "Invalid transfer identifier."),
+                ct);
+            return;
+        }
+
+        var preview = new IncomingBatchPreview(
+            request.SenderDeviceId!,
+            request.SenderDeviceName!,
+            senderFingerprint,
+            transferId,
+            safeFiles);
+        var decision = await _approveBatch!(preview, ct);
+        if (!decision.Accepted)
+        {
+            await FrameProtocol.WriteJsonAsync(
+                connection,
+                new BatchTransferResponse(false, Array.Empty<BatchItemPlan>(), "Receiver declined the batch."),
+                ct);
+            foreach (var file in safeFiles)
+            {
+                await RecordAsync(
+                    new IncomingTransferPreview(request.SenderDeviceId!, request.SenderDeviceName!, senderFingerprint, file, FileRiskClassifier.Classify(file.RelativePath)),
+                    "rejected",
+                    false,
+                    ct);
+            }
+            return;
+        }
+
+        var knownPaths = safeFiles.Select(x => x.RelativePath).ToHashSet(StringComparer.Ordinal);
+        if (decision.AcceptedRelativePaths.Any(path => !knownPaths.Contains(path)))
+            throw new InvalidDataException("Receiver selection contained an unknown batch path.");
+
+        var receiveItems = new List<BatchReceiveItem>();
+        var plans = new List<BatchItemPlan>(safeFiles.Count);
+        foreach (var file in safeFiles)
+        {
+            if (!decision.AcceptedRelativePaths.Contains(file.RelativePath))
+            {
+                plans.Add(new BatchItemPlan(file.RelativePath, 0, false, "Not selected by receiver."));
+                await RecordAsync(
+                    new IncomingTransferPreview(request.SenderDeviceId!, request.SenderDeviceName!, senderFingerprint, file, FileRiskClassifier.Classify(file.RelativePath)),
+                    "not-selected",
+                    false,
+                    ct);
+                continue;
+            }
+
+            var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+            var final = File.Exists(requestedFinal) || Directory.Exists(requestedFinal)
+                ? PathGuard.GetCollisionFreePath(requestedFinal)
+                : requestedFinal;
+            var effectiveRelativePath = Path.GetRelativePath(_receiveRoot, final);
+            var effectiveEntry = file with { RelativePath = effectiveRelativePath };
+            var partial = final + ".swiftdrop.part";
+            var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
+            StorageCapacityGuard.EnsureCapacity(final, effectiveEntry.Length - offset);
+            plans.Add(new BatchItemPlan(file.RelativePath, offset, true));
+            receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveEntry, offset));
+        }
+
+        if (receiveItems.Count == 0)
+        {
+            await FrameProtocol.WriteJsonAsync(
+                connection,
+                new BatchTransferResponse(false, plans, "No files were selected."),
+                ct);
+            return;
+        }
+
+        await FrameProtocol.WriteJsonAsync(connection, new BatchTransferResponse(true, plans), ct);
+        foreach (var item in receiveItems)
+        {
+            var start = await FrameProtocol.ReadJsonAsync<BatchItemStart>(connection, ct);
+            if (!string.Equals(start.RelativePath, item.SourceRelativePath, StringComparison.Ordinal))
+                throw new InvalidDataException("Batch item order or path did not match the negotiated plan.");
+
+            var itemPreview = new IncomingTransferPreview(
+                request.SenderDeviceId!,
+                request.SenderDeviceName!,
+                senderFingerprint,
+                item.EffectiveEntry,
+                FileRiskClassifier.Classify(item.EffectiveEntry.RelativePath));
+            try
+            {
+                await new TransferEngine().ReceiveFileAsync(
+                    connection,
+                    _receiveRoot,
+                    item.EffectiveEntry,
+                    item.ResumeOffset,
+                    null,
+                    ct);
+                await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, item.EffectiveEntry.Length, null), ct);
+                await RecordAsync(itemPreview, "completed", true, ct);
+            }
+            catch
+            {
+                await RecordBestEffortAsync(itemPreview, "failed", false);
+                throw;
+            }
+        }
+
+        await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, preview.TotalBytes, null), ct);
+    }
+
+    private static FileManifestEntry ValidateAndSanitizeEntry(FileManifestEntry entry)
+    {
+        if (entry.Length < 0 || entry.Length > ProtocolConstants.MaxSingleFileBytes)
+            throw new InvalidDataException("Unsafe file size.");
+        var sanitizedPath = FileNameSanitizer.SanitizeRelativePath(entry.RelativePath);
+        return entry with { RelativePath = sanitizedPath };
+    }
+
+    private IReadOnlyList<FileManifestEntry> ValidateAndSanitizeBatch(
+        IReadOnlyList<FileManifestEntry>? files,
+        long? declaredTotal)
+    {
+        if (files is null || files.Count == 0 || files.Count > BatchTransferSourceBuilder.MaxFilesPerBatch)
+            throw new InvalidDataException("Invalid batch file count.");
+
+        var safe = files.Select(ValidateAndSanitizeEntry).ToArray();
+        if (safe.Select(x => x.RelativePath).Distinct(StringComparer.Ordinal).Count() != safe.Length)
+            throw new InvalidDataException("Duplicate batch path.");
+        foreach (var file in safe) _ = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+        var actualTotal = checked(safe.Sum(x => x.Length));
+        if (declaredTotal is null || declaredTotal.Value != actualTotal)
+            throw new InvalidDataException("Batch total size mismatch.");
+        return safe;
     }
 
     private async Task HandlePairingRequestAsync(
@@ -342,8 +495,13 @@ public sealed class ReceiveServerService : IAsyncDisposable
         FileManifestEntry? Entry,
         string? Text,
         long? ExpiresUnixSeconds,
-        string? PairingCode);
+        string? PairingCode,
+        string? TransferId,
+        IReadOnlyList<FileManifestEntry>? Files,
+        long? TotalBytes);
 
+    private sealed record BatchItemStart(string RelativePath);
+    private sealed record BatchReceiveItem(string SourceRelativePath, FileManifestEntry EffectiveEntry, long ResumeOffset);
     private sealed record TransferResponse(bool Accepted, long ResumeOffset, string? Message);
     private sealed record PairingResponse(bool Accepted, string? Message, string? PairingLink);
 }
