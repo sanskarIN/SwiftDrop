@@ -2,7 +2,7 @@
 
 SwiftDrop is an open-source, account-free local-network file and text transfer app built with .NET MAUI and C#. It is designed for direct peer-to-peer transfers across Android, iOS, macOS (Mac Catalyst), and Windows without uploading transfer content to a SwiftDrop cloud service.
 
-> **Privacy model:** transfer payloads stay on the local peer-to-peer path. SwiftDrop stores only local metadata required for settings, trust, history, and privacy-safe diagnostics. See `PRIVACY.md`.
+> **Privacy model:** transfer payloads stay on the local peer-to-peer path. SwiftDrop stores only local metadata required for settings, trust, history, bounded diagnostics, and privacy-minimal queue status. See `PRIVACY.md`.
 
 ## Current capabilities
 
@@ -13,9 +13,10 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 - Local P-256 ECDSA peer certificates with TLS client/server EKUs, secure-storage persistence, explicit renewal/recovery policy, and user-visible identity refresh when an old certificate cannot be safely reused.
 - Explicit receiver approval, sender certificate display, trusted-device storage/revocation, and optional normal-file auto-accept for explicitly trusted certificates.
 - Single-file transfer with streaming progress, cancellation, safe pause/resume through fresh pairing, `.swiftdrop.part` staging, SHA-256 verification, free-space checks, manifest-bound source length, and atomic collision-safe destination reservations.
-- Multi-file and recursive folder manifests with sender/receiver aggregate limits, receiver accept-all/selective/reject decisions, aggregate capacity preflight, per-file integrity verification, and resumable staged files.
+- Multi-file and recursive folder manifests with sender/receiver aggregate limits, receiver accept-all/selective/reject decisions, aggregate capacity preflight, per-file integrity verification, resumable staged files, and normalized portable destination-collision rejection.
+- Strict framed protocol JSON with bounded frames/depth, invalid-UTF-8 rejection, case-insensitive duplicate-property rejection, truncation handling, cancellation, and idle timeouts.
 - Explicit text-snippet transfer and user-triggered clipboard paste. SwiftDrop does not continuously monitor the clipboard.
-- Configurable transfer queue/concurrency with local queue status and privacy-mode label redaction.
+- Configurable transfer queue/concurrency with privacy-mode redaction and restart-safe metadata-only status persistence. Stale queued/running rows become `Interrupted`; authorization is never replayed automatically.
 - Android share-sheet ingestion for text/files and Android foreground data-sync lifetime for active user-initiated transfers.
 - Optional Android completion/failure notifications with generic privacy-safe text. They are opt-in, Android 13+ permission is requested only on explicit enable, and denied permission never changes transfer success/failure.
 - Windows desktop drag-and-drop for files, folders, text, and SwiftDrop pairing links through the same bounded external-input pipeline.
@@ -24,9 +25,11 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 - Configurable receive folder on Windows through the system folder picker; changing the receive destination restarts the listener safely against the newly resolved root.
 - Conservative app-private receive storage on platforms where broad folder access is not implemented.
 - Privacy-aware bounded diagnostic events, safe diagnostic export, and synthetic developer self-tests for success, interruption, and checksum mismatch behavior.
-- SQLite schema versioning for metadata-only stores.
+- SQLite schema versioning/migrations for metadata-only stores, including trusted peers, history, diagnostics, and privacy-minimal queue metadata.
 - Portable TLS loopback tests for certificate pinning, mutual TLS transfer, checksum-verified completion, and resume staging.
-- English/Hindi localization resource catalogs, theme controls, larger-interface controls, and accessibility-oriented semantic labels on key surfaces.
+- Expanded English/Hindi resource catalogs across primary and secondary XAML surfaces, with CI enforcing catalog well-formedness and key parity.
+- MVVM-backed History, Queue, Nearby Devices, Trusted Devices, Diagnostics, Settings, and About surfaces; Main remains an incremental migration target because it owns complex interactive transfer orchestration.
+- A synthetic benchmark harness for SHA-256 throughput, batch-manifest validation, and portable path sanitation without reading user files or contacting peers.
 
 ## Security boundaries
 
@@ -58,8 +61,10 @@ Support is optional and does not unlock transfer features, priority handling, or
 
 ## Build and test
 
+The canonical solution is `SwiftDrop.slnx`.
+
 ```bash
-dotnet restore SwiftDrop.sln
+dotnet restore SwiftDrop.slnx
 dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release
 dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
 ```
@@ -71,7 +76,13 @@ dotnet workload install maui-android
 dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Debug
 ```
 
-GitHub Actions includes portable core/test CI, CodeQL analysis, and target-platform compile workflows. Platform signing, store packaging, and physical-device validation remain release steps and are not implied by a successful portable unit-test run.
+Run the synthetic benchmark harness with bounded temporary data:
+
+```bash
+dotnet run --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release -- --size-mib 128 --iterations 3
+```
+
+GitHub Actions includes portable core/test CI, localization parity validation, benchmark compile validation, CodeQL analysis, and target-platform compile workflows for Android, Windows, Mac Catalyst, and an unsigned iOS Simulator target. Platform signing, store packaging, and physical-device validation remain release steps and are not implied by a successful source compile.
 
 ## Pairing
 
@@ -94,15 +105,17 @@ See `docs/troubleshooting.md` and `docs/platform-permissions.md`.
 
 ## Local data
 
-SwiftDrop stores metadata only in SQLite: trusted peers, transfer history, and bounded diagnostic events. Transfer bytes stream directly to the receive destination, with incomplete files staged as `.swiftdrop.part`. Device certificate/private-key material is stored through platform secure storage.
+SwiftDrop stores metadata only in SQLite: trusted peers, transfer history, bounded diagnostic events, and generic transfer-queue status. Transfer bytes stream directly to the receive destination, with incomplete files staged as `.swiftdrop.part`. Device certificate/private-key material is stored through platform secure storage.
 
-See `docs/storage/database-schema.md` and `PRIVACY.md`.
+Queue metadata does not contain filenames, text contents, peer IP addresses, pairing invitations/nonces, credentials, or free-form exception messages. See `docs/storage/database-schema.md` and `PRIVACY.md`.
 
 ## Development and release
 
+- Build instructions: `BUILDING.md`
 - Contribution rules: `CONTRIBUTING.md`
 - Architecture: `docs/architecture.md`
 - Manual test matrix: `docs/testing/manual-test-matrix.md`
+- Performance benchmark guide: `docs/testing/performance-benchmarks.md`
 - Release checklist: `docs/release/release-checklist.md`
 - Product status: `PROJECT_STATUS.md`
 - Next-step roadmap: `NEXT_STEPS.md`
