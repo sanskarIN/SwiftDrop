@@ -15,10 +15,11 @@ public static class MauiProgram
         builder.Logging.AddDebug();
 #endif
         builder.Services.AddSingleton<DeviceIdentityService>();
-        builder.Services.AddSingleton<TransferCoordinator>();
         builder.Services.AddSingleton<AppSettingsService>();
         builder.Services.AddSingleton<AppearanceService>();
         builder.Services.AddSingleton<ReceiveLocationService>();
+        builder.Services.AddSingleton<TransferQueueService>();
+        builder.Services.AddSingleton<TransferCoordinator>();
         builder.Services.AddSingleton<TransferHistoryService>();
         builder.Services.AddSingleton<TrustedDevicesService>();
         builder.Services.AddSingleton<NetworkDiagnosticsService>();
@@ -33,6 +34,7 @@ public static class MauiProgram
         builder.Services.AddTransient<TrustedDevicesPage>();
         builder.Services.AddTransient<DiagnosticsPage>();
         builder.Services.AddTransient<AboutPage>();
+        builder.Services.AddTransient<QueuePage>();
         return builder.Build();
     }
 }
