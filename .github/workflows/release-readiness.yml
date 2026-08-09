@@ -1,0 +1,75 @@
+name: Release readiness
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  core-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: ./scripts/verify-core.sh
+      - name: Capture dependency graph
+        run: |
+          mkdir -p artifacts
+          dotnet list src/SwiftDrop.Core/SwiftDrop.Core.csproj package --include-transitive > artifacts/core-packages.txt
+          dotnet list tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj package --include-transitive > artifacts/test-packages.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependency-graph
+          path: artifacts/
+
+  android-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet workload install maui-android
+      - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
+      - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
+
+  windows-compile:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet workload install maui-windows
+      - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-windows10.0.19041.0
+      - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-windows10.0.19041.0 -c Release --no-restore
+
+  apple-compile:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet workload install maui-ios maui-maccatalyst
+      - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
+      - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
+
+  release-gate:
+    if: always()
+    needs: [core-and-tests, android-compile, windows-compile, apple-compile]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all compile/test jobs
+        run: |
+          test "${{ needs.core-and-tests.result }}" = "success"
+          test "${{ needs.android-compile.result }}" = "success"
+          test "${{ needs.windows-compile.result }}" = "success"
+          test "${{ needs.apple-compile.result }}" = "success"
+          echo "Automated release-readiness gates passed. Physical-device, signing, notarization, and store checks remain mandatory."
