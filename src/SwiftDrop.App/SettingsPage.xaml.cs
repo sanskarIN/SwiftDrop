@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using SwiftDrop.App.Services;
 using SwiftDrop.Core.Models;
 
@@ -6,11 +7,13 @@ namespace SwiftDrop.App;
 public partial class SettingsPage : ContentPage
 {
     private readonly AppSettingsService _settings;
+    private readonly IServiceProvider _services;
 
-    public SettingsPage(AppSettingsService settings)
+    public SettingsPage(AppSettingsService settings, IServiceProvider services)
     {
         InitializeComponent();
         _settings = settings;
+        _services = services;
         LoadSettings();
     }
 
@@ -33,6 +36,9 @@ public partial class SettingsPage : ContentPage
 
     private void ConcurrencyChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
     private void RetentionChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
+
+    private async void ManageTrustedDevicesClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<TrustedDevicesPage>());
 
     private async void SaveClicked(object? sender, EventArgs e)
     {
