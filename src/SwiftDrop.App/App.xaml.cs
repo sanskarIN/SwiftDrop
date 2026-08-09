@@ -21,7 +21,11 @@ public partial class App : Application
     {
         var window = new Window(new NavigationPage(_mainPage));
         window.Destroying += OnWindowDestroying;
-        MainThread.BeginInvokeOnMainThread(async () => await _mainPage.ApplyExternalInputAsync());
+        MainThread.BeginInvokeOnMainThread(async () =>
+        {
+            await _mainPage.ShowIdentityRecoveryNoticeAsync();
+            await _mainPage.ApplyExternalInputAsync();
+        });
         return window;
     }
 
