@@ -47,7 +47,12 @@ public partial class MainPage : ContentPage
             if (_receiveServer is null)
             {
                 var receiveRoot = Path.Combine(FileSystem.AppDataDirectory, "Received");
-                _receiveServer = new ReceiveServerService(_identity.Certificate, receiveRoot, _identity.TryConsumePairingNonce);
+                _receiveServer = new ReceiveServerService(
+                    _identity.Certificate,
+                    receiveRoot,
+                    _identity.TryConsumePairingNonce,
+                    ApproveIncomingAsync,
+                    RecordIncomingAsync);
                 _receiveServer.Start();
                 TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
             }
@@ -57,6 +62,36 @@ public partial class MainPage : ContentPage
             await DisplayAlert("Startup error", ex.Message, "OK");
         }
     }
+
+    private async Task<bool> ApproveIncomingAsync(IncomingTransferPreview preview, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var risk = preview.RiskLevel switch
+        {
+            FileRiskLevel.High => "\n\nWARNING: This file type can execute code or install software. Only accept it if you expected it and trust the sender.",
+            FileRiskLevel.Caution => "\n\nCaution: This file type can contain other files or active content. Inspect it before opening.",
+            _ => string.Empty
+        };
+        var message =
+            $"Sender: {preview.SenderDeviceName}\n" +
+            $"File: {preview.Entry.RelativePath}\n" +
+            $"Size: {preview.Entry.Length:N0} bytes\n" +
+            $"Sender certificate: {Fingerprint.Pretty(preview.SenderCertificateFingerprint)}" + risk +
+            "\n\nSwiftDrop will not open the file automatically.";
+
+        return await MainThread.InvokeOnMainThreadAsync(() =>
+            DisplayAlert("Incoming transfer", message, "Accept", "Reject"));
+    }
+
+    private Task RecordIncomingAsync(IncomingTransferPreview preview, string status, bool verified, CancellationToken ct)
+        => _history.AddAsync(
+            "received",
+            preview.SenderDeviceName,
+            preview.Entry.RelativePath,
+            preview.Entry.Length,
+            status,
+            verified,
+            ct);
 
     private async Task StopReceiveServerAsync()
     {
