@@ -8,6 +8,7 @@
           <Label Text="Fast, private local transfers — no account required." FontSize="16" Opacity="0.75" />
         </VerticalStackLayout>
         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
+          <Button Text="Devices" Clicked="OpenDevicesClicked" />
           <Button Text="History" Clicked="OpenHistoryClicked" />
           <Button Text="Settings" Clicked="OpenSettingsClicked" />
         </HorizontalStackLayout>
