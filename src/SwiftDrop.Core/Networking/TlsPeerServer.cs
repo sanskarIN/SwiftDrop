@@ -14,6 +14,8 @@ public sealed class TlsPeerServer : IAsyncDisposable
 
     public TlsPeerServer(X509Certificate2 certificate, int port)
     {
+        ArgumentNullException.ThrowIfNull(certificate);
+        if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         _certificate = certificate;
         _listener = new TcpListener(IPAddress.Any, port);
     }
@@ -30,9 +32,13 @@ public sealed class TlsPeerServer : IAsyncDisposable
             await ssl.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
             {
                 ServerCertificate = _certificate,
-                ClientCertificateRequired = false,
-                EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12
+                ClientCertificateRequired = true,
+                EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12,
+                CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
+                RemoteCertificateValidationCallback = (_, certificate, _, _) => certificate is not null
             }, linked.Token);
+            if (ssl.RemoteCertificate is null)
+                throw new AuthenticationException("SwiftDrop requires a sender certificate.");
             return ssl;
         }
         catch
