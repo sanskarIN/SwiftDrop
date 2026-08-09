@@ -1,25 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SwiftDrop.App.Services"
              x:Class="SwiftDrop.App.TrustedDevicesPage"
-             Title="Trusted devices">
+             Title="{services:Localize TrustedDevices}">
   <Grid RowDefinitions="Auto,*" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="8">
-      <Label Text="Trusted devices" FontSize="28" FontAttributes="Bold" />
-      <Label Text="Trust is tied to a device ID and certificate fingerprint. Revoke a device if it is lost, replaced, or reinstalled." FontSize="13" Opacity="0.75" />
+      <Label Text="{services:Localize TrustedDevices}" FontSize="28" FontAttributes="Bold" />
+      <Label Text="{services:Localize TrustedDevicesDescription}" FontSize="13" Opacity="0.75" />
       <HorizontalStackLayout Spacing="10">
-        <Button Text="Refresh" Clicked="RefreshClicked" />
-        <Button Text="Clear all" Clicked="ClearAllClicked" />
+        <Button Text="{services:Localize Refresh}" Clicked="RefreshClicked" />
+        <Button Text="{services:Localize ClearAll}" Clicked="ClearAllClicked" />
       </HorizontalStackLayout>
     </VerticalStackLayout>
 
-    <CollectionView Grid.Row="1" x:Name="TrustedList" EmptyView="No trusted devices.">
+    <CollectionView Grid.Row="1" x:Name="TrustedList" EmptyView="{services:Localize TrustedEmpty}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 16" Padding="14" Margin="0,0,0,10">
             <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="5">
               <Label Grid.Row="0" Grid.Column="0" Text="{Binding DeviceName}" FontAttributes="Bold" FontSize="17" />
-              <Button Grid.Row="0" Grid.Column="1" Text="Revoke" CommandParameter="{Binding DeviceId}" Clicked="RevokeClicked" />
+              <Button Grid.Row="0" Grid.Column="1" Text="{services:Localize Revoke}" CommandParameter="{Binding DeviceId}" Clicked="RevokeClicked" />
               <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding DeviceId}" FontSize="11" Opacity="0.65" LineBreakMode="TailTruncation" />
               <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding FingerprintText}" FontSize="11" LineBreakMode="CharacterWrap" />
               <Label Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding TrustedText}" FontSize="11" Opacity="0.65" />
