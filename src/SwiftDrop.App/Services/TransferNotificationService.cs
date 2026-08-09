@@ -9,6 +9,23 @@ public sealed class TransferNotificationService
         _settings = settings;
     }
 
+    public async Task<bool> EnsurePermissionAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+#if ANDROID
+        if (Android.OS.Build.VERSION.SdkInt < Android.OS.BuildVersionCodes.Tiramisu)
+            return true;
+
+        var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>();
+        if (status == PermissionStatus.Granted) return true;
+        status = await Permissions.RequestAsync<Permissions.PostNotifications>();
+        return status == PermissionStatus.Granted;
+#else
+        await Task.CompletedTask;
+        return false;
+#endif
+    }
+
     public Task NotifyCompletedAsync(CancellationToken ct = default)
         => NotifyAsync(success: true, ct);
 
