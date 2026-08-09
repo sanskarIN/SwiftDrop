@@ -16,6 +16,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<string, bool> _consumePairingNonce;
     private readonly Func<IncomingTransferPreview, CancellationToken, Task<bool>> _approveTransfer;
     private readonly Func<IncomingTransferPreview, string, bool, CancellationToken, Task>? _recordTransfer;
+    private readonly AttemptRateLimiter _pairingAttemptLimiter = new(8, TimeSpan.FromMinutes(1));
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
 
@@ -75,6 +76,19 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     await RejectAsync(connection, "Unsupported transfer request.", ct);
                     return;
                 }
+                if (connection.RemoteCertificate is null)
+                {
+                    await RejectAsync(connection, "Sender certificate is required.", ct);
+                    return;
+                }
+
+                using var senderCertificate = new X509Certificate2(connection.RemoteCertificate);
+                var senderFingerprint = Fingerprint.FromCertificate(senderCertificate);
+                if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, DateTimeOffset.UtcNow))
+                {
+                    await RejectAsync(connection, "Too many pairing attempts. Try again shortly.", ct);
+                    return;
+                }
                 if (!_consumePairingNonce(request.PairingNonce))
                 {
                     await RejectAsync(connection, "Pairing authorization failed.", ct);
@@ -85,17 +99,11 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     await RejectAsync(connection, "Unsafe file size.", ct);
                     return;
                 }
-                if (connection.RemoteCertificate is null)
-                {
-                    await RejectAsync(connection, "Sender certificate is required.", ct);
-                    return;
-                }
 
-                using var senderCertificate = new X509Certificate2(connection.RemoteCertificate);
                 preview = new IncomingTransferPreview(
                     request.SenderDeviceId,
                     request.SenderDeviceName,
-                    Fingerprint.FromCertificate(senderCertificate),
+                    senderFingerprint,
                     request.Entry,
                     FileRiskClassifier.Classify(request.Entry.RelativePath));
 
