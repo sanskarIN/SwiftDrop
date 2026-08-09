@@ -1,66 +1,67 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SwiftDrop.App.Services"
              x:Class="SwiftDrop.App.MainPage"
-             Title="SwiftDrop">
+             Title="{services:Localize AppName}">
   <ScrollView>
     <VerticalStackLayout Padding="24" Spacing="18">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <VerticalStackLayout Grid.Column="0" Spacing="4">
-          <Label Text="SwiftDrop" FontSize="34" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
-          <Label Text="Fast, private local transfers — no account required." FontSize="16" Opacity="0.75" />
+          <Label Text="{services:Localize AppName}" FontSize="34" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+          <Label Text="{services:Localize Tagline}" FontSize="16" Opacity="0.75" />
         </VerticalStackLayout>
         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
-          <Button Text="Devices" Clicked="OpenDevicesClicked" SemanticProperties.Description="Open nearby devices" />
-          <Button Text="Queue" Clicked="OpenQueueClicked" SemanticProperties.Description="Open transfer queue" />
-          <Button Text="History" Clicked="OpenHistoryClicked" SemanticProperties.Description="Open transfer history" />
-          <Button Text="Settings" Clicked="OpenSettingsClicked" SemanticProperties.Description="Open SwiftDrop settings" />
+          <Button Text="{services:Localize Devices}" Clicked="OpenDevicesClicked" SemanticProperties.Description="{services:Localize OpenNearbyDevicesDescription}" />
+          <Button Text="{services:Localize Queue}" Clicked="OpenQueueClicked" SemanticProperties.Description="{services:Localize OpenTransferQueueDescription}" />
+          <Button Text="{services:Localize History}" Clicked="OpenHistoryClicked" SemanticProperties.Description="{services:Localize OpenTransferHistoryDescription}" />
+          <Button Text="{services:Localize Settings}" Clicked="OpenSettingsClicked" SemanticProperties.Description="{services:Localize OpenSettingsDescription}" />
         </HorizontalStackLayout>
       </Grid>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="This device" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize ThisDevice}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Label x:Name="DeviceNameLabel" />
           <Label x:Name="DeviceIdLabel" FontSize="12" Opacity="0.65" LineBreakMode="TailTruncation" />
           <Label x:Name="DeviceFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
           <Label x:Name="ReceiveFolderLabel" FontSize="11" Opacity="0.7" LineBreakMode="MiddleTruncation" />
           <HorizontalStackLayout Spacing="10">
-            <Button Text="Create QR/link" Clicked="CreatePairingClicked" SemanticProperties.Description="Create an expiring one-time pairing link and QR code" />
-            <Button Text="Create 8-digit code" Clicked="CreatePairingCodeClicked" SemanticProperties.Description="Create an expiring eight digit nearby pairing code" />
+            <Button Text="{services:Localize CreateQrLink}" Clicked="CreatePairingClicked" SemanticProperties.Description="{services:Localize CreateQrLinkDescription}" />
+            <Button Text="{services:Localize CreateEightDigitCode}" Clicked="CreatePairingCodeClicked" SemanticProperties.Description="{services:Localize CreateEightDigitCodeDescription}" />
           </HorizontalStackLayout>
-          <Label x:Name="PairingCodeLabel" FontSize="22" FontAttributes="Bold" IsVisible="False" SemanticProperties.Description="Current one-time pairing code" />
+          <Label x:Name="PairingCodeLabel" FontSize="22" FontAttributes="Bold" IsVisible="False" SemanticProperties.Description="{services:Localize PairingCodeDescription}" />
           <Label x:Name="PairingCodeExpiryLabel" FontSize="12" Opacity="0.7" IsVisible="False" />
-          <Image x:Name="QrImage" HeightRequest="240" WidthRequest="240" IsVisible="False" SemanticProperties.Description="SwiftDrop pairing QR code" />
-          <Entry x:Name="PairingLinkEntry" Placeholder="Pairing link appears here" IsReadOnly="True" />
+          <Image x:Name="QrImage" HeightRequest="240" WidthRequest="240" IsVisible="False" SemanticProperties.Description="{services:Localize PairingQrDescription}" />
+          <Entry x:Name="PairingLinkEntry" Placeholder="{services:Localize PairingLinkPlaceholder}" IsReadOnly="True" />
           <HorizontalStackLayout Spacing="10">
-            <Button Text="Copy link" Clicked="CopyLinkClicked" />
-            <Button Text="Share link" Clicked="ShareLinkClicked" />
+            <Button Text="{services:Localize CopyLink}" Clicked="CopyLinkClicked" />
+            <Button Text="{services:Localize ShareLink}" Clicked="ShareLinkClicked" />
           </HorizontalStackLayout>
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Connect to a device" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Entry x:Name="RemoteLinkEntry" Placeholder="Paste swiftdrop:// pairing link" />
-          <Button Text="Validate pairing link" Clicked="ValidatePairingClicked" />
+          <Label Text="{services:Localize ConnectToDevice}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Entry x:Name="RemoteLinkEntry" Placeholder="{services:Localize PastePairingLinkPlaceholder}" />
+          <Button Text="{services:Localize ValidatePairingLink}" Clicked="ValidatePairingClicked" />
           <Label x:Name="RemotePeerLabel" />
-          <Label Text="Always compare the certificate fingerprint with the receiving device before sending sensitive files." FontSize="12" Opacity="0.7" />
+          <Label Text="{services:Localize FingerprintSafetyNote}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send one file" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Button Text="Choose file" Clicked="ChooseFileClicked" />
+          <Label Text="{services:Localize SendOneFile}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Button Text="{services:Localize ChooseFile}" Clicked="ChooseFileClicked" />
           <Label x:Name="SelectedFileLabel" LineBreakMode="MiddleTruncation" />
-          <ProgressBar x:Name="TransferProgress" Progress="0" SemanticProperties.Description="Single file transfer progress" />
+          <ProgressBar x:Name="TransferProgress" Progress="0" SemanticProperties.Description="{services:Localize SingleTransferProgressDescription}" />
           <HorizontalStackLayout Spacing="10">
-            <Button x:Name="SendFileButton" Text="Send selected file" Clicked="SendFileClicked" />
-            <Button x:Name="PauseSendButton" Text="Pause" Clicked="PauseSendClicked" IsEnabled="False" />
-            <Button x:Name="ResumeSendButton" Text="Resume" Clicked="ResumeSendClicked" IsEnabled="False" />
-            <Button x:Name="CancelSendButton" Text="Cancel" Clicked="CancelSendClicked" IsEnabled="False" />
+            <Button x:Name="SendFileButton" Text="{services:Localize SendSelectedFile}" Clicked="SendFileClicked" />
+            <Button x:Name="PauseSendButton" Text="{services:Localize Pause}" Clicked="PauseSendClicked" IsEnabled="False" />
+            <Button x:Name="ResumeSendButton" Text="{services:Localize Resume}" Clicked="ResumeSendClicked" IsEnabled="False" />
+            <Button x:Name="CancelSendButton" Text="{services:Localize Cancel}" Clicked="CancelSendClicked" IsEnabled="False" />
           </HorizontalStackLayout>
           <Label x:Name="TransferStatusLabel" />
         </VerticalStackLayout>
@@ -68,19 +69,19 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send multiple files or a folder" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="Choose several files or, where the platform exposes a safe system folder picker, one folder. The receiver can accept all, accept selected files, or reject the batch." FontSize="12" Opacity="0.75" />
+          <Label Text="{services:Localize SendMultipleOrFolder}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize BatchSelectionDescription}" FontSize="12" Opacity="0.75" />
           <HorizontalStackLayout Spacing="10">
-            <Button Text="Choose multiple files" Clicked="ChooseMultipleFilesClicked" />
-            <Button Text="Choose folder" Clicked="ChooseFolderClicked" />
+            <Button Text="{services:Localize ChooseMultipleFiles}" Clicked="ChooseMultipleFilesClicked" />
+            <Button Text="{services:Localize ChooseFolder}" Clicked="ChooseFolderClicked" />
           </HorizontalStackLayout>
-          <Label x:Name="SelectedBatchLabel" Text="No batch selected" LineBreakMode="TailTruncation" />
-          <ProgressBar x:Name="BatchTransferProgress" Progress="0" SemanticProperties.Description="Multiple file transfer progress" />
+          <Label x:Name="SelectedBatchLabel" Text="{services:Localize NoBatchSelected}" LineBreakMode="TailTruncation" />
+          <ProgressBar x:Name="BatchTransferProgress" Progress="0" SemanticProperties.Description="{services:Localize BatchProgressDescription}" />
           <HorizontalStackLayout Spacing="10">
-            <Button x:Name="SendBatchButton" Text="Send selected items" Clicked="SendBatchClicked" />
-            <Button x:Name="PauseBatchButton" Text="Pause" Clicked="PauseBatchClicked" IsEnabled="False" />
-            <Button x:Name="ResumeBatchButton" Text="Resume" Clicked="ResumeBatchClicked" IsEnabled="False" />
-            <Button x:Name="CancelBatchButton" Text="Cancel" Clicked="CancelBatchClicked" IsEnabled="False" />
+            <Button x:Name="SendBatchButton" Text="{services:Localize SendSelectedItems}" Clicked="SendBatchClicked" />
+            <Button x:Name="PauseBatchButton" Text="{services:Localize Pause}" Clicked="PauseBatchClicked" IsEnabled="False" />
+            <Button x:Name="ResumeBatchButton" Text="{services:Localize Resume}" Clicked="ResumeBatchClicked" IsEnabled="False" />
+            <Button x:Name="CancelBatchButton" Text="{services:Localize Cancel}" Clicked="CancelBatchClicked" IsEnabled="False" />
           </HorizontalStackLayout>
           <Label x:Name="BatchTransferStatusLabel" FontSize="12" />
         </VerticalStackLayout>
@@ -88,12 +89,12 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send text" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="SwiftDrop reads the clipboard only when you press Paste from clipboard. It never monitors the clipboard in the background." FontSize="12" Opacity="0.7" />
-          <Editor x:Name="TextSnippetEditor" Placeholder="Type or paste a short text snippet" AutoSize="TextChanges" MaximumHeightRequest="180" />
+          <Label Text="{services:Localize SendText}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize ClipboardPrivacyNote}" FontSize="12" Opacity="0.7" />
+          <Editor x:Name="TextSnippetEditor" Placeholder="{services:Localize TextSnippetPlaceholder}" AutoSize="TextChanges" MaximumHeightRequest="180" />
           <HorizontalStackLayout Spacing="10">
-            <Button Text="Paste from clipboard" Clicked="PasteClipboardClicked" />
-            <Button Text="Send text" Clicked="SendTextClicked" />
+            <Button Text="{services:Localize PasteFromClipboard}" Clicked="PasteClipboardClicked" />
+            <Button Text="{services:Localize SendText}" Clicked="SendTextClicked" />
           </HorizontalStackLayout>
           <Label x:Name="TextTransferStatusLabel" FontSize="12" />
         </VerticalStackLayout>
@@ -101,13 +102,13 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
-          <Label Text="Connection help" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="If nearby devices cannot connect, run a local diagnostic. Guest Wi-Fi, client isolation, local-network permissions, and firewalls may block peer-to-peer traffic." FontSize="13" Opacity="0.75" />
-          <Button Text="Open local network diagnostics" Clicked="OpenDiagnosticsClicked" />
+          <Label Text="{services:Localize ConnectionHelp}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{services:Localize ConnectionHelpDescription}" FontSize="13" Opacity="0.75" />
+          <Button Text="{services:Localize OpenLocalDiagnostics}" Clicked="OpenDiagnosticsClicked" />
         </VerticalStackLayout>
       </Border>
 
-      <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" Margin="0,12" />
+      <Label Text="{services:Localize MadeBy}" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" Margin="0,12" />
     </VerticalStackLayout>
   </ScrollView>
 </ContentPage>
