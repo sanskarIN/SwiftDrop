@@ -10,7 +10,7 @@ public static class PathGuard
 
         var fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
         var full = Path.GetFullPath(Path.Combine(fullRoot, relativePath));
-        if (!full.StartsWith(fullRoot, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+        if (!full.StartsWith(fullRoot, PathComparisonPolicy.Comparison))
             throw new InvalidDataException("Path traversal attempt rejected.");
         return full;
     }
