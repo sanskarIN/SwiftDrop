@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="src/SwiftDrop.Core/SwiftDrop.Core.csproj" />
-  <Project Path="src/SwiftDrop.App/SwiftDrop.App.csproj" />
-  <Project Path="tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj" />
-  <Project Path="benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj" />
-</Solution>
