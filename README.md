@@ -8,18 +8,23 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 
 - Automatic nearby discovery with mDNS/Bonjour plus bounded UDP broadcast fallback.
 - QR/deep-link pairing, nearby pairing requests, manual local-IP fallback, and short-lived one-time 8-digit pairing codes.
+- Strict pairing-invitation validation for protocol version, local/private numeric IP address, device metadata bounds, canonical SHA-256 fingerprint, nonce format, and expiry/lifetime.
 - Receiver-certificate SHA-256 pinning and sender client certificates over platform/.NET TLS 1.3/1.2.
+- Local P-256 ECDSA peer certificates with TLS client/server EKUs, secure-storage persistence, explicit renewal/recovery policy, and user-visible identity refresh when an old certificate cannot be safely reused.
 - Explicit receiver approval, sender certificate display, trusted-device storage/revocation, and optional normal-file auto-accept for explicitly trusted certificates.
-- Single-file transfer with streaming progress, cancellation, safe pause/resume through fresh pairing, `.swiftdrop.part` staging, SHA-256 verification, free-space checks, and collision-safe receive names.
-- Multi-file and recursive folder manifests with receiver accept-all/selective/reject decisions, per-file integrity verification, and resumable staged files.
+- Single-file transfer with streaming progress, cancellation, safe pause/resume through fresh pairing, `.swiftdrop.part` staging, SHA-256 verification, free-space checks, manifest-bound source length, and atomic collision-safe destination reservations.
+- Multi-file and recursive folder manifests with sender/receiver aggregate limits, receiver accept-all/selective/reject decisions, aggregate capacity preflight, per-file integrity verification, and resumable staged files.
 - Explicit text-snippet transfer and user-triggered clipboard paste. SwiftDrop does not continuously monitor the clipboard.
 - Configurable transfer queue/concurrency with local queue status and privacy-mode label redaction.
 - Android share-sheet ingestion for text/files and Android foreground data-sync lifetime for active user-initiated transfers.
+- Windows desktop drag-and-drop for files, folders, text, and SwiftDrop pairing links through the same bounded external-input pipeline.
 - `swiftdrop://` pairing protocol activation on Android, iOS, Mac Catalyst, and Windows.
 - Local transfer history with retention pruning and per-record deletion.
-- Configurable receive folder on Windows through the system folder picker; conservative app-private receive storage on platforms where broad folder access is not implemented.
+- Configurable receive folder on Windows through the system folder picker; changing the receive destination restarts the listener safely against the newly resolved root.
+- Conservative app-private receive storage on platforms where broad folder access is not implemented.
 - Privacy-aware bounded diagnostic events, safe diagnostic export, and synthetic developer self-tests for success, interruption, and checksum mismatch behavior.
 - SQLite schema versioning for metadata-only stores.
+- Portable TLS loopback tests for certificate pinning, mutual TLS transfer, checksum-verified completion, and resume staging.
 - English/Hindi localization resource catalogs, theme controls, larger-interface controls, and accessibility-oriented semantic labels on key surfaces.
 
 ## Security boundaries
