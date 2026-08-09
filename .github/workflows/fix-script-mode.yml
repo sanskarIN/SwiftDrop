@@ -1,0 +1,32 @@
+name: Normalize verification script mode
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/fix-script-mode.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mark-executable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Mark portable verification script executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          git update-index --chmod=+x scripts/verify-core.sh
+          if git diff --cached --quiet; then
+            echo "scripts/verify-core.sh is already executable in the Git index."
+            exit 0
+          fi
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+          git commit -m "build: mark core verification script executable" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+          git push origin HEAD:main
