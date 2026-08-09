@@ -34,6 +34,14 @@ Read `SECURITY.md`, `docs/security/THREAT_MODEL.md`, `docs/protocol/security.md`
 
 https://github.com/sanskarIN/SwiftDrop
 
+## Support development
+
+If SwiftDrop is useful to you and you want to support continued open-source development, you can support the project here:
+
+https://buymeacoffee.com/sanskarIN
+
+Support is optional and does not unlock transfer features, priority handling, or access to private user data.
+
 ## Requirements
 
 - .NET 10 SDK
@@ -89,6 +97,7 @@ See `docs/storage/database-schema.md` and `PRIVACY.md`.
 - Manual test matrix: `docs/testing/manual-test-matrix.md`
 - Release checklist: `docs/release/release-checklist.md`
 - Product status: `PROJECT_STATUS.md`
+- Next-step roadmap: `NEXT_STEPS.md`
 - Detailed implementation ledger: `what_changed.md`
 - Third-party notice process: `THIRD_PARTY_NOTICES.md`
 
@@ -96,6 +105,7 @@ See `docs/storage/database-schema.md` and `PRIVACY.md`.
 
 - Project/business inquiries: **sanskarin@outlook.in**
 - General support: **supportramsandesh@gmail.com**
+- Support development: **https://buymeacoffee.com/sanskarIN**
 - Security-sensitive reports: follow `SECURITY.md` and use **sanskarin@outlook.in** rather than publishing exploit details or secrets in a public issue.
 
 ## License
