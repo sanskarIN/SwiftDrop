@@ -111,6 +111,24 @@ public sealed class PairingCodecTests
     }
 
     [Fact]
+    public void Decode_RejectsUnexpectedOuterPath()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var link = PairingCodec.Encode(CreateValid(now));
+        var query = link[(link.IndexOf('?', StringComparison.Ordinal))..];
+        Assert.Throws<FormatException>(() => PairingCodec.Decode($"swiftdrop://pair/extra{query}", now));
+    }
+
+    [Fact]
+    public void Decode_RejectsExplicitOuterAuthorityPort()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var link = PairingCodec.Encode(CreateValid(now));
+        var query = link[(link.IndexOf('?', StringComparison.Ordinal))..];
+        Assert.Throws<FormatException>(() => PairingCodec.Decode($"swiftdrop://pair:1234/{query}", now));
+    }
+
+    [Fact]
     public void CreateNonce_ProducesBoundedBase64UrlEntropy()
     {
         var values = Enumerable.Range(0, 128).Select(_ => PairingCodec.CreateNonce()).ToArray();
