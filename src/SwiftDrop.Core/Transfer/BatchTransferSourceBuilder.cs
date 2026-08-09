@@ -12,7 +12,7 @@ public static class BatchTransferSourceBuilder
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
-        var items = new List<FileTransferSource>();
+        var pending = new List<PendingFile>();
         var usedRelativePaths = new HashSet<string>(StringComparer.Ordinal);
         long totalBytes = 0;
 
@@ -24,7 +24,7 @@ public static class BatchTransferSourceBuilder
             if (File.Exists(full))
             {
                 var relative = MakeUniqueRelativePath(Path.GetFileName(full), usedRelativePaths);
-                totalBytes = await AddFileAsync(items, full, relative, usedRelativePaths, totalBytes, ct);
+                AddPendingFile(pending, full, relative, usedRelativePaths, ref totalBytes);
             }
             else if (Directory.Exists(full))
             {
@@ -34,7 +34,7 @@ public static class BatchTransferSourceBuilder
                     ct.ThrowIfCancellationRequested();
                     var relative = Path.Combine(rootName, Path.GetRelativePath(full, file)).Replace('\\', '/');
                     relative = MakeUniqueRelativePath(relative, usedRelativePaths);
-                    totalBytes = await AddFileAsync(items, file, relative, usedRelativePaths, totalBytes, ct);
+                    AddPendingFile(pending, file, relative, usedRelativePaths, ref totalBytes);
                 }
             }
             else
@@ -43,36 +43,47 @@ public static class BatchTransferSourceBuilder
             }
         }
 
-        if (items.Count == 0) throw new InvalidOperationException("Select at least one file to transfer.");
+        if (pending.Count == 0) throw new InvalidOperationException("Select at least one file to transfer.");
+
+        var items = new List<FileTransferSource>(pending.Count);
+        foreach (var source in pending)
+        {
+            ct.ThrowIfCancellationRequested();
+            var hash = await Hashing.Sha256FileAsync(source.LocalPath, ct);
+            var entry = ManifestValidator.ValidateEntry(new FileManifestEntry(
+                source.RelativePath,
+                source.Length,
+                hash,
+                source.LastWriteUtc));
+            items.Add(new FileTransferSource(source.LocalPath, entry));
+        }
+
         return new BatchTransferSource(Guid.NewGuid().ToString("N"), items, totalBytes);
     }
 
-    private static async Task<long> AddFileAsync(
-        ICollection<FileTransferSource> items,
+    private static void AddPendingFile(
+        ICollection<PendingFile> pending,
         string path,
         string relativePath,
         ISet<string> usedRelativePaths,
-        long currentTotalBytes,
-        CancellationToken ct)
+        ref long totalBytes)
     {
-        EnsureCount(items.Count + 1);
+        EnsureCount(pending.Count + 1);
         var info = new FileInfo(path);
+        if (!info.Exists) throw new FileNotFoundException("Transfer source does not exist.", path);
         if (info.Length < 0 || info.Length > ProtocolConstants.MaxSingleFileBytes)
             throw new InvalidDataException("A file exceeds the SwiftDrop per-file safety limit.");
 
-        var nextTotalBytes = checked(currentTotalBytes + info.Length);
-        if (nextTotalBytes > ProtocolConstants.MaxBatchBytes)
+        var nextTotal = checked(totalBytes + info.Length);
+        if (nextTotal > ProtocolConstants.MaxBatchBytes)
             throw new InvalidDataException("The selected batch exceeds the SwiftDrop aggregate-size safety limit.");
 
-        var hash = await Hashing.Sha256FileAsync(path, ct);
-        var entry = ManifestValidator.ValidateEntry(new FileManifestEntry(
-            relativePath,
-            info.Length,
-            hash,
-            info.LastWriteTimeUtc));
-        items.Add(new FileTransferSource(path, entry));
-        usedRelativePaths.Add(relativePath);
-        return nextTotalBytes;
+        var safeRelativePath = FileNameSanitizer.SanitizeRelativePath(relativePath);
+        if (!usedRelativePaths.Add(safeRelativePath))
+            throw new InvalidDataException("Batch contains duplicate relative paths after filename normalization.");
+
+        pending.Add(new PendingFile(path, safeRelativePath, info.Length, info.LastWriteTimeUtc));
+        totalBytes = nextTotal;
     }
 
     private static string MakeUniqueRootName(string rootName, ISet<string> usedRelativePaths)
@@ -115,4 +126,10 @@ public static class BatchTransferSourceBuilder
         if (count > ProtocolConstants.MaxBatchFiles)
             throw new InvalidDataException($"A transfer can contain at most {ProtocolConstants.MaxBatchFiles} files.");
     }
+
+    private sealed record PendingFile(
+        string LocalPath,
+        string RelativePath,
+        long Length,
+        DateTimeOffset LastWriteUtc);
 }
