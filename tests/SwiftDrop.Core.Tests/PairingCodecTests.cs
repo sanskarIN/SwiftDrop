@@ -115,7 +115,7 @@ public sealed class PairingCodecTests
     {
         var now = DateTimeOffset.UtcNow;
         var link = PairingCodec.Encode(CreateValid(now));
-        var query = link[(link.IndexOf('?', StringComparison.Ordinal))..];
+        var query = link[link.IndexOf('?')..];
         Assert.Throws<FormatException>(() => PairingCodec.Decode($"swiftdrop://pair/extra{query}", now));
     }
 
@@ -124,7 +124,7 @@ public sealed class PairingCodecTests
     {
         var now = DateTimeOffset.UtcNow;
         var link = PairingCodec.Encode(CreateValid(now));
-        var query = link[(link.IndexOf('?', StringComparison.Ordinal))..];
+        var query = link[link.IndexOf('?')..];
         Assert.Throws<FormatException>(() => PairingCodec.Decode($"swiftdrop://pair:1234/{query}", now));
     }
 
