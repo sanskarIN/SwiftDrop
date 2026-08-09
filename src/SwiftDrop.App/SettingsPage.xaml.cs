@@ -85,7 +85,7 @@ public partial class SettingsPage : ContentPage
 #if WINDOWS
                 return;
 #else
-                await DisplayAlert(
+                await DisplayAlertAsync(
                     "Folder picker unavailable",
                     "SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.",
                     "OK");
@@ -97,7 +97,7 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Folder selection failed", ex.Message, "OK");
+            await DisplayAlertAsync("Folder selection failed", ex.Message, "OK");
         }
     }
 
@@ -137,17 +137,17 @@ public partial class SettingsPage : ContentPage
             await _history.ApplyRetentionAsync();
             _appearance.Apply(settings);
             DeviceNameEntry.Text = _identity.DeviceName;
-            await DisplayAlert("Saved", "Settings and device name were saved on this device.", "OK");
+            await DisplayAlertAsync("Saved", "Settings and device name were saved on this device.", "OK");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Settings error", ex.Message, "OK");
+            await DisplayAlertAsync("Settings error", ex.Message, "OK");
         }
     }
 
     private async void ResetIdentityClicked(object? sender, EventArgs e)
     {
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             "Reset device identity?",
             "This creates a new device ID and certificate, invalidates current pairing invitations, and removes every locally trusted device. Other devices will no longer recognize this identity. Received files and transfer history are not deleted.",
             "Reset identity",
@@ -158,12 +158,12 @@ public partial class SettingsPage : ContentPage
         await _identity.ResetIdentityAsync();
         DeviceNameEntry.Text = _identity.DeviceName;
         IdentityFingerprintLabel.Text = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
-        await DisplayAlert("Identity reset", "A new local identity and certificate were created.", "OK");
+        await DisplayAlertAsync("Identity reset", "A new local identity and certificate were created.", "OK");
     }
 
     private async void ResetClicked(object? sender, EventArgs e)
     {
-        var confirm = await DisplayAlert("Reset settings", "Restore SwiftDrop settings to their defaults? Device identity and trusted devices are not changed.", "Reset", "Cancel");
+        var confirm = await DisplayAlertAsync("Reset settings", "Restore SwiftDrop settings to their defaults? Device identity and trusted devices are not changed.", "Reset", "Cancel");
         if (!confirm) return;
         _settings.Reset();
         await _history.ApplyRetentionAsync();
