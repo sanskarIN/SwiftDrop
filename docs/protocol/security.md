@@ -26,6 +26,8 @@ The decoder treats an incoming pairing invitation as untrusted input and enforce
 
 DNS hostnames and public Internet addresses are intentionally rejected by protocol version 1.
 
+The framed application protocol uses the shared strict JSON guard described below. Reusing that same duplicate-property guard inside the pairing payload is a tracked hardening item; the repository connector blocked that defensive source replacement during the current implementation session, so this document does not claim it is already active in `PairingCodec`.
+
 ## TLS and peer identity
 
 SwiftDrop uses the .NET/platform TLS implementation and requests TLS 1.3 or TLS 1.2. It does not implement custom encryption or a custom key exchange.
@@ -67,6 +69,20 @@ A pairing nonce is an authorization factor, not a long-term password. A stolen s
 
 Nearby/manual pairing requests use separate bounded attempt limiting. Inbound TLS connections also have a per-source-address rate limit before expensive application work.
 
+## Strict framed JSON
+
+Application metadata is length-prefixed and validated before typed deserialization.
+
+- Frame length must be positive and at or below the configured header limit before payload allocation.
+- JSON nesting depth is bounded.
+- Comments and trailing commas are rejected.
+- Invalid UTF-8/JSON is rejected.
+- Duplicate object property names are rejected **case-insensitively**, including nested objects/arrays, so `type` plus `Type` cannot create ambiguous interpretation.
+- Truncated headers/payloads fail rather than being treated as partial metadata.
+- Read/write operations use network idle timeouts and caller cancellation.
+
+Boundary tests cover invalid lengths, malformed UTF-8, duplicate fields, nested duplicates, and every truncated prefix of a valid frame.
+
 ## Incoming-transfer consent
 
 Before bytes are written, the receiver displays or otherwise evaluates:
@@ -98,9 +114,12 @@ All receive paths are resolved beneath the configured receive root.
 
 - Rooted paths are rejected.
 - `.` and `..` traversal segments are rejected.
-- Filename segments are normalized/sanitized.
+- Filename segments are Unicode Form-C normalized/sanitized.
+- Portable-invalid/control characters are removed.
 - Windows reserved device names are rewritten to safe names.
+- Batch paths are compared after sanitation, separator normalization, Unicode normalization, and case folding so two metadata paths cannot collapse onto one portable destination.
 - Path/filename lengths are bounded by SwiftDrop policy before filesystem operations.
+- Receive-root confinement and active destination reservations use one centralized platform path-comparison policy (case-insensitive for Windows and common Apple targets, ordinal elsewhere).
 - Completed filesystem collisions receive a new bounded suffix such as `name (1).ext`.
 - Active concurrent incoming sessions additionally use an in-memory atomic destination reservation set so two transfers cannot select the same not-yet-created final destination.
 
@@ -124,7 +143,7 @@ A conforming sender cannot bypass receiver-side limits by claiming that it alrea
 ## Input validation and resource limits
 
 - Framed JSON metadata is length-bounded before allocation.
-- JSON depth is bounded.
+- JSON depth is bounded and duplicate properties are rejected.
 - Ports and protocol versions are validated.
 - Individual file size is bounded.
 - Batch file count and aggregate bytes are bounded.
@@ -135,6 +154,12 @@ A conforming sender cannot bypass receiver-side limits by claiming that it alrea
 - File bytes are never interpreted as commands by the transfer protocol.
 - Received files are never automatically launched.
 - Shared/dropped content is never automatically transferred.
+
+## Restart-safe queue metadata
+
+Queue persistence is metadata-only and is not transfer authorization. Persisted rows use a generic `Transfer` label plus state/timestamps and a bounded machine-oriented error code. Filenames, text, peer addresses, pairing invitations/nonces, credentials, and free-form exception messages are not stored in queue metadata.
+
+If the app restarts while an item is `Queued` or `Running`, that row becomes `Interrupted`. SwiftDrop does not silently replay the transfer; fresh pairing/authorization is still required.
 
 ## Privacy-safe notifications
 
@@ -151,13 +176,14 @@ Portable tests include:
 - certificate profile and lifecycle policy;
 - canonical fingerprint handling;
 - rate limiting;
-- frame limits/malformed JSON;
-- path/filename sanitation;
+- frame limits, malformed UTF-8/JSON, duplicate properties, and truncation;
+- path/filename sanitation and normalized portable collision detection;
 - destination collision reservations;
 - batch manifest limits;
 - source-length mutation;
 - staged resume validation;
 - checksum mismatch cleanup;
+- SQLite schema migrations including queue metadata;
 - real mutual-TLS loopback connections;
 - exact certificate pinning success/failure;
 - full file transfer and staged resume over loopback TLS.
