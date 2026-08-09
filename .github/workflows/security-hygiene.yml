@@ -1,0 +1,36 @@
+name: Security hygiene
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject committed private signing material and local databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad="$(find . -type f \
+            \( -iname '*.pfx' -o -iname '*.p12' -o -iname '*.jks' -o -iname '*.keystore' -o -iname '*.mobileprovision' -o -iname '*.db' -o -iname '*.db-wal' -o -iname '*.db-shm' \) \
+            -not -path './.git/*' -print)"
+          if [ -n "$bad" ]; then
+            echo "Disallowed private/local artifact files were committed:"
+            echo "$bad"
+            exit 1
+          fi
+      - name: Verify required security documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s SECURITY.md
+          test -s PRIVACY.md
+          test -s docs/security/THREAT_MODEL.md
+          test -s docs/protocol/security.md
+          test -s docs/protocol/wire-format.md
