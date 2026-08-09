@@ -20,6 +20,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<TrustedDevicesService>();
         builder.Services.AddSingleton<NetworkDiagnosticsService>();
         builder.Services.AddSingleton<NearbyDiscoveryService>();
+        builder.Services.AddSingleton<NearbyPairingService>();
+        builder.Services.AddSingleton<PairingSelectionService>();
         builder.Services.AddSingleton<MainPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<HistoryPage>();
