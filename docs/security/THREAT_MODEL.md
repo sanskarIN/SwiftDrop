@@ -2,83 +2,110 @@
 
 ## Scope
 
-SwiftDrop transfers user-selected files and text directly between nearby devices on a local network. The current release has no SwiftDrop account system, relay server, cloud upload path, or continuous clipboard collection.
+SwiftDrop transfers user-selected files and explicit text snippets directly between nearby devices on a local network. The current release has no SwiftDrop account system, relay server, cloud upload path, advertising identifier, analytics path, or continuous clipboard collection.
 
 ## Assets
 
 - User-selected file and text contents.
 - Device identity certificate and private key.
-- Short-lived pairing invitations and nonces.
+- Short-lived pairing invitations, one-time codes, and nonces.
 - Trusted-device certificate fingerprints.
-- Local transfer history metadata.
-- Receive destination paths and partial transfer files.
+- Local transfer/history/diagnostic/queue metadata.
+- Receive destination paths and staged partial transfer files.
 
 ## Security goals
 
 - Keep transfer content confidential from passive local-network observers.
+- Bind a transfer to the receiver certificate advertised/confirmed during pairing.
+- Present a sender certificate and explicit receiver decision for untrusted incoming content.
 - Detect tampering or corruption before a received file is finalized.
-- Require explicit user involvement for pairing and incoming transfer acceptance.
+- Require explicit user involvement for pairing and incoming transfer acceptance except the narrowly configured trusted-device auto-accept policy.
 - Prevent traversal outside the approved receive root.
-- Prevent replay of a one-time pairing invitation after it is consumed or expired.
+- Prevent replay of one-time pairing authorization after it is consumed or expired.
 - Avoid auto-opening received content.
-- Minimize persistent sensitive metadata.
+- Minimize persistent sensitive metadata and never persist reusable pairing authorization.
 
 ## Threats and mitigations
 
 ### Passive network observer
 
-Mitigation: TLS 1.2/1.3 is provided by the .NET/platform cryptographic stack. The sender pins the receiver certificate fingerprint from the pairing invitation. SwiftDrop does not implement custom encryption.
+Mitigation: TLS 1.2/1.3 is provided by the .NET/platform cryptographic stack. The sender pins the receiver certificate fingerprint from the validated pairing invitation. SwiftDrop does not implement custom encryption or a custom key exchange.
 
 ### Active local-network attacker
 
-Mitigation: receiver certificate pinning prevents an attacker from silently substituting an arbitrary receiver certificate when the pairing invitation is authentic. The sender also presents a device certificate, and the receiver exposes its fingerprint during explicit incoming-transfer approval.
+Mitigation: receiver certificate pinning prevents silent substitution when the pairing invitation is authentic. The sender presents its local P-256 ECDSA certificate, and the receiver obtains that fingerprint from the TLS channel before consent/trust checks. Pairing and transfer destinations are constrained to numeric loopback/private/unique-local/link-local addresses rather than public Internet or DNS targets.
 
-Residual risk: if an attacker steals or views a still-valid pairing invitation before it is used, possession of the invitation is a temporary authorization factor. Users should compare certificate fingerprints when transferring sensitive content.
+Residual risk: if an attacker steals or views a still-valid pairing invitation before it is used, possession of that invitation is a temporary authorization factor. Users should compare certificate fingerprints when transferring sensitive content.
 
-### Pairing-link replay
+### Pairing-link replay or brute-force pressure
 
-Mitigation: pairing payloads expire and contain cryptographically random one-time nonces. The receiver consumes a nonce atomically before accepting the transfer request.
+Mitigation: pairing payloads expire and contain cryptographically random one-time nonces. The receiver consumes a nonce atomically. Short pairing codes are time-bounded and are not long-term credentials. Inbound connection attempts are rate-limited by network source, and pairing requests have additional certificate-oriented attempt limits.
+
+Residual risk: rate limits reduce abuse but do not make a hostile LAN harmless. Host firewall, network isolation, and OS policy remain important boundaries.
+
+### Ambiguous or malformed protocol metadata
+
+Mitigation: framed JSON has bounded length, bounded nesting depth, strict UTF-8/JSON parsing, no comments/trailing-comma tolerance, and case-insensitive duplicate-property rejection. Batch/file/text metadata then passes type-specific validation, count/size limits, timestamps, fingerprint/hash validation, and path checks before payload bytes are accepted.
+
+Pairing URI parsing independently rejects unexpected outer authority/path/query fields, unsupported versions, public/DNS addresses, malformed fingerprints/nonces, and invalid lifetimes. A defensive consistency change to reuse the shared duplicate-property guard inside the encoded pairing JSON remains a tracked hardening item because the repository connector blocked that source replacement during this implementation session; the existing pairing field validation remains active.
 
 ### Malicious filename or path
 
-Mitigation: rooted paths, invalid paths, and paths resolving outside the receive root are rejected. Transfers are staged as `.swiftdrop.part` files and finalized only after integrity verification.
+Mitigation: rooted paths and traversal segments are rejected. Names are Unicode-normalized, portable-invalid characters are removed, Windows reserved device names are neutralized, and batch manifests reject destinations that collide after sanitation/case-folding. Final paths must resolve under the configured receive root. Concurrent incoming transfers reserve destination paths atomically to prevent same-name race collisions.
 
-### Corrupted or truncated transfer
+### Corrupted, truncated, or changed transfer source
 
-Mitigation: expected length is enforced while streaming and SHA-256 is verified over the completed partial file before final rename.
+Mitigation: outgoing streams are bounded to the manifest-declared source length. The receiver enforces exact expected length and stages data as `.swiftdrop.part`. SHA-256 is verified over the complete staged file before final rename. Integrity failure removes invalid partial data; network interruption can leave a bounded verified resume staging point. Source growth/shrinkage after manifest creation cannot silently change protocol framing.
+
+### Storage exhaustion
+
+Mitigation: per-file and aggregate batch limits are enforced. The sender preflights batch count/size before hashing; the receiver validates declared aggregate totals and preflights remaining destination capacity before accepting batch bytes. Real low-storage behavior still requires target-device validation because platform filesystems can change available capacity during a transfer.
 
 ### Dangerous received file
 
-Mitigation: executable, script, installer, macro-enabled, and archive-like extensions are classified for user warning. SwiftDrop never automatically opens a received file.
+Mitigation: executable, script, installer, macro-enabled, and archive/container-like extensions are classified for user warning. SwiftDrop never automatically opens or executes a received file.
 
-Residual risk: extension-based classification cannot prove that a file is safe. The operating system, endpoint protection, file provenance, and user judgment remain relevant.
+Residual risk: extension-based classification is not malware scanning and cannot prove that a file is safe. Operating-system protections, endpoint security, provenance, and user judgment remain relevant.
+
+### Trusted-device substitution
+
+Mitigation: trust is stored against a device ID and canonical SHA-256 certificate fingerprint. A display name is never sufficient. Trust can be revoked locally, reset identity clears local trust, and unusable/expired local certificate recovery generates a new identity rather than silently inheriting the old trusted identity. Automatic normal-file acceptance for trusted devices is opt-in and defaults off.
+
+### Local identity key failure or expiry
+
+Mitigation: the local identity certificate must have a private key, supported ECDSA key, and acceptable validity window. SwiftDrop renews/recreates unusable identities according to the documented policy and shows the user when identity regeneration means peers must pair again. Private-key material is stored through platform secure storage and is never placed in pairing metadata.
 
 ### Compromised endpoint
 
-Out of scope: SwiftDrop cannot protect content from malware, a rooted/jailbroken device, an attacker controlling the operating system, or another process already authorized to read the selected/received file.
+Out of scope: SwiftDrop cannot protect content from malware, a rooted/jailbroken device, an attacker controlling the operating system, or another process already authorized to read selected/received files.
 
 ### Denial of service
 
-Mitigation: protocol frame length, file length, cancellation, bounded chunks, and one-time authorization limit several resource-exhaustion paths.
+Mitigation: source/certificate attempt rate limits, framed metadata limits, file/batch size limits, bounded chunks, connection/idle timeouts, cancellation, bounded discovery records, and one-time authorization constrain several resource-exhaustion paths.
 
-Residual risk: a hostile device on the LAN can still create connection pressure. Production hardening should include connection-rate limits and platform firewall guidance.
+Residual risk: an attacker controlling the LAN or endpoint can still create pressure. SwiftDrop does not attempt to bypass host firewalls, enterprise controls, Wi-Fi client isolation, or OS background limits.
 
 ### Local metadata disclosure
 
-Mitigation: transfer history stores metadata only and supports privacy mode to replace filenames with a generic label. File contents are never stored in SQLite.
+Mitigation: SQLite stores metadata only. Privacy mode replaces filename-oriented history with generic labels and redacts identifier-like diagnostic tokens. Restart-safe queue persistence stores a generic `Transfer` label, state/timestamps, and a bounded machine-oriented error code; it does not persist source paths, text, peer addresses, pairing invitations, nonces, credentials, or free-form exception messages.
 
 ## Trust decisions
 
-A certificate fingerprint is a device identity signal, not proof of a person's identity. Users must confirm that the fingerprint shown by the peer corresponds to the intended nearby device before treating it as trusted.
+A certificate fingerprint is a device identity signal, not proof of a person's identity. Users must confirm that the fingerprint shown by the peer corresponds to the intended nearby device before treating it as trusted. A replaced/reinstalled device with a new certificate must be paired/trusted again.
 
 ## Out of scope for the current release
 
 - Internet relay or cloud synchronization.
-- Account recovery.
+- Account recovery or account identity.
 - Remote transfers outside the LAN.
 - Endpoint malware remediation.
 - Enterprise identity federation.
-- Automatic antivirus claims.
+- Automatic antivirus or content-safety claims.
+- Bypassing firewall, guest-network isolation, MDM, background, or store policy.
+
+## Validation boundary
+
+Source controls and automated tests are not equivalent to production validation. Release readiness still requires target-platform compilation, signed-package tests, physical-device transfer matrices, restricted-network cases, low-storage cases, accessibility tests, and platform secure-storage/restore behavior.
 
 ## Security reporting
 
