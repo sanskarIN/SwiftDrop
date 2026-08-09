@@ -49,7 +49,15 @@ public sealed class DeviceIdentityService : IAsyncDisposable
             }
             else
             {
-                _certificate = new X509Certificate2(Convert.FromBase64String(pfx));
+                var bytes = Convert.FromBase64String(pfx);
+                try
+                {
+                    _certificate = X509CertificateLoader.LoadPkcs12(bytes, null);
+                }
+                finally
+                {
+                    System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes);
+                }
             }
 
             _initialized = true;
@@ -141,9 +149,10 @@ public sealed class DeviceIdentityService : IAsyncDisposable
     private static string NormalizeDeviceName(string? value)
     {
         var trimmed = (value ?? string.Empty).Trim();
-        if (trimmed.Length == 0) trimmed = "SwiftDrop device";
-        if (trimmed.Length > 64) trimmed = trimmed[..64];
-        return new string(trimmed.Where(ch => !char.IsControl(ch)).ToArray());
+        var clean = new string(trimmed.Where(ch => !char.IsControl(ch)).ToArray()).Trim();
+        if (clean.Length == 0) clean = "SwiftDrop device";
+        if (clean.Length > 64) clean = clean[..64].TrimEnd();
+        return clean;
     }
 
     private static string GetLanAddress()
