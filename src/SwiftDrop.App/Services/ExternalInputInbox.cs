@@ -1,0 +1,71 @@
+namespace SwiftDrop.App.Services;
+
+public static class ExternalInputInbox
+{
+    private static readonly object Gate = new();
+    private static string? _pairingLink;
+    private static string? _sharedText;
+    private static readonly List<string> SharedFiles = new();
+
+    public static event EventHandler? Changed;
+
+    public static void SetPairingLink(string link)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(link);
+        if (link.Length > 16_384 || !link.StartsWith("swiftdrop://pair", StringComparison.OrdinalIgnoreCase))
+            return;
+        lock (Gate) _pairingLink = link;
+        RaiseChanged();
+    }
+
+    public static void SetSharedText(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (text.Length > 262_144) text = text[..262_144];
+        lock (Gate) _sharedText = text;
+        RaiseChanged();
+    }
+
+    public static void AddSharedFile(string localPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localPath);
+        var full = Path.GetFullPath(localPath);
+        if (!File.Exists(full)) return;
+        lock (Gate)
+        {
+            if (SharedFiles.Count >= 2048) return;
+            if (!SharedFiles.Contains(full, StringComparer.Ordinal)) SharedFiles.Add(full);
+        }
+        RaiseChanged();
+    }
+
+    public static ExternalInputBatch Drain()
+    {
+        lock (Gate)
+        {
+            var result = new ExternalInputBatch(_pairingLink, _sharedText, SharedFiles.ToArray());
+            _pairingLink = null;
+            _sharedText = null;
+            SharedFiles.Clear();
+            return result;
+        }
+    }
+
+    private static void RaiseChanged()
+    {
+        var handler = Changed;
+        if (handler is null) return;
+        if (MainThread.IsMainThread) handler(null, EventArgs.Empty);
+        else MainThread.BeginInvokeOnMainThread(() => handler(null, EventArgs.Empty));
+    }
+}
+
+public sealed record ExternalInputBatch(
+    string? PairingLink,
+    string? SharedText,
+    IReadOnlyList<string> SharedFiles)
+{
+    public bool HasAny => !string.IsNullOrWhiteSpace(PairingLink) ||
+                          !string.IsNullOrWhiteSpace(SharedText) ||
+                          SharedFiles.Count > 0;
+}
