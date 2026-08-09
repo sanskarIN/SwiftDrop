@@ -48,6 +48,21 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
+          <Label Text="Notifications and accessibility" FontSize="18" FontAttributes="Bold" />
+          <HorizontalStackLayout Spacing="12">
+            <Switch x:Name="NotificationsSwitch" />
+            <Label Text="Allow SwiftDrop transfer-status notifications where the platform permits" VerticalTextAlignment="Center" />
+          </HorizontalStackLayout>
+          <HorizontalStackLayout Spacing="12">
+            <Switch x:Name="ReduceMotionSwitch" />
+            <Label Text="Reduce non-essential motion" VerticalTextAlignment="Center" />
+          </HorizontalStackLayout>
+          <Label Text="SwiftDrop remains usable without notifications. Platform notification permission is requested only when a feature needs it." FontSize="12" Opacity="0.7" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
           <Label Text="Appearance" FontSize="18" FontAttributes="Bold" />
           <Picker x:Name="ThemePicker" Title="Theme">
             <Picker.Items>
