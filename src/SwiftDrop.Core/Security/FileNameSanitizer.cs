@@ -20,6 +20,16 @@ public static class FileNameSanitizer
         return Path.Combine(safe);
     }
 
+    public static string GetPortableCollisionKey(string relativePath)
+    {
+        var sanitized = SanitizeRelativePath(relativePath)
+            .Replace('\\', '/')
+            .Replace(Path.DirectorySeparatorChar, '/')
+            .Replace(Path.AltDirectorySeparatorChar, '/')
+            .Normalize(NormalizationForm.FormC);
+        return sanitized;
+    }
+
     public static string SanitizeSegment(string segment)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(segment);
