@@ -53,9 +53,7 @@ public sealed class TrustedDevicesService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
         ArgumentException.ThrowIfNullOrWhiteSpace(deviceName);
-        ArgumentException.ThrowIfNullOrWhiteSpace(fingerprint);
-        if (!Fingerprint.FixedTimeEquals(fingerprint, fingerprint) || fingerprint.Replace(":", string.Empty).Length != 64)
-            throw new ArgumentException("Trusted-device certificate fingerprint must be a SHA-256 value.", nameof(fingerprint));
+        var normalizedFingerprint = Fingerprint.NormalizeSha256(fingerprint);
 
         await InitializeAsync(ct);
         var now = DateTimeOffset.UtcNow;
@@ -63,7 +61,7 @@ public sealed class TrustedDevicesService
         await _store.UpsertAsync(new TrustedPeer(
             deviceId,
             deviceName,
-            fingerprint.Replace(":", string.Empty).ToUpperInvariant(),
+            normalizedFingerprint,
             existing?.TrustedAtUtc ?? now,
             now), ct);
     }
