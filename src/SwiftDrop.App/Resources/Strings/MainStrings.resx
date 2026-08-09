@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Devices" xml:space="preserve"><value>Devices</value></data>
+  <data name="Queue" xml:space="preserve"><value>Queue</value></data>
+  <data name="History" xml:space="preserve"><value>History</value></data>
+  <data name="OpenNearbyDevicesDescription" xml:space="preserve"><value>Open nearby devices</value></data>
+  <data name="OpenTransferQueueDescription" xml:space="preserve"><value>Open transfer queue</value></data>
+  <data name="OpenTransferHistoryDescription" xml:space="preserve"><value>Open transfer history</value></data>
+  <data name="OpenSettingsDescription" xml:space="preserve"><value>Open SwiftDrop settings</value></data>
+  <data name="ThisDevice" xml:space="preserve"><value>This device</value></data>
+  <data name="CreateQrLink" xml:space="preserve"><value>Create QR/link</value></data>
+  <data name="CreateQrLinkDescription" xml:space="preserve"><value>Create an expiring one-time pairing link and QR code</value></data>
+  <data name="CreateEightDigitCode" xml:space="preserve"><value>Create 8-digit code</value></data>
+  <data name="CreateEightDigitCodeDescription" xml:space="preserve"><value>Create an expiring eight digit nearby pairing code</value></data>
+  <data name="PairingCodeDescription" xml:space="preserve"><value>Current one-time pairing code</value></data>
+  <data name="PairingQrDescription" xml:space="preserve"><value>SwiftDrop pairing QR code</value></data>
+  <data name="PairingLinkPlaceholder" xml:space="preserve"><value>Pairing link appears here</value></data>
+  <data name="CopyLink" xml:space="preserve"><value>Copy link</value></data>
+  <data name="ShareLink" xml:space="preserve"><value>Share link</value></data>
+  <data name="ConnectToDevice" xml:space="preserve"><value>Connect to a device</value></data>
+  <data name="PastePairingLinkPlaceholder" xml:space="preserve"><value>Paste swiftdrop:// pairing link</value></data>
+  <data name="ValidatePairingLink" xml:space="preserve"><value>Validate pairing link</value></data>
+  <data name="FingerprintSafetyNote" xml:space="preserve"><value>Always compare the certificate fingerprint with the receiving device before sending sensitive files.</value></data>
+  <data name="SendOneFile" xml:space="preserve"><value>Send one file</value></data>
+  <data name="ChooseFile" xml:space="preserve"><value>Choose file</value></data>
+  <data name="SingleTransferProgressDescription" xml:space="preserve"><value>Single file transfer progress</value></data>
+  <data name="SendSelectedFile" xml:space="preserve"><value>Send selected file</value></data>
+  <data name="SendMultipleOrFolder" xml:space="preserve"><value>Send multiple files or a folder</value></data>
+  <data name="BatchSelectionDescription" xml:space="preserve"><value>Choose several files or, where the platform exposes a safe system folder picker, one folder. The receiver can accept all, accept selected files, or reject the batch.</value></data>
+  <data name="ChooseMultipleFiles" xml:space="preserve"><value>Choose multiple files</value></data>
+  <data name="NoBatchSelected" xml:space="preserve"><value>No batch selected</value></data>
+  <data name="BatchProgressDescription" xml:space="preserve"><value>Multiple file transfer progress</value></data>
+  <data name="SendSelectedItems" xml:space="preserve"><value>Send selected items</value></data>
+  <data name="SendText" xml:space="preserve"><value>Send text</value></data>
+  <data name="ClipboardPrivacyNote" xml:space="preserve"><value>SwiftDrop reads the clipboard only when you press Paste from clipboard. It never monitors the clipboard in the background.</value></data>
+  <data name="TextSnippetPlaceholder" xml:space="preserve"><value>Type or paste a short text snippet</value></data>
+  <data name="PasteFromClipboard" xml:space="preserve"><value>Paste from clipboard</value></data>
+  <data name="ConnectionHelp" xml:space="preserve"><value>Connection help</value></data>
+  <data name="ConnectionHelpDescription" xml:space="preserve"><value>If nearby devices cannot connect, run a local diagnostic. Guest Wi-Fi, client isolation, local-network permissions, and firewalls may block peer-to-peer traffic.</value></data>
+  <data name="OpenLocalDiagnostics" xml:space="preserve"><value>Open local network diagnostics</value></data>
+  <data name="IncomingFiles" xml:space="preserve"><value>Incoming files</value></data>
+  <data name="IncomingReviewNote" xml:space="preserve"><value>Review every selected item before accepting. SwiftDrop never opens received files automatically.</value></data>
+  <data name="AcceptSelected" xml:space="preserve"><value>Accept selected</value></data>
+  <data name="AcceptAll" xml:space="preserve"><value>Accept all</value></data>
+</root>
