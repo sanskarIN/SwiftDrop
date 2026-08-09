@@ -9,6 +9,8 @@ public sealed class TransferEngine
 {
     public async Task SendFileAsync(Stream network, string sourcePath, long offset, IProgress<long>? progress, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(network);
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         await using var file = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, ProtocolConstants.ChunkSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
         if (offset < 0 || offset > file.Length) throw new ArgumentOutOfRangeException(nameof(offset));
         file.Position = offset;
@@ -19,15 +21,17 @@ public sealed class TransferEngine
             ct.ThrowIfCancellationRequested();
             var read = await file.ReadAsync(buffer, ct);
             if (read == 0) break;
-            await network.WriteAsync(buffer.AsMemory(0, read), ct);
+            await WriteNetworkAsync(network, buffer.AsMemory(0, read), ct);
             sent += read;
             progress?.Report(sent);
         }
-        await network.FlushAsync(ct);
+        await FlushNetworkAsync(network, ct);
     }
 
     public async Task ReceiveFileAsync(Stream network, string destinationRoot, FileManifestEntry entry, long offset, IProgress<long>? progress, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(network);
+        ManifestValidator.ValidateEntry(entry);
         var finalPath = PathGuard.ResolveUnderRoot(destinationRoot, entry.RelativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
         var partial = finalPath + ".swiftdrop.part";
@@ -43,7 +47,7 @@ public sealed class TransferEngine
             {
                 ct.ThrowIfCancellationRequested();
                 var requested = (int)Math.Min(buffer.Length, remaining);
-                var read = await network.ReadAsync(buffer.AsMemory(0, requested), ct);
+                var read = await ReadNetworkAsync(network, buffer.AsMemory(0, requested), ct);
                 if (read == 0) throw new EndOfStreamException();
                 await file.WriteAsync(buffer.AsMemory(0, read), ct);
                 remaining -= read;
@@ -54,12 +58,65 @@ public sealed class TransferEngine
         }
 
         var actual = await Hashing.Sha256FileAsync(partial, ct);
-        if (!CryptographicOperations.FixedTimeEquals(Convert.FromHexString(actual), Convert.FromHexString(entry.Sha256)))
+        var actualBytes = Convert.FromHexString(actual);
+        var expectedBytes = Convert.FromHexString(entry.Sha256);
+        try
         {
-            File.Delete(partial);
-            throw new InvalidDataException("SHA-256 integrity check failed.");
+            if (!CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes))
+            {
+                File.Delete(partial);
+                throw new InvalidDataException("SHA-256 integrity check failed.");
+            }
         }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(actualBytes);
+            CryptographicOperations.ZeroMemory(expectedBytes);
+        }
+
         File.Move(partial, finalPath, true);
         File.SetLastWriteTimeUtc(finalPath, entry.LastWriteUtc.UtcDateTime);
+    }
+
+    private static async ValueTask<int> ReadNetworkAsync(Stream stream, Memory<byte> buffer, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ProtocolConstants.IdleTimeout);
+        try
+        {
+            return await stream.ReadAsync(buffer, timeout.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("Peer stopped sending data before the transfer idle timeout.");
+        }
+    }
+
+    private static async ValueTask WriteNetworkAsync(Stream stream, ReadOnlyMemory<byte> buffer, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ProtocolConstants.IdleTimeout);
+        try
+        {
+            await stream.WriteAsync(buffer, timeout.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("Peer stopped accepting data before the transfer idle timeout.");
+        }
+    }
+
+    private static async ValueTask FlushNetworkAsync(Stream stream, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ProtocolConstants.IdleTimeout);
+        try
+        {
+            await stream.FlushAsync(timeout.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("Peer stopped accepting data before the transfer idle timeout.");
+        }
     }
 }
