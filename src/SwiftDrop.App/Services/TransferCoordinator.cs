@@ -40,7 +40,7 @@ public sealed class TransferCoordinator
         if (!completed.Accepted) throw new IOException(completed.Message ?? "Receiver reported failure.");
     }
 
-    public async Task SendBatchAsync(
+    public async Task<BatchSendResult> SendBatchAsync(
         PairingPayload remote,
         IEnumerable<string> paths,
         IProgress<BatchProgress>? progress,
@@ -90,6 +90,7 @@ public sealed class TransferCoordinator
         var acceptedTotal = acceptedPlans.Values.Sum(plan => sourceByPath[plan.RelativePath].Entry.Length);
         long completedBefore = 0;
         var completedItems = 0;
+        var completedSources = new List<FileTransferSource>(acceptedPlans.Count);
         foreach (var source in batch.Items)
         {
             ct.ThrowIfCancellationRequested();
@@ -114,6 +115,7 @@ public sealed class TransferCoordinator
 
             completedBefore += source.Entry.Length;
             completedItems++;
+            completedSources.Add(source);
             progress?.Report(new BatchProgress(
                 completedItems,
                 acceptedPlans.Count,
@@ -124,6 +126,11 @@ public sealed class TransferCoordinator
 
         var final = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
         if (!final.Accepted) throw new IOException(final.Message ?? "Receiver reported batch failure.");
+
+        var skipped = batch.Items
+            .Where(x => !acceptedPlans.ContainsKey(x.Entry.RelativePath))
+            .ToArray();
+        return new BatchSendResult(completedSources, skipped);
     }
 
     public async Task SendTextAsync(PairingPayload remote, string text, CancellationToken ct)
@@ -162,3 +169,7 @@ public sealed record BatchProgress(
 {
     public double Fraction => TotalBytes <= 0 ? 1 : Math.Clamp((double)CompletedBytes / TotalBytes, 0, 1);
 }
+
+public sealed record BatchSendResult(
+    IReadOnlyList<FileTransferSource> Completed,
+    IReadOnlyList<FileTransferSource> Skipped);
