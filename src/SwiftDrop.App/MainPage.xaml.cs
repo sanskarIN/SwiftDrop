@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
 using SwiftDrop.App.Services;
-using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Security;
 
@@ -13,9 +12,9 @@ public partial class MainPage : ContentPage
     private readonly DeviceIdentityService _identity;
     private readonly TransferCoordinator _transfers;
     private readonly TransferHistoryService _history;
-    private readonly NetworkDiagnosticsService _diagnostics;
     private readonly TrustedDevicesService _trustedDevices;
     private readonly AppSettingsService _settings;
+    private readonly PairingSelectionService _pairingSelection;
     private readonly IServiceProvider _services;
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
@@ -26,18 +25,18 @@ public partial class MainPage : ContentPage
         DeviceIdentityService identity,
         TransferCoordinator transfers,
         TransferHistoryService history,
-        NetworkDiagnosticsService diagnostics,
         TrustedDevicesService trustedDevices,
         AppSettingsService settings,
+        PairingSelectionService pairingSelection,
         IServiceProvider services)
     {
         InitializeComponent();
         _identity = identity;
         _transfers = transfers;
         _history = history;
-        _diagnostics = diagnostics;
         _trustedDevices = trustedDevices;
         _settings = settings;
+        _pairingSelection = pairingSelection;
         _services = services;
         Loaded += async (_, _) => await InitializeAsync();
         Unloaded += async (_, _) => await StopReceiveServerAsync();
@@ -52,6 +51,8 @@ public partial class MainPage : ContentPage
             await _trustedDevices.InitializeAsync();
             DeviceNameLabel.Text = _identity.DeviceName;
             DeviceIdLabel.Text = _identity.DeviceId;
+            DeviceFingerprintLabel.Text = $"Certificate: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
+
             if (_receiveServer is null)
             {
                 var receiveRoot = Path.Combine(FileSystem.AppDataDirectory, "Received");
@@ -62,15 +63,28 @@ public partial class MainPage : ContentPage
                     ApproveIncomingAsync,
                     RecordIncomingAsync,
                     ApproveIncomingTextAsync,
-                    RecordIncomingTextAsync);
+                    RecordIncomingTextAsync,
+                    ApproveNearbyPairingAsync,
+                    _identity.CreatePairingLink);
                 _receiveServer.Start();
                 TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
             }
+
+            await ApplyPendingPairingAsync();
         }
         catch (Exception ex)
         {
             await DisplayAlert("Startup error", ex.Message, "OK");
         }
+    }
+
+    private async Task ApplyPendingPairingAsync()
+    {
+        var pending = _pairingSelection.Current;
+        if (pending is null) return;
+        _pairingSelection.Clear();
+        RemoteLinkEntry.Text = PairingCodec.Encode(pending);
+        await ConfirmRemotePairingAsync(pending);
     }
 
     private async Task<bool> ApproveIncomingAsync(IncomingTransferPreview preview, CancellationToken ct)
@@ -123,6 +137,19 @@ public partial class MainPage : ContentPage
         }
 
         return true;
+    }
+
+    private async Task<bool> ApproveNearbyPairingAsync(IncomingPairingRequest request, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var localFingerprint = Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate));
+        var senderFingerprint = Fingerprint.Pretty(request.SenderCertificateFingerprint);
+        return await MainThread.InvokeOnMainThreadAsync(() =>
+            DisplayAlert(
+                "Nearby pairing request",
+                $"{request.SenderDeviceName} wants to pair with this device.\n\nSender certificate:\n{senderFingerprint}\n\nThis device certificate:\n{localFingerprint}\n\nApprove only if you initiated this pairing and can compare fingerprints on both devices.",
+                "Approve",
+                "Reject"));
     }
 
     private async Task<IncomingTextDecision> ApproveIncomingTextAsync(IncomingTextPreview preview, CancellationToken ct)
@@ -203,23 +230,33 @@ public partial class MainPage : ContentPage
     {
         try
         {
-            _remote = PairingCodec.Decode(RemoteLinkEntry.Text ?? string.Empty);
-            RemotePeerLabel.Text = $"{_remote.DeviceName} • {_remote.Host}:{_remote.Port}\nFingerprint: {Fingerprint.Pretty(_remote.CertificateFingerprint)}";
-            var confirmed = await DisplayAlert(
-                "Confirm device fingerprint",
-                $"Verify this fingerprint on the receiving device before sending:\n\n{Fingerprint.Pretty(_remote.CertificateFingerprint)}",
-                "I verified it",
-                "Cancel");
-            if (!confirmed)
-            {
-                _remote = null;
-                RemotePeerLabel.Text = "Pairing cancelled. Generate a fresh invitation when ready.";
-            }
+            var payload = PairingCodec.Decode(RemoteLinkEntry.Text ?? string.Empty);
+            await ConfirmRemotePairingAsync(payload);
         }
         catch (Exception ex)
         {
             _remote = null;
             await DisplayAlert("Pairing failed", ex.Message, "OK");
+        }
+    }
+
+    private async Task ConfirmRemotePairingAsync(PairingPayload payload)
+    {
+        RemotePeerLabel.Text = $"{payload.DeviceName} • {payload.Host}:{payload.Port}\nFingerprint: {Fingerprint.Pretty(payload.CertificateFingerprint)}";
+        var confirmed = await DisplayAlert(
+            "Confirm device fingerprint",
+            $"Verify this fingerprint on the receiving device before sending:\n\n{Fingerprint.Pretty(payload.CertificateFingerprint)}",
+            "I verified it",
+            "Cancel");
+        if (confirmed)
+        {
+            _remote = payload;
+            RemotePeerLabel.Text += "\nVerified for this one-time invitation.";
+        }
+        else
+        {
+            _remote = null;
+            RemotePeerLabel.Text = "Pairing cancelled. Generate a fresh invitation when ready.";
         }
     }
 
@@ -242,6 +279,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
+        var remote = _remote;
         _sendCts?.Dispose();
         _sendCts = new CancellationTokenSource();
         var fileInfo = new FileInfo(_selectedFile.FullPath);
@@ -251,24 +289,24 @@ public partial class MainPage : ContentPage
             CancelSendButton.IsEnabled = true;
             SendFileButton.IsEnabled = false;
             var progress = new Progress<double>(value => TransferProgress.Progress = value);
-            await _transfers.SendAsync(_remote, _selectedFile.FullPath, progress, _sendCts.Token);
+            await _transfers.SendAsync(remote, _selectedFile.FullPath, progress, _sendCts.Token);
             TransferStatusLabel.Text = "Completed and verified. A fresh pairing invitation is required for another transfer.";
-            await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "completed", true);
-            _remote = null;
+            await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "completed", true);
         }
         catch (OperationCanceledException)
         {
-            TransferStatusLabel.Text = "Cancelled";
-            await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "cancelled", false);
+            TransferStatusLabel.Text = "Cancelled. Use a fresh pairing invitation to resume safely.";
+            await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "cancelled", false);
         }
         catch (Exception ex)
         {
-            TransferStatusLabel.Text = "Failed";
-            await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "failed", false);
+            TransferStatusLabel.Text = "Failed. Use a fresh pairing invitation before retrying.";
+            await _history.AddAsync("sent", remote.DeviceName, fileInfo.Name, fileInfo.Length, "failed", false);
             await DisplayAlert("Transfer failed", ex.Message, "OK");
         }
         finally
         {
+            _remote = null;
             CancelSendButton.IsEnabled = false;
             SendFileButton.IsEnabled = true;
         }
@@ -295,6 +333,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
+        var remote = _remote;
         var text = TextSnippetEditor.Text ?? string.Empty;
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -305,29 +344,32 @@ public partial class MainPage : ContentPage
         try
         {
             TextTransferStatusLabel.Text = "Sending encrypted text…";
-            await _transfers.SendTextAsync(_remote, text, CancellationToken.None);
+            await _transfers.SendTextAsync(remote, text, CancellationToken.None);
             await _history.AddAsync(
                 "sent",
-                _remote.DeviceName,
+                remote.DeviceName,
                 "Text snippet",
                 Encoding.UTF8.GetByteCount(text),
                 "completed",
                 false);
             TextSnippetEditor.Text = string.Empty;
             TextTransferStatusLabel.Text = "Text delivered. A fresh pairing invitation is required for another transfer.";
-            _remote = null;
         }
         catch (Exception ex)
         {
-            TextTransferStatusLabel.Text = "Text transfer failed.";
+            TextTransferStatusLabel.Text = "Text transfer failed. Use a fresh pairing invitation before retrying.";
             await _history.AddAsync(
                 "sent",
-                _remote.DeviceName,
+                remote.DeviceName,
                 "Text snippet",
                 Encoding.UTF8.GetByteCount(text),
                 "failed",
                 false);
             await DisplayAlert("Text transfer failed", ex.Message, "OK");
+        }
+        finally
+        {
+            _remote = null;
         }
     }
 
@@ -344,11 +386,4 @@ public partial class MainPage : ContentPage
 
     private async void OpenDiagnosticsClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<DiagnosticsPage>());
-
-    private async void RunDiagnosticsClicked(object? sender, EventArgs e)
-    {
-        var results = _diagnostics.InspectLocalNetwork();
-        var message = string.Join("\n\n", results.Select(r => $"{r.Title}\n{r.Message}"));
-        await DisplayAlert("Local network diagnostics", message, "OK");
-    }
 }
