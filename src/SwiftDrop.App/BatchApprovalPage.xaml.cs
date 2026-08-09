@@ -41,7 +41,7 @@ public partial class BatchApprovalPage : ContentPage
         var selected = _rows.Where(x => x.IsSelected).Select(x => x.RelativePath).ToHashSet(StringComparer.Ordinal);
         if (selected.Count == 0)
         {
-            await DisplayAlert("Nothing selected", "Select at least one file or reject the transfer.", "OK");
+            await DisplayAlertAsync("Nothing selected", "Select at least one file or reject the transfer.", "OK");
             return;
         }
 
