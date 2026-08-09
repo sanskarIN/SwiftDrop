@@ -13,9 +13,9 @@ public partial class AboutPage : ContentPage
         VersionLabel.Text = $"Version {version} • Build {build}";
     }
 
-    private static Task OpenRepositoryClicked(object? sender, EventArgs e)
-        => Launcher.Default.OpenAsync(RepositoryUri);
+    private async void OpenRepositoryClicked(object? sender, EventArgs e)
+        => await Launcher.Default.OpenAsync(RepositoryUri);
 
-    private static Task OpenProfileClicked(object? sender, EventArgs e)
-        => Launcher.Default.OpenAsync(ProfileUri);
+    private async void OpenProfileClicked(object? sender, EventArgs e)
+        => await Launcher.Default.OpenAsync(ProfileUri);
 }
