@@ -1,5 +1,6 @@
 using QRCoder;
 using SwiftDrop.App.Services;
+using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Security;
 
@@ -9,16 +10,29 @@ public partial class MainPage : ContentPage
 {
     private readonly DeviceIdentityService _identity;
     private readonly TransferCoordinator _transfers;
+    private readonly TransferHistoryService _history;
+    private readonly NetworkDiagnosticsService _diagnostics;
+    private readonly IServiceProvider _services;
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
     private ReceiveServerService? _receiveServer;
+    private CancellationTokenSource? _sendCts;
 
-    public MainPage(DeviceIdentityService identity, TransferCoordinator transfers)
+    public MainPage(
+        DeviceIdentityService identity,
+        TransferCoordinator transfers,
+        TransferHistoryService history,
+        NetworkDiagnosticsService diagnostics,
+        IServiceProvider services)
     {
         InitializeComponent();
         _identity = identity;
         _transfers = transfers;
+        _history = history;
+        _diagnostics = diagnostics;
+        _services = services;
         Loaded += async (_, _) => await InitializeAsync();
+        Unloaded += async (_, _) => await StopReceiveServerAsync();
     }
 
     private async Task InitializeAsync()
@@ -26,6 +40,7 @@ public partial class MainPage : ContentPage
         try
         {
             await _identity.InitializeAsync();
+            await _history.InitializeAsync();
             DeviceNameLabel.Text = _identity.DeviceName;
             DeviceIdLabel.Text = _identity.DeviceId;
             if (_receiveServer is null)
@@ -42,6 +57,13 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private async Task StopReceiveServerAsync()
+    {
+        if (_receiveServer is null) return;
+        await _receiveServer.DisposeAsync();
+        _receiveServer = null;
+    }
+
     private void CreatePairingClicked(object? sender, EventArgs e)
     {
         var link = _identity.CreatePairingLink();
@@ -55,7 +77,8 @@ public partial class MainPage : ContentPage
 
     private async void CopyLinkClicked(object? sender, EventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(PairingLinkEntry.Text)) await Clipboard.Default.SetTextAsync(PairingLinkEntry.Text);
+        if (!string.IsNullOrWhiteSpace(PairingLinkEntry.Text))
+            await Clipboard.Default.SetTextAsync(PairingLinkEntry.Text);
     }
 
     private async void ShareLinkClicked(object? sender, EventArgs e)
@@ -70,6 +93,16 @@ public partial class MainPage : ContentPage
         {
             _remote = PairingCodec.Decode(RemoteLinkEntry.Text ?? string.Empty);
             RemotePeerLabel.Text = $"{_remote.DeviceName} • {_remote.Host}:{_remote.Port}\nFingerprint: {Fingerprint.Pretty(_remote.CertificateFingerprint)}";
+            var confirmed = await DisplayAlert(
+                "Confirm device fingerprint",
+                $"Verify this fingerprint on the receiving device before sending:\n\n{Fingerprint.Pretty(_remote.CertificateFingerprint)}",
+                "I verified it",
+                "Cancel");
+            if (!confirmed)
+            {
+                _remote = null;
+                RemotePeerLabel.Text = "Pairing cancelled. Generate a fresh invitation when ready.";
+            }
         }
         catch (Exception ex)
         {
@@ -86,19 +119,60 @@ public partial class MainPage : ContentPage
 
     private async void SendFileClicked(object? sender, EventArgs e)
     {
-        if (_remote is null) { await DisplayAlert("Device required", "Validate a pairing link first.", "OK"); return; }
-        if (_selectedFile is null) { await DisplayAlert("File required", "Choose a file first.", "OK"); return; }
+        if (_remote is null)
+        {
+            await DisplayAlert("Device required", "Validate a pairing link first.", "OK");
+            return;
+        }
+        if (_selectedFile is null)
+        {
+            await DisplayAlert("File required", "Choose a file first.", "OK");
+            return;
+        }
+
+        _sendCts?.Dispose();
+        _sendCts = new CancellationTokenSource();
+        var fileInfo = new FileInfo(_selectedFile.FullPath);
         try
         {
             TransferStatusLabel.Text = "Sending…";
+            CancelSendButton.IsEnabled = true;
+            SendFileButton.IsEnabled = false;
             var progress = new Progress<double>(value => TransferProgress.Progress = value);
-            await _transfers.SendAsync(_remote, _selectedFile.FullPath, progress, CancellationToken.None);
-            TransferStatusLabel.Text = "Completed";
+            await _transfers.SendAsync(_remote, _selectedFile.FullPath, progress, _sendCts.Token);
+            TransferStatusLabel.Text = "Completed and verified";
+            await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "completed", true);
+        }
+        catch (OperationCanceledException)
+        {
+            TransferStatusLabel.Text = "Cancelled";
+            await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "cancelled", false);
         }
         catch (Exception ex)
         {
             TransferStatusLabel.Text = "Failed";
+            await _history.AddAsync("sent", _remote.DeviceName, fileInfo.Name, fileInfo.Length, "failed", false);
             await DisplayAlert("Transfer failed", ex.Message, "OK");
         }
+        finally
+        {
+            CancelSendButton.IsEnabled = false;
+            SendFileButton.IsEnabled = true;
+        }
+    }
+
+    private void CancelSendClicked(object? sender, EventArgs e) => _sendCts?.Cancel();
+
+    private async void OpenSettingsClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<SettingsPage>());
+
+    private async void OpenHistoryClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<HistoryPage>());
+
+    private async void RunDiagnosticsClicked(object? sender, EventArgs e)
+    {
+        var results = _diagnostics.InspectLocalNetwork();
+        var message = string.Join("\n\n", results.Select(r => $"{r.Title}\n{r.Message}"));
+        await DisplayAlert("Local network diagnostics", message, "OK");
     }
 }
