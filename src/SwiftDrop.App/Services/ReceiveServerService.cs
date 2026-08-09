@@ -143,14 +143,14 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
                 using var senderCertificate = LoadPublicCertificate(connection.RemoteCertificate.GetRawCertData());
                 var senderFingerprint = Fingerprint.FromCertificate(senderCertificate);
-                if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, DateTimeOffset.UtcNow))
-                {
-                    await RejectAsync(connection, "Too many pairing attempts. Try again shortly.", ct);
-                    return;
-                }
 
                 if (request.Type == "pair-request")
                 {
+                    if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, DateTimeOffset.UtcNow))
+                    {
+                        await RejectAsync(connection, "Too many pairing attempts. Try again shortly.", ct);
+                        return;
+                    }
                     await HandlePairingRequestAsync(connection, request, senderFingerprint, ct);
                     return;
                 }
