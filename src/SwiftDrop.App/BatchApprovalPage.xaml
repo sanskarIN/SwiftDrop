@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SwiftDrop.App.BatchApprovalPage"
+             Title="Incoming files">
+  <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="14">
+    <VerticalStackLayout Grid.Row="0" Spacing="6">
+      <Label Text="Incoming files" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+      <Label x:Name="SenderLabel" FontAttributes="Bold" />
+      <Label x:Name="SummaryLabel" />
+      <Label x:Name="RiskLabel" FontSize="13" />
+      <Label Text="Review every selected item before accepting. SwiftDrop never opens received files automatically." FontSize="12" Opacity="0.75" />
+    </VerticalStackLayout>
+
+    <CollectionView x:Name="FilesList" Grid.Row="1" SelectionMode="None">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Border StrokeShape="RoundRectangle 14" Padding="12" Margin="0,0,0,8">
+            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+              <CheckBox Grid.RowSpan="2" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalOptions="Center" />
+              <Label Grid.Column="1" Text="{Binding RelativePath}" FontAttributes="Bold" LineBreakMode="MiddleTruncation" />
+              <Label Grid.Column="1" Grid.Row="1" Text="{Binding RiskText}" FontSize="12" Opacity="0.75" />
+              <Label Grid.Column="2" Grid.RowSpan="2" Text="{Binding SizeText}" VerticalOptions="Center" FontSize="12" />
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+      <Button Grid.Column="0" Text="Reject" Clicked="RejectClicked" />
+      <Button Grid.Column="1" Text="Accept selected" Clicked="AcceptSelectedClicked" />
+      <Button Grid.Column="2" Text="Accept all" Clicked="AcceptAllClicked" />
+    </Grid>
+  </Grid>
+</ContentPage>
