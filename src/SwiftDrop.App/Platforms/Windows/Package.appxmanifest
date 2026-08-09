@@ -1,1 +1,32 @@
-<?xml version="1.0" encoding="utf-8"?><Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap"><Identity Name="Sanskar.SwiftDrop" Publisher="CN=SwiftDrop" Version="1.0.0.0"/><Properties><DisplayName>SwiftDrop</DisplayName><PublisherDisplayName>Sanskar</PublisherDisplayName><Logo>appiconStoreLogo.png</Logo></Properties><Applications><Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$"><uap:VisualElements DisplayName="SwiftDrop" Description="Local file transfer" Square150x150Logo="appiconMediumTile.png" Square44x44Logo="appiconLogo.png" BackgroundColor="transparent"/></Application></Applications><Capabilities><Capability Name="internetClient"/><Capability Name="privateNetworkClientServer"/></Capabilities></Package>
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         IgnorableNamespaces="uap">
+  <Identity Name="Sanskar.SwiftDrop" Publisher="CN=SwiftDrop" Version="1.0.0.0" />
+  <Properties>
+    <DisplayName>SwiftDrop</DisplayName>
+    <PublisherDisplayName>Sanskar</PublisherDisplayName>
+    <Logo>appiconStoreLogo.png</Logo>
+  </Properties>
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="SwiftDrop"
+        Description="Local file transfer"
+        Square150x150Logo="appiconMediumTile.png"
+        Square44x44Logo="appiconLogo.png"
+        BackgroundColor="transparent" />
+      <Extensions>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="swiftdrop">
+            <uap:DisplayName>SwiftDrop pairing link</uap:DisplayName>
+          </uap:Protocol>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <Capability Name="privateNetworkClientServer" />
+  </Capabilities>
+</Package>
