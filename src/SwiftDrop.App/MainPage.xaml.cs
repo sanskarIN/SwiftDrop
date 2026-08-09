@@ -15,6 +15,7 @@ public partial class MainPage : ContentPage
     private readonly TrustedDevicesService _trustedDevices;
     private readonly AppSettingsService _settings;
     private readonly PairingSelectionService _pairingSelection;
+    private readonly OneTimePairingCodeManager _pairingCodes;
     private readonly IServiceProvider _services;
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
@@ -28,6 +29,7 @@ public partial class MainPage : ContentPage
         TrustedDevicesService trustedDevices,
         AppSettingsService settings,
         PairingSelectionService pairingSelection,
+        OneTimePairingCodeManager pairingCodes,
         IServiceProvider services)
     {
         InitializeComponent();
@@ -37,6 +39,7 @@ public partial class MainPage : ContentPage
         _trustedDevices = trustedDevices;
         _settings = settings;
         _pairingSelection = pairingSelection;
+        _pairingCodes = pairingCodes;
         _services = services;
         Loaded += async (_, _) => await InitializeAsync();
         Unloaded += async (_, _) => await StopReceiveServerAsync();
@@ -65,7 +68,8 @@ public partial class MainPage : ContentPage
                     ApproveIncomingTextAsync,
                     RecordIncomingTextAsync,
                     ApproveNearbyPairingAsync,
-                    _identity.CreatePairingLink);
+                    _identity.CreatePairingLink,
+                    code => _pairingCodes.TryConsume(code, DateTimeOffset.UtcNow));
                 _receiveServer.Start();
                 TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
             }
@@ -212,6 +216,15 @@ public partial class MainPage : ContentPage
         var png = new PngByteQRCode(data).GetGraphic(8);
         QrImage.Source = ImageSource.FromStream(() => new MemoryStream(png));
         QrImage.IsVisible = true;
+    }
+
+    private void CreatePairingCodeClicked(object? sender, EventArgs e)
+    {
+        var snapshot = _pairingCodes.Create(DateTimeOffset.UtcNow);
+        PairingCodeLabel.Text = snapshot.Code;
+        PairingCodeLabel.IsVisible = true;
+        PairingCodeExpiryLabel.Text = $"Expires at {snapshot.ExpiresUtc.LocalDateTime:T}. The code is one-time and is not a long-lived trust credential.";
+        PairingCodeExpiryLabel.IsVisible = true;
     }
 
     private async void CopyLinkClicked(object? sender, EventArgs e)
