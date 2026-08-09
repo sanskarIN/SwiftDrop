@@ -9,22 +9,55 @@ public sealed class TransferEngine
 {
     public async Task SendFileAsync(Stream network, string sourcePath, long offset, IProgress<long>? progress, CancellationToken ct)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
+        var expectedLength = new FileInfo(sourcePath).Length;
+        await SendFileAsync(network, sourcePath, offset, expectedLength, progress, ct);
+    }
+
+    public async Task SendFileAsync(
+        Stream network,
+        string sourcePath,
+        long offset,
+        long expectedLength,
+        IProgress<long>? progress,
+        CancellationToken ct)
+    {
         ArgumentNullException.ThrowIfNull(network);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
-        await using var file = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, ProtocolConstants.ChunkSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
-        if (offset < 0 || offset > file.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+        if (expectedLength < 0 || expectedLength > ProtocolConstants.MaxSingleFileBytes)
+            throw new ArgumentOutOfRangeException(nameof(expectedLength));
+
+        await using var file = new FileStream(
+            sourcePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            ProtocolConstants.ChunkSize,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        if (file.Length != expectedLength)
+            throw new IOException("Source file size changed after its transfer manifest was created.");
+        if (offset < 0 || offset > expectedLength)
+            throw new ArgumentOutOfRangeException(nameof(offset));
+
         file.Position = offset;
+        var remaining = expectedLength - offset;
         var buffer = new byte[ProtocolConstants.ChunkSize];
         long sent = offset;
-        while (true)
+        while (remaining > 0)
         {
             ct.ThrowIfCancellationRequested();
-            var read = await file.ReadAsync(buffer, ct);
-            if (read == 0) break;
+            var requested = (int)Math.Min(buffer.Length, remaining);
+            var read = await file.ReadAsync(buffer.AsMemory(0, requested), ct);
+            if (read == 0)
+                throw new EndOfStreamException("Source file became shorter during transfer.");
             await WriteNetworkAsync(network, buffer.AsMemory(0, read), ct);
             sent += read;
+            remaining -= read;
             progress?.Report(sent);
         }
+
+        if (file.Length != expectedLength)
+            throw new IOException("Source file size changed during transfer.");
         await FlushNetworkAsync(network, ct);
     }
 
@@ -39,6 +72,10 @@ public sealed class TransferEngine
         await using (var file = new FileStream(partial, mode, FileAccess.Write, FileShare.None, ProtocolConstants.ChunkSize, FileOptions.Asynchronous | FileOptions.SequentialScan))
         {
             if (offset < 0 || offset > entry.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+            if (offset > 0 && file.Length < offset)
+                throw new InvalidDataException("Resume offset is beyond the available staged partial file.");
+            if (file.Length > offset)
+                file.SetLength(offset);
             file.Position = offset;
             var remaining = entry.Length - offset;
             var buffer = new byte[ProtocolConstants.ChunkSize];
