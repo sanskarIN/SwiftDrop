@@ -1,3 +1,4 @@
+using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.Core.Tests;
@@ -7,8 +8,7 @@ public sealed class BatchTransferSourceBuilderTests
     [Fact]
     public async Task BuildAsync_IncludesFilesAndFolderRelativePaths()
     {
-        var root = Path.Combine(Path.GetTempPath(), "swiftdrop-batch-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
+        var root = CreateTempDirectory("batch");
         try
         {
             var single = Path.Combine(root, "single.txt");
@@ -21,21 +21,22 @@ public sealed class BatchTransferSourceBuilderTests
             var batch = await BatchTransferSourceBuilder.BuildAsync(new[] { single, folder });
 
             Assert.Equal(3, batch.FileCount);
-            Assert.Contains(batch.Items, x => x.Entry.RelativePath == "single.txt");
-            Assert.Contains(batch.Items, x => x.Entry.RelativePath.Replace('\\', '/') == "folder/a.txt");
-            Assert.Contains(batch.Items, x => x.Entry.RelativePath.Replace('\\', '/') == "folder/nested/b.txt");
+            Assert.Contains(batch.Items, x => Normalize(x.Entry.RelativePath) == "single.txt");
+            Assert.Contains(batch.Items, x => Normalize(x.Entry.RelativePath) == "folder/a.txt");
+            Assert.Contains(batch.Items, x => Normalize(x.Entry.RelativePath) == "folder/nested/b.txt");
             Assert.Equal(batch.Items.Sum(x => x.Entry.Length), batch.TotalBytes);
+            Assert.All(batch.Items, item => Assert.Equal(64, item.Entry.Sha256.Length));
         }
         finally
         {
-            Directory.Delete(root, true);
+            DeleteBestEffort(root);
         }
     }
 
     [Fact]
     public async Task BuildAsync_DeconflictsDuplicateTopLevelFileNames()
     {
-        var root = Path.Combine(Path.GetTempPath(), "swiftdrop-duplicates-" + Guid.NewGuid().ToString("N"));
+        var root = CreateTempDirectory("duplicates");
         var left = Path.Combine(root, "left");
         var right = Path.Combine(root, "right");
         Directory.CreateDirectory(left);
@@ -50,14 +51,42 @@ public sealed class BatchTransferSourceBuilderTests
             var batch = await BatchTransferSourceBuilder.BuildAsync(new[] { first, second });
 
             Assert.Equal(2, batch.FileCount);
-            Assert.Equal(2, batch.Items.Select(x => x.Entry.RelativePath).Distinct(StringComparer.Ordinal).Count());
-            Assert.Contains(batch.Items, x => x.Entry.RelativePath == "photo.jpg");
-            Assert.Contains(batch.Items, x => x.Entry.RelativePath == "photo (2).jpg");
+            Assert.Equal(2, batch.Items.Select(x => Normalize(x.Entry.RelativePath)).Distinct(StringComparer.Ordinal).Count());
+            Assert.Contains(batch.Items, x => Normalize(x.Entry.RelativePath) == "photo.jpg");
+            Assert.Contains(batch.Items, x => Normalize(x.Entry.RelativePath) == "photo (2).jpg");
         }
         finally
         {
-            Directory.Delete(root, true);
+            DeleteBestEffort(root);
         }
+    }
+
+    [Fact]
+    public async Task BuildAsync_PreflightsCancellationBeforeHashing()
+    {
+        var root = CreateTempDirectory("cancelled");
+        try
+        {
+            var path = Path.Combine(root, "payload.bin");
+            await File.WriteAllBytesAsync(path, new byte[4096]);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                BatchTransferSourceBuilder.BuildAsync(new[] { path }, cts.Token));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
+    public async Task BuildAsync_RejectsMissingSource()
+    {
+        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.bin");
+        await Assert.ThrowsAsync<FileNotFoundException>(() =>
+            BatchTransferSourceBuilder.BuildAsync(new[] { missing }));
     }
 
     [Fact]
@@ -65,5 +94,29 @@ public sealed class BatchTransferSourceBuilderTests
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             BatchTransferSourceBuilder.BuildAsync(Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void MaxFileCount_UsesProtocolSourceOfTruth()
+        => Assert.Equal(ProtocolConstants.MaxBatchFiles, BatchTransferSourceBuilder.MaxFilesPerBatch);
+
+    private static string Normalize(string value) => value.Replace('\\', '/');
+
+    private static string CreateTempDirectory(string suffix)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"swiftdrop-{suffix}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
+    private static void DeleteBestEffort(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, true);
+        }
+        catch
+        {
+        }
     }
 }
