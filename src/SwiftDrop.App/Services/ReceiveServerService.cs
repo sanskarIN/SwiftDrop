@@ -20,6 +20,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<IncomingTextPreview, string, CancellationToken, Task>? _recordText;
     private readonly Func<IncomingPairingRequest, CancellationToken, Task<bool>>? _approvePairing;
     private readonly Func<string>? _createPairingLink;
+    private readonly Func<string?, bool>? _consumePairingCode;
     private readonly AttemptRateLimiter _pairingAttemptLimiter = new(8, TimeSpan.FromMinutes(1));
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
@@ -33,7 +34,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
         Func<IncomingTextPreview, CancellationToken, Task<IncomingTextDecision>>? approveText = null,
         Func<IncomingTextPreview, string, CancellationToken, Task>? recordText = null,
         Func<IncomingPairingRequest, CancellationToken, Task<bool>>? approvePairing = null,
-        Func<string>? createPairingLink = null)
+        Func<string>? createPairingLink = null,
+        Func<string?, bool>? consumePairingCode = null)
     {
         ArgumentNullException.ThrowIfNull(certificate);
         ArgumentException.ThrowIfNullOrWhiteSpace(receiveRoot);
@@ -45,6 +47,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
         _recordText = recordText;
         _approvePairing = approvePairing;
         _createPairingLink = createPairingLink;
+        _consumePairingCode = consumePairingCode;
         Directory.CreateDirectory(_receiveRoot);
         _server = new TlsPeerServer(CopyCertificateWithPrivateKey(certificate), ProtocolConstants.DefaultPort);
     }
@@ -233,6 +236,15 @@ public sealed class ReceiveServerService : IAsyncDisposable
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(request.PairingCode))
+        {
+            if (_consumePairingCode is null || !_consumePairingCode(request.PairingCode))
+            {
+                await FrameProtocol.WriteJsonAsync(connection, new PairingResponse(false, "Pairing code is invalid or expired.", null), ct);
+                return;
+            }
+        }
+
         var preview = new IncomingPairingRequest(request.SenderDeviceId!, request.SenderDeviceName!, senderFingerprint);
         if (!await _approvePairing(preview, ct))
         {
@@ -329,7 +341,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
         string? SenderDeviceName,
         FileManifestEntry? Entry,
         string? Text,
-        long? ExpiresUnixSeconds);
+        long? ExpiresUnixSeconds,
+        string? PairingCode);
 
     private sealed record TransferResponse(bool Accepted, long ResumeOffset, string? Message);
     private sealed record PairingResponse(bool Accepted, string? Message, string? PairingLink);
