@@ -6,9 +6,9 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 
 ## Current capabilities
 
-- Automatic nearby discovery with mDNS/Bonjour plus bounded UDP broadcast fallback.
+- Automatic nearby discovery with internal mDNS/DNS-SD plus bounded UDP broadcast fallback.
 - QR/deep-link pairing, nearby pairing requests, manual local-IP fallback, and short-lived one-time 8-digit pairing codes.
-- Strict pairing-invitation validation for protocol version, local/private numeric IP address, device metadata bounds, canonical SHA-256 fingerprint, nonce format, and expiry/lifetime.
+- Strict pairing-invitation validation for protocol version, local/private numeric IP address, device metadata bounds, canonical SHA-256 fingerprint, nonce format, expiry/lifetime, and unexpected URI/query data.
 - Receiver-certificate SHA-256 pinning and sender client certificates over platform/.NET TLS 1.3/1.2.
 - Local P-256 ECDSA peer certificates with TLS client/server EKUs, secure-storage persistence, explicit renewal/recovery policy, and user-visible identity refresh when an old certificate cannot be safely reused.
 - Explicit receiver approval, sender certificate display, trusted-device storage/revocation, and optional normal-file auto-accept for explicitly trusted certificates.
@@ -17,6 +17,7 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 - Explicit text-snippet transfer and user-triggered clipboard paste. SwiftDrop does not continuously monitor the clipboard.
 - Configurable transfer queue/concurrency with local queue status and privacy-mode label redaction.
 - Android share-sheet ingestion for text/files and Android foreground data-sync lifetime for active user-initiated transfers.
+- Optional Android completion/failure notifications with generic privacy-safe text. They are opt-in, Android 13+ permission is requested only on explicit enable, and denied permission never changes transfer success/failure.
 - Windows desktop drag-and-drop for files, folders, text, and SwiftDrop pairing links through the same bounded external-input pipeline.
 - `swiftdrop://` pairing protocol activation on Android, iOS, Mac Catalyst, and Windows.
 - Local transfer history with retention pruning and per-record deletion.
@@ -82,6 +83,8 @@ You can pair in several local-network ways:
 4. **Manual local IP:** intended only when automatic discovery is blocked. A fresh 8-digit code is required and the certificate fingerprint is still shown for visual confirmation before transfer.
 
 A transfer invitation is consumed for one transfer attempt. Pause/resume and retry require fresh pairing so authorization is not silently replayed.
+
+The baseline app generates QR pairing codes but does not request camera permission merely to scan them. Users can use a system camera/scanner capable of opening the registered `swiftdrop://pair` URI, or use the link/nearby/manual alternatives.
 
 ## Networking notes
 
