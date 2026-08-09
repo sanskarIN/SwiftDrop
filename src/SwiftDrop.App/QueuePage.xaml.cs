@@ -14,9 +14,10 @@ public partial class QueuePage : ContentPage
         Unloaded += OnUnloaded;
     }
 
-    private void OnLoaded(object? sender, EventArgs e)
+    private async void OnLoaded(object? sender, EventArgs e)
     {
         _queue.Changed += QueueChanged;
+        await _queue.InitializeAsync();
         Refresh();
     }
 
@@ -26,9 +27,9 @@ public partial class QueuePage : ContentPage
     private void QueueChanged(object? sender, EventArgs e) => Refresh();
     private void RefreshClicked(object? sender, EventArgs e) => Refresh();
 
-    private void ClearFinishedClicked(object? sender, EventArgs e)
+    private async void ClearFinishedClicked(object? sender, EventArgs e)
     {
-        _queue.ClearFinished();
+        await _queue.ClearFinishedAsync();
         Refresh();
     }
 
@@ -45,6 +46,7 @@ public partial class QueuePage : ContentPage
             {
                 TransferQueueState.Queued => $"Queued {entry.CreatedUtc.LocalDateTime:T}",
                 TransferQueueState.Running => $"Started {entry.StartedUtc?.LocalDateTime:T}",
+                TransferQueueState.Interrupted => $"Interrupted {entry.FinishedUtc?.LocalDateTime:T}",
                 _ => $"Finished {entry.FinishedUtc?.LocalDateTime:T}"
             };
             return new QueueRow(entry.Label, entry.State.ToString(), timing, entry.Error ?? string.Empty);
