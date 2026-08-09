@@ -30,6 +30,8 @@ public static class PairingCodec
         if (!Uri.TryCreate(text.Trim(), UriKind.Absolute, out var uri) ||
             !string.Equals(uri.Scheme, "swiftdrop", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(uri.Host, "pair", StringComparison.OrdinalIgnoreCase) ||
+            !uri.IsDefaultPort ||
+            uri.AbsolutePath is not ("" or "/") ||
             !string.IsNullOrEmpty(uri.Fragment) ||
             !string.IsNullOrEmpty(uri.UserInfo))
             throw new FormatException("Invalid SwiftDrop pairing link.");
