@@ -1,0 +1,36 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+artifacts/
+TestResults/
+*.user
+*.suo
+*.userprefs
+*.rsuser
+*.cache
+*.tmp
+*.log
+
+# IDE
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local app data / credentials
+*.pfx
+*.p12
+*.db
+*.db-shm
+*.db-wal
+local.settings.json
+secrets.json
+
+# Packages
+*.nupkg
+packages/

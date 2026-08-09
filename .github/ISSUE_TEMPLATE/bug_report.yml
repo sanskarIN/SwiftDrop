@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a reproducible SwiftDrop defect
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include private files, pairing links, secrets, or vulnerability details. Security reports belong at sanskarin@outlook.in."
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and version
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: SwiftDrop version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true

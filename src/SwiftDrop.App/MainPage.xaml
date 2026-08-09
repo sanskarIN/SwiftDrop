@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="SwiftDrop.App.MainPage" Title="SwiftDrop">
+  <ScrollView>
+    <VerticalStackLayout Padding="24" Spacing="18">
+      <Label Text="SwiftDrop" FontSize="34" FontAttributes="Bold" />
+      <Label Text="Fast, private local transfers — no account required." FontSize="16" Opacity="0.75" />
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="This device" FontAttributes="Bold" FontSize="18" />
+          <Label x:Name="DeviceNameLabel" />
+          <Label x:Name="DeviceIdLabel" FontSize="12" Opacity="0.65" LineBreakMode="TailTruncation" />
+          <Button Text="Create pairing link" Clicked="CreatePairingClicked" />
+          <Image x:Name="QrImage" HeightRequest="240" WidthRequest="240" IsVisible="False" />
+          <Entry x:Name="PairingLinkEntry" Placeholder="Pairing link appears here" IsReadOnly="True" />
+          <HorizontalStackLayout Spacing="10">
+            <Button Text="Copy link" Clicked="CopyLinkClicked" />
+            <Button Text="Share link" Clicked="ShareLinkClicked" />
+          </HorizontalStackLayout>
+        </VerticalStackLayout>
+      </Border>
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Connect to a device" FontAttributes="Bold" FontSize="18" />
+          <Entry x:Name="RemoteLinkEntry" Placeholder="Paste swiftdrop:// pairing link" />
+          <Button Text="Validate pairing link" Clicked="ValidatePairingClicked" />
+          <Label x:Name="RemotePeerLabel" />
+        </VerticalStackLayout>
+      </Border>
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Send" FontAttributes="Bold" FontSize="18" />
+          <Button Text="Choose file" Clicked="ChooseFileClicked" />
+          <Label x:Name="SelectedFileLabel" LineBreakMode="MiddleTruncation" />
+          <ProgressBar x:Name="TransferProgress" Progress="0" />
+          <Button Text="Send selected file" Clicked="SendFileClicked" />
+          <Label x:Name="TransferStatusLabel" />
+        </VerticalStackLayout>
+      </Border>
+      <Label Text="Made by the Sanskar" HorizontalTextAlignment="Center" FontSize="12" Opacity="0.6" Margin="0,12" />
+    </VerticalStackLayout>
+  </ScrollView>
+</ContentPage>

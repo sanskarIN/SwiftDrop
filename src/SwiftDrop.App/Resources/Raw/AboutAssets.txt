@@ -1,0 +1,1 @@
+SwiftDrop bundled assets are part of the project and distributed under the repository license unless otherwise stated.

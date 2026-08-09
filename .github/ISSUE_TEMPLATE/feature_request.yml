@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest a SwiftDrop improvement
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: platforms
+    attributes:
+      label: Main platform
+      options: [Android, iOS, macOS, Windows, Cross-platform]
+    validations:
+      required: true
