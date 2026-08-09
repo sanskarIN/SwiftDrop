@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AppName" xml:space="preserve"><value>SwiftDrop</value></data>
+  <data name="Tagline" xml:space="preserve"><value>तेज़ और निजी स्थानीय ट्रांसफ़र — किसी खाते की आवश्यकता नहीं।</value></data>
+  <data name="NearbyDevices" xml:space="preserve"><value>आस-पास के डिवाइस</value></data>
+  <data name="TransferQueue" xml:space="preserve"><value>ट्रांसफ़र कतार</value></data>
+  <data name="TransferHistory" xml:space="preserve"><value>ट्रांसफ़र इतिहास</value></data>
+  <data name="Settings" xml:space="preserve"><value>सेटिंग्स</value></data>
+  <data name="Diagnostics" xml:space="preserve"><value>डायग्नोस्टिक्स</value></data>
+  <data name="About" xml:space="preserve"><value>SwiftDrop के बारे में</value></data>
+  <data name="MadeBy" xml:space="preserve"><value>Made by the Sanskar</value></data>
+  <data name="Accept" xml:space="preserve"><value>स्वीकार करें</value></data>
+  <data name="Reject" xml:space="preserve"><value>अस्वीकार करें</value></data>
+  <data name="Cancel" xml:space="preserve"><value>रद्द करें</value></data>
+  <data name="Pause" xml:space="preserve"><value>रोकें</value></data>
+  <data name="Resume" xml:space="preserve"><value>फिर शुरू करें</value></data>
+  <data name="Refresh" xml:space="preserve"><value>रीफ़्रेश</value></data>
+</root>
