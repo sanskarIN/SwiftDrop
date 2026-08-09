@@ -22,6 +22,48 @@ public sealed class DatabaseSchemaManagerTests
             Assert.Contains("trusted_peers", tables);
             Assert.Contains("transfer_history", tables);
             Assert.Contains("diagnostic_events", tables);
+            Assert.Contains("transfer_queue_metadata", tables);
+        }
+        finally
+        {
+            DeleteDatabase(path);
+        }
+    }
+
+    [Fact]
+    public async Task EnsureCurrentAsync_MigratesVersionOneToQueueMetadataSchema()
+    {
+        var path = TempDatabasePath();
+        try
+        {
+            await using var connection = new SqliteConnection($"Data Source={path}");
+            await connection.OpenAsync();
+            var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA user_version = 1;";
+            await command.ExecuteNonQueryAsync();
+
+            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+
+            Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+            Assert.Contains("transfer_queue_metadata", await ReadTablesAsync(connection));
+        }
+        finally
+        {
+            DeleteDatabase(path);
+        }
+    }
+
+    [Fact]
+    public async Task EnsureCurrentAsync_IsIdempotentAtCurrentVersion()
+    {
+        var path = TempDatabasePath();
+        try
+        {
+            await using var connection = new SqliteConnection($"Data Source={path}");
+            await connection.OpenAsync();
+            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+            Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
         }
         finally
         {
