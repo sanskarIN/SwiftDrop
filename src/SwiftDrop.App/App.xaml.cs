@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using SwiftDrop.App.Services;
 
 namespace SwiftDrop.App;
@@ -7,12 +8,15 @@ public partial class App : Application
     private readonly MainPage _mainPage;
     private readonly EventHandler _externalInputChanged;
 
-    public App(AppSettingsService settings, AppearanceService appearance, MainPage page)
+    public App(
+        AppSettingsService settings,
+        AppearanceService appearance,
+        IServiceProvider services)
     {
         InitializeComponent();
         appearance.Apply(settings.Load());
         ExternalInputInbox.PruneStagedCache(TimeSpan.FromHours(24));
-        _mainPage = page;
+        _mainPage = services.GetRequiredService<MainPage>();
         _externalInputChanged = OnExternalInputChanged;
         ExternalInputInbox.Changed += _externalInputChanged;
     }
