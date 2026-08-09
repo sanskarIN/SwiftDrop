@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
@@ -23,6 +24,8 @@ public sealed class DeviceIdentityService : IAsyncDisposable
     public string DeviceId { get; private set; } = string.Empty;
     public string DeviceName { get; private set; } = string.Empty;
     public X509Certificate2 Certificate => _certificate ?? throw new InvalidOperationException("Identity not initialized.");
+    public bool IdentityWasAutomaticallyRegenerated { get; private set; }
+    public IdentityCertificateIssue? AutomaticRegenerationReason { get; private set; }
 
     public async Task InitializeAsync()
     {
@@ -40,26 +43,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
 
             DeviceName = NormalizeDeviceName(Preferences.Default.Get(DeviceNameKey, DeviceInfo.Current.Name));
             Preferences.Default.Set(DeviceNameKey, DeviceName);
-
-            var pfx = await SecureStorage.Default.GetAsync(CertificateKey);
-            if (string.IsNullOrWhiteSpace(pfx))
-            {
-                _certificate = new CertificateService().CreateSelfSigned(DeviceId);
-                await PersistCertificateAsync(_certificate);
-            }
-            else
-            {
-                var bytes = Convert.FromBase64String(pfx);
-                try
-                {
-                    _certificate = X509CertificateLoader.LoadPkcs12(bytes, null);
-                }
-                finally
-                {
-                    System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes);
-                }
-            }
-
+            await LoadOrCreateCertificateAsync();
             _initialized = true;
         }
         finally
@@ -81,17 +65,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
         await _initializeGate.WaitAsync();
         try
         {
-            _activePairingNonces.Clear();
-            _certificate?.Dispose();
-            _certificate = null;
-            SecureStorage.Default.Remove(CertificateKey);
-            Preferences.Default.Remove(DeviceIdKey);
-
-            DeviceId = Guid.NewGuid().ToString("N");
-            Preferences.Default.Set(DeviceIdKey, DeviceId);
-            DeviceName = NormalizeDeviceName(Preferences.Default.Get(DeviceNameKey, DeviceInfo.Current.Name));
-            _certificate = new CertificateService().CreateSelfSigned(DeviceId);
-            await PersistCertificateAsync(_certificate);
+            await RegenerateIdentityAsync(automatic: false, reason: null);
             _initialized = true;
         }
         finally
@@ -126,6 +100,63 @@ public sealed class DeviceIdentityService : IAsyncDisposable
         return _activePairingNonces.TryRemove(nonce, out var expires) && expires >= DateTimeOffset.UtcNow;
     }
 
+    private async Task LoadOrCreateCertificateAsync()
+    {
+        var stored = await SecureStorage.Default.GetAsync(CertificateKey);
+        if (string.IsNullOrWhiteSpace(stored))
+        {
+            _certificate = new CertificateService().CreateSelfSigned(DeviceId);
+            await PersistCertificateAsync(_certificate);
+            return;
+        }
+
+        byte[]? bytes = null;
+        X509Certificate2? candidate = null;
+        IdentityCertificateIssue? regenerationReason = null;
+        try
+        {
+            bytes = Convert.FromBase64String(stored);
+            candidate = X509CertificateLoader.LoadPkcs12(bytes, null);
+            var status = IdentityCertificatePolicy.Evaluate(candidate, DateTimeOffset.UtcNow);
+            if (status.IsUsable)
+            {
+                _certificate = candidate;
+                candidate = null;
+                return;
+            }
+            regenerationReason = status.Issue;
+        }
+        catch (Exception ex) when (ex is FormatException or CryptographicException)
+        {
+            regenerationReason = IdentityCertificateIssue.CorruptStoredCertificate;
+        }
+        finally
+        {
+            candidate?.Dispose();
+            if (bytes is not null) CryptographicOperations.ZeroMemory(bytes);
+        }
+
+        await RegenerateIdentityAsync(automatic: true, regenerationReason ?? IdentityCertificateIssue.CorruptStoredCertificate);
+    }
+
+    private async Task RegenerateIdentityAsync(bool automatic, IdentityCertificateIssue? reason)
+    {
+        _activePairingNonces.Clear();
+        _certificate?.Dispose();
+        _certificate = null;
+        SecureStorage.Default.Remove(CertificateKey);
+
+        DeviceId = Guid.NewGuid().ToString("N");
+        Preferences.Default.Set(DeviceIdKey, DeviceId);
+        DeviceName = NormalizeDeviceName(Preferences.Default.Get(DeviceNameKey, DeviceInfo.Current.Name));
+        Preferences.Default.Set(DeviceNameKey, DeviceName);
+
+        _certificate = new CertificateService().CreateSelfSigned(DeviceId);
+        await PersistCertificateAsync(_certificate);
+        IdentityWasAutomaticallyRegenerated = automatic;
+        AutomaticRegenerationReason = automatic ? reason : null;
+    }
+
     private async Task PersistCertificateAsync(X509Certificate2 certificate)
     {
         var pfx = certificate.Export(X509ContentType.Pfx);
@@ -135,7 +166,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
         }
         finally
         {
-            System.Security.Cryptography.CryptographicOperations.ZeroMemory(pfx);
+            CryptographicOperations.ZeroMemory(pfx);
         }
     }
 
@@ -157,9 +188,15 @@ public sealed class DeviceIdentityService : IAsyncDisposable
 
     private static string GetLanAddress()
     {
-        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces().Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback))
-        foreach (var unicast in nic.GetIPProperties().UnicastAddresses)
-            if (unicast.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(unicast.Address)) return unicast.Address.ToString();
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()
+                     .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback))
+        {
+            foreach (var unicast in nic.GetIPProperties().UnicastAddresses)
+            {
+                if (unicast.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(unicast.Address))
+                    return unicast.Address.ToString();
+            }
+        }
         return "127.0.0.1";
     }
 
