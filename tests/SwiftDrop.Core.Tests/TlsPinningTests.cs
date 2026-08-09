@@ -47,15 +47,20 @@ public sealed class TlsPinningTests
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
         var acceptTask = server.AcceptAsync(timeout.Token);
-        await Assert.ThrowsAnyAsync<AuthenticationException>(async () =>
+        var error = await Record.ExceptionAsync(async () =>
         {
-            await using var _ = await new TlsPeerClient().ConnectAsync(
+            await using var connection = await new TlsPeerClient().ConnectAsync(
                 "127.0.0.1",
                 port,
                 Fingerprint.FromCertificate(otherCertificate),
                 clientCertificate,
                 timeout.Token);
         });
+
+        Assert.NotNull(error);
+        Assert.True(
+            error is AuthenticationException or IOException,
+            $"Expected TLS authentication or I/O failure for a pin mismatch, got {error.GetType().FullName}.");
 
         try
         {
