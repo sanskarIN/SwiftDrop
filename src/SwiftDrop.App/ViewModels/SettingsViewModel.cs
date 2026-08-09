@@ -71,6 +71,7 @@ public sealed class SettingsViewModel : ObservableObject
 
     public async Task LoadAsync(CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         await _identity.InitializeAsync();
         var settings = _settings.Load();
         DeviceName = _identity.DeviceName;
@@ -126,9 +127,11 @@ public sealed class SettingsViewModel : ObservableObject
         var previous = _settings.Load();
         await _identity.RenameAsync(DeviceName ?? string.Empty);
         var notificationsEnabled = NotificationsEnabled && NotificationsSupported;
+        var notificationPermissionDenied = false;
 #if ANDROID
         if (notificationsEnabled && !await _notifications.EnsurePermissionAsync())
         {
+            notificationPermissionDenied = true;
             notificationsEnabled = false;
             NotificationsEnabled = false;
         }
@@ -154,7 +157,7 @@ public sealed class SettingsViewModel : ObservableObject
         DeviceName = _identity.DeviceName;
         IdentityFingerprint = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
         return new SettingsSaveResult(
-            NotificationPermissionDenied: NotificationsSupported && NotificationsEnabled != settings.NotificationsEnabled,
+            NotificationPermissionDenied: notificationPermissionDenied,
             LanguageChanged: !string.Equals(previous.Language, settings.Language, StringComparison.Ordinal));
     }
 
