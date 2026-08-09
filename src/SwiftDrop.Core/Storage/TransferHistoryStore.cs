@@ -18,22 +18,7 @@ public sealed class TransferHistoryStore
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
-        command.CommandText = """
-            CREATE TABLE IF NOT EXISTS transfer_history (
-                id TEXT PRIMARY KEY,
-                direction TEXT NOT NULL,
-                peer_device_name TEXT NOT NULL,
-                file_name TEXT NOT NULL,
-                size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
-                timestamp_utc TEXT NOT NULL,
-                status TEXT NOT NULL,
-                integrity_verified INTEGER NOT NULL CHECK(integrity_verified IN (0, 1))
-            );
-            CREATE INDEX IF NOT EXISTS ix_transfer_history_timestamp
-                ON transfer_history(timestamp_utc DESC);
-            """;
-        await command.ExecuteNonQueryAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
     }
 
     public async Task AddAsync(TransferHistoryEntry entry, CancellationToken ct = default)
@@ -41,6 +26,7 @@ public sealed class TransferHistoryStore
         ArgumentNullException.ThrowIfNull(entry);
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         var command = connection.CreateCommand();
         command.CommandText = """
             INSERT OR REPLACE INTO transfer_history
@@ -64,6 +50,7 @@ public sealed class TransferHistoryStore
         var results = new List<TransferHistoryEntry>();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified
@@ -88,24 +75,26 @@ public sealed class TransferHistoryStore
         return results;
     }
 
-    public async Task<int> PruneBeforeAsync(DateTimeOffset cutoffUtc, CancellationToken ct = default)
-    {
-        await using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM transfer_history WHERE timestamp_utc < $cutoff;";
-        command.Parameters.AddWithValue("$cutoff", cutoffUtc.UtcDateTime.ToString("O"));
-        return await command.ExecuteNonQueryAsync(ct);
-    }
-
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_history WHERE id=$id;";
         command.Parameters.AddWithValue("$id", id);
+        await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task PruneOlderThanAsync(DateTimeOffset cutoffUtc, CancellationToken ct = default)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
+        var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM transfer_history WHERE timestamp_utc < $cutoff;";
+        command.Parameters.AddWithValue("$cutoff", cutoffUtc.UtcDateTime.ToString("O"));
         await command.ExecuteNonQueryAsync(ct);
     }
 
@@ -113,6 +102,7 @@ public sealed class TransferHistoryStore
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_history;";
         await command.ExecuteNonQueryAsync(ct);
