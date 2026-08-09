@@ -13,6 +13,8 @@ public partial class MainPage : ContentPage
     private readonly TransferCoordinator _transfers;
     private readonly TransferHistoryService _history;
     private readonly NetworkDiagnosticsService _diagnostics;
+    private readonly TrustedDevicesService _trustedDevices;
+    private readonly AppSettingsService _settings;
     private readonly IServiceProvider _services;
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
@@ -24,6 +26,8 @@ public partial class MainPage : ContentPage
         TransferCoordinator transfers,
         TransferHistoryService history,
         NetworkDiagnosticsService diagnostics,
+        TrustedDevicesService trustedDevices,
+        AppSettingsService settings,
         IServiceProvider services)
     {
         InitializeComponent();
@@ -31,6 +35,8 @@ public partial class MainPage : ContentPage
         _transfers = transfers;
         _history = history;
         _diagnostics = diagnostics;
+        _trustedDevices = trustedDevices;
+        _settings = settings;
         _services = services;
         Loaded += async (_, _) => await InitializeAsync();
         Unloaded += async (_, _) => await StopReceiveServerAsync();
@@ -42,6 +48,7 @@ public partial class MainPage : ContentPage
         {
             await _identity.InitializeAsync();
             await _history.InitializeAsync();
+            await _trustedDevices.InitializeAsync();
             DeviceNameLabel.Text = _identity.DeviceName;
             DeviceIdLabel.Text = _identity.DeviceId;
             if (_receiveServer is null)
@@ -66,6 +73,16 @@ public partial class MainPage : ContentPage
     private async Task<bool> ApproveIncomingAsync(IncomingTransferPreview preview, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        var settings = _settings.Load();
+        var trustedMatch = await _trustedDevices.MatchesAsync(
+            preview.SenderDeviceId,
+            preview.SenderCertificateFingerprint,
+            ct);
+
+        if (trustedMatch && settings.AutoAcceptTrustedDevices && preview.RiskLevel == FileRiskLevel.Normal)
+            return true;
+
+        var trustState = trustedMatch ? "\nTrusted device: certificate matches the stored fingerprint." : string.Empty;
         var risk = preview.RiskLevel switch
         {
             FileRiskLevel.High => "\n\nWARNING: This file type can execute code or install software. Only accept it if you expected it and trust the sender.",
@@ -76,11 +93,33 @@ public partial class MainPage : ContentPage
             $"Sender: {preview.SenderDeviceName}\n" +
             $"File: {preview.Entry.RelativePath}\n" +
             $"Size: {preview.Entry.Length:N0} bytes\n" +
-            $"Sender certificate: {Fingerprint.Pretty(preview.SenderCertificateFingerprint)}" + risk +
+            $"Sender certificate: {Fingerprint.Pretty(preview.SenderCertificateFingerprint)}" +
+            trustState + risk +
             "\n\nSwiftDrop will not open the file automatically.";
 
-        return await MainThread.InvokeOnMainThreadAsync(() =>
+        var accepted = await MainThread.InvokeOnMainThreadAsync(() =>
             DisplayAlert("Incoming transfer", message, "Accept", "Reject"));
+        if (!accepted) return false;
+
+        if (!trustedMatch)
+        {
+            var trust = await MainThread.InvokeOnMainThreadAsync(() =>
+                DisplayAlert(
+                    "Trust this device?",
+                    "Trust stores this exact device ID and certificate fingerprint locally. You can revoke it from Settings. Choose Not now if this is a one-time transfer.",
+                    "Trust device",
+                    "Not now"));
+            if (trust)
+            {
+                await _trustedDevices.TrustAsync(
+                    preview.SenderDeviceId,
+                    preview.SenderDeviceName,
+                    preview.SenderCertificateFingerprint,
+                    ct);
+            }
+        }
+
+        return true;
     }
 
     private Task RecordIncomingAsync(IncomingTransferPreview preview, string status, bool verified, CancellationToken ct)
