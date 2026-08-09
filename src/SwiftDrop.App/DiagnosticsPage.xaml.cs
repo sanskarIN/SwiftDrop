@@ -19,23 +19,24 @@ public partial class DiagnosticsPage : ContentPage
 
     private async Task RefreshAsync()
     {
+        ProtocolLabel.Text = $"Protocol version: {ProtocolConstants.CurrentVersion}";
         try
         {
             await _discovery.StartAsync();
-            ProtocolLabel.Text = $"Protocol version: {ProtocolConstants.CurrentVersion}";
-            UdpStatusLabel.Text = $"UDP discovery: {(_discovery.IsRunning ? "running" : "stopped")}";
+            MdnsStatusLabel.Text = $"mDNS/Bonjour discovery: {(_discovery.IsMdnsRunning ? "running" : "unavailable")}";
+            UdpStatusLabel.Text = $"UDP broadcast fallback: {(_discovery.IsUdpRunning ? "running" : "unavailable")}";
             DiagnosticsList.ItemsSource = _diagnostics.InspectLocalNetwork();
         }
         catch (Exception ex)
         {
-            ProtocolLabel.Text = $"Protocol version: {ProtocolConstants.CurrentVersion}";
-            UdpStatusLabel.Text = "UDP discovery: unavailable";
+            MdnsStatusLabel.Text = "mDNS/Bonjour discovery: unavailable";
+            UdpStatusLabel.Text = "UDP broadcast fallback: unavailable";
             DiagnosticsList.ItemsSource = new[]
             {
                 new NetworkDiagnostic(
                     "diagnostics.discovery_error",
-                    "Discovery could not start",
-                    ex.Message,
+                    "Automatic discovery could not start",
+                    $"{ex.Message} QR or pasted pairing invitations can still be used when the receiver address is reachable.",
                     DiagnosticSeverity.Warning)
             };
         }
