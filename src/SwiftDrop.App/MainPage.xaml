@@ -7,7 +7,7 @@
     <VerticalStackLayout Padding="24" Spacing="18">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
         <VerticalStackLayout Grid.Column="0" Spacing="4">
-          <Label Text="SwiftDrop" FontSize="34" FontAttributes="Bold" />
+          <Label Text="SwiftDrop" FontSize="34" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
           <Label Text="Fast, private local transfers — no account required." FontSize="16" Opacity="0.75" />
         </VerticalStackLayout>
         <HorizontalStackLayout Grid.Column="1" Spacing="8" VerticalOptions="Center">
@@ -19,8 +19,8 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="This device" FontAttributes="Bold" FontSize="18" />
-          <Label x:Name="DeviceNameLabel" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="This device" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label x:Name="DeviceNameLabel" />
           <Label x:Name="DeviceIdLabel" FontSize="12" Opacity="0.65" LineBreakMode="TailTruncation" />
           <Label x:Name="DeviceFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
           <HorizontalStackLayout Spacing="10">
@@ -44,7 +44,7 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Connect to a device" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Connect to a device" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Entry x:Name="RemoteLinkEntry" Placeholder="Paste swiftdrop:// pairing link" />
           <Button Text="Validate pairing link" Clicked="ValidatePairingClicked" />
           <Label x:Name="RemotePeerLabel" />
@@ -54,10 +54,10 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send file" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Send one file" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Button Text="Choose file" Clicked="ChooseFileClicked" />
           <Label x:Name="SelectedFileLabel" LineBreakMode="MiddleTruncation" />
-          <ProgressBar x:Name="TransferProgress" Progress="0" />
+          <ProgressBar x:Name="TransferProgress" Progress="0" SemanticProperties.Description="Single file transfer progress" />
           <HorizontalStackLayout Spacing="10">
             <Button x:Name="SendFileButton" Text="Send selected file" Clicked="SendFileClicked" />
             <Button x:Name="CancelSendButton" Text="Cancel" Clicked="CancelSendClicked" IsEnabled="False" />
@@ -68,7 +68,22 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
-          <Label Text="Send text" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Send multiple files" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="Choose several files in one encrypted transfer. The receiver can accept all, accept selected files, or reject the batch." FontSize="12" Opacity="0.75" />
+          <Button Text="Choose multiple files" Clicked="ChooseMultipleFilesClicked" />
+          <Label x:Name="SelectedBatchLabel" Text="No batch selected" LineBreakMode="TailTruncation" />
+          <ProgressBar x:Name="BatchTransferProgress" Progress="0" SemanticProperties.Description="Multiple file transfer progress" />
+          <HorizontalStackLayout Spacing="10">
+            <Button x:Name="SendBatchButton" Text="Send selected files" Clicked="SendBatchClicked" />
+            <Button x:Name="CancelBatchButton" Text="Cancel" Clicked="CancelBatchClicked" IsEnabled="False" />
+          </HorizontalStackLayout>
+          <Label x:Name="BatchTransferStatusLabel" FontSize="12" />
+        </VerticalStackLayout>
+      </Border>
+
+      <Border StrokeShape="RoundRectangle 18" Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Label Text="Send text" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Label Text="SwiftDrop reads the clipboard only when you press Paste from clipboard. It never monitors the clipboard in the background." FontSize="12" Opacity="0.7" />
           <Editor x:Name="TextSnippetEditor" Placeholder="Type or paste a short text snippet" AutoSize="TextChanges" MaximumHeightRequest="180" />
           <HorizontalStackLayout Spacing="10">
@@ -81,7 +96,7 @@
 
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
-          <Label Text="Connection help" FontAttributes="Bold" FontSize="18" />
+          <Label Text="Connection help" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Label Text="If nearby devices cannot connect, run a local diagnostic. Guest Wi-Fi, client isolation, local-network permissions, and firewalls may block peer-to-peer traffic." FontSize="13" Opacity="0.75" />
           <Button Text="Open local network diagnostics" Clicked="OpenDiagnosticsClicked" />
         </VerticalStackLayout>
