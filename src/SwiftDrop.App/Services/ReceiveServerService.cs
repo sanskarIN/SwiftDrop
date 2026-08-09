@@ -4,6 +4,7 @@ using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Networking;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
+using SwiftDrop.Core.Storage;
 using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.App.Services;
@@ -113,6 +114,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 var effectiveEntry = request.Entry with { RelativePath = effectiveRelativePath };
                 var partial = final + ".swiftdrop.part";
                 var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
+                StorageCapacityGuard.EnsureCapacity(final, effectiveEntry.Length - offset);
                 await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, offset, null), ct);
                 await new TransferEngine().ReceiveFileAsync(connection, _receiveRoot, effectiveEntry, offset, null, ct);
                 await FrameProtocol.WriteJsonAsync(connection, new TransferResponse(true, effectiveEntry.Length, null), ct);
