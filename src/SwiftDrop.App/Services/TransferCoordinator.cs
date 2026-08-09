@@ -45,7 +45,7 @@ public sealed class TransferCoordinator
 
     private async Task SendCoreAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(remote);
+        remote = await PrepareRemoteAsync(remote, ct);
         if (!File.Exists(path)) throw new FileNotFoundException("Selected file cannot be opened.", path);
         var info = new FileInfo(path);
         if (info.Length > ProtocolConstants.MaxSingleFileBytes) throw new InvalidDataException("File exceeds SwiftDrop safety limit.");
@@ -72,6 +72,7 @@ public sealed class TransferCoordinator
         if (response.ResumeOffset < 0 || response.ResumeOffset > entry.Length)
             throw new InvalidDataException("Receiver returned an invalid resume offset.");
 
+        progress?.Report(entry.Length == 0 ? 1 : (double)response.ResumeOffset / entry.Length);
         var bytesProgress = new Progress<long>(sent => progress?.Report(entry.Length == 0 ? 1 : (double)sent / entry.Length));
         await new TransferEngine().SendFileAsync(
             ssl,
@@ -84,6 +85,7 @@ public sealed class TransferCoordinator
         if (!completed.Accepted) throw new IOException(completed.Message ?? "Receiver reported failure.");
         if (completed.ResumeOffset != entry.Length)
             throw new InvalidDataException("Receiver completion length did not match the manifest.");
+        progress?.Report(1);
     }
 
     private async Task<BatchSendResult> SendBatchCoreAsync(
@@ -92,7 +94,7 @@ public sealed class TransferCoordinator
         IProgress<BatchProgress>? progress,
         CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(remote);
+        remote = await PrepareRemoteAsync(remote, ct);
         var batch = await BatchTransferSourceBuilder.BuildAsync(paths, ct);
         var client = new TlsPeerClient();
         await using var ssl = await client.ConnectAsync(
@@ -115,25 +117,14 @@ public sealed class TransferCoordinator
         }, ct);
 
         var response = await FrameProtocol.ReadJsonAsync<BatchTransferResponse>(ssl, ct);
+        var validatedPlans = BatchTransferPlanValidator.Validate(batch.Items.Select(x => x.Entry).ToArray(), response);
         if (!response.Accepted)
             throw new IOException(response.Message ?? "Receiver rejected the batch transfer.");
 
         var sourceByPath = batch.Items.ToDictionary(x => x.Entry.RelativePath, StringComparer.Ordinal);
-        var acceptedPlans = new Dictionary<string, BatchItemPlan>(StringComparer.Ordinal);
-        var seenPlans = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var plan in response.Items)
-        {
-            if (!sourceByPath.TryGetValue(plan.RelativePath, out var source))
-                throw new InvalidDataException("Receiver returned an unknown batch item.");
-            if (!seenPlans.Add(plan.RelativePath))
-                throw new InvalidDataException("Receiver returned a duplicate batch item.");
-            if (plan.ResumeOffset < 0 || plan.ResumeOffset > source.Entry.Length)
-                throw new InvalidDataException("Receiver returned an invalid resume offset.");
-            if (plan.Accepted) acceptedPlans.Add(plan.RelativePath, plan);
-        }
-
-        if (acceptedPlans.Count == 0)
-            throw new IOException("Receiver did not accept any files in the batch.");
+        var acceptedPlans = validatedPlans
+            .Where(x => x.Value.Accepted)
+            .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
 
         var acceptedTotal = acceptedPlans.Values.Sum(plan => sourceByPath[plan.RelativePath].Entry.Length);
         long completedBefore = 0;
@@ -144,8 +135,15 @@ public sealed class TransferCoordinator
             ct.ThrowIfCancellationRequested();
             if (!acceptedPlans.TryGetValue(source.Entry.RelativePath, out var plan)) continue;
 
-            await FrameProtocol.WriteJsonAsync(ssl, new BatchItemStart(source.Entry.RelativePath), ct);
             var currentBase = completedBefore;
+            progress?.Report(new BatchProgress(
+                completedItems,
+                acceptedPlans.Count,
+                currentBase + plan.ResumeOffset,
+                acceptedTotal,
+                source.Entry.RelativePath));
+
+            await FrameProtocol.WriteJsonAsync(ssl, new BatchItemStart(source.Entry.RelativePath), ct);
             var itemProgress = new Progress<long>(sent =>
             {
                 var totalCompleted = currentBase + sent;
@@ -182,6 +180,8 @@ public sealed class TransferCoordinator
 
         var final = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
         if (!final.Accepted) throw new IOException(final.Message ?? "Receiver reported batch failure.");
+        if (final.ResumeOffset != batch.TotalBytes)
+            throw new InvalidDataException("Receiver batch completion total did not match the manifest.");
 
         var skipped = batch.Items
             .Where(x => !acceptedPlans.ContainsKey(x.Entry.RelativePath))
@@ -191,7 +191,7 @@ public sealed class TransferCoordinator
 
     private async Task SendTextCoreAsync(PairingPayload remote, string text, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(remote);
+        remote = await PrepareRemoteAsync(remote, ct);
         var now = DateTimeOffset.UtcNow;
         var expires = now.Add(ProtocolConstants.TextSnippetLifetime);
         TextSnippetValidator.Validate(text, expires, now);
@@ -210,6 +210,14 @@ public sealed class TransferCoordinator
         }, ct);
         var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
         if (!response.Accepted) throw new IOException(response.Message ?? "Receiver rejected the text snippet.");
+    }
+
+    private async Task<PairingPayload> PrepareRemoteAsync(PairingPayload remote, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(remote);
+        ct.ThrowIfCancellationRequested();
+        await _identity.InitializeAsync();
+        return PairingCodec.Validate(remote, DateTimeOffset.UtcNow);
     }
 
     private sealed record TransferResponse(bool Accepted, long ResumeOffset, string? Message);
