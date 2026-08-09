@@ -27,7 +27,7 @@ public sealed class TlsPeerClient
             var ssl = new SslStream(tcp.GetStream(), false, (_, cert, _, _) =>
             {
                 if (cert is null) return false;
-                using var x509 = new X509Certificate2(cert);
+                using var x509 = X509CertificateLoader.LoadCertificate(cert.GetRawCertData());
                 return Fingerprint.FixedTimeEquals(expectedFingerprint, Fingerprint.FromCertificate(x509));
             });
             await ssl.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
