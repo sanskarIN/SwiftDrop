@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
 using SwiftDrop.App.Services;
 using SwiftDrop.Core.Diagnostics;
