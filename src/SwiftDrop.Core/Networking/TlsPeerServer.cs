@@ -23,9 +23,13 @@ public sealed class TlsPeerServer : IAsyncDisposable
     public void Start() => _listener.Start();
 
     public async Task<SslStream> AcceptAsync(CancellationToken ct)
+        => (await AcceptConnectionAsync(ct)).Stream;
+
+    public async Task<TlsAcceptedConnection> AcceptConnectionAsync(CancellationToken ct)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
         var client = await _listener.AcceptTcpClientAsync(linked.Token);
+        var remoteAddress = (client.Client.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "unknown";
         var ssl = new SslStream(client.GetStream(), false);
         try
         {
@@ -39,7 +43,7 @@ public sealed class TlsPeerServer : IAsyncDisposable
             }, linked.Token);
             if (ssl.RemoteCertificate is null)
                 throw new AuthenticationException("SwiftDrop requires a sender certificate.");
-            return ssl;
+            return new TlsAcceptedConnection(ssl, remoteAddress);
         }
         catch
         {
@@ -58,3 +62,5 @@ public sealed class TlsPeerServer : IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 }
+
+public sealed record TlsAcceptedConnection(SslStream Stream, string RemoteAddress);
