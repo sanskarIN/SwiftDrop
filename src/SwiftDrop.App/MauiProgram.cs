@@ -25,6 +25,7 @@ public static class MauiProgram
         builder.Services.AddTransient<HistoryPage>();
         builder.Services.AddTransient<DevicesPage>();
         builder.Services.AddTransient<TrustedDevicesPage>();
+        builder.Services.AddTransient<AboutPage>();
         return builder.Build();
     }
 }
