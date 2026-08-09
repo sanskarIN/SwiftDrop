@@ -1,5 +1,6 @@
 using SwiftDrop.App.Services;
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.App;
@@ -19,6 +20,7 @@ public partial class DevicesPage : ContentPage
         _discovery = discovery;
         _pairing = pairing;
         _selection = selection;
+        ManualPortEntry.Text = ProtocolConstants.DefaultPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -128,6 +130,51 @@ public partial class DevicesPage : ContentPage
         {
             button.Text = "Request pairing";
             button.IsEnabled = true;
+        }
+    }
+
+    private async void ManualPairClicked(object? sender, EventArgs e)
+    {
+        var host = ManualIpEntry.Text?.Trim() ?? string.Empty;
+        var code = ManualCodeEntry.Text?.Trim() ?? string.Empty;
+        if (!int.TryParse(ManualPortEntry.Text, out var port))
+        {
+            await DisplayAlert("Invalid port", "Enter a numeric port from 1 to 65535.", "OK");
+            return;
+        }
+        if (code.Length != 8 || code.Any(ch => ch is < '0' or > '9'))
+        {
+            await DisplayAlert("Invalid code", "Enter the fresh 8-digit code shown on the receiving device.", "OK");
+            return;
+        }
+
+        var confirmed = await DisplayAlert(
+            "Manual pairing bootstrap",
+            "Manual IP pairing initially connects before the receiver certificate fingerprint is known. The 8-digit code and receiver approval authorize the bootstrap. SwiftDrop then binds the returned invitation to the exact TLS certificate it observed and will ask you to visually confirm that fingerprint before sending. Continue only on a network and device you expect.",
+            "Continue",
+            "Cancel");
+        if (!confirmed) return;
+
+        try
+        {
+            if (sender is Button button) button.IsEnabled = false;
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+            var payload = await _pairing.RequestManualIpAsync(host, port, code, cts.Token);
+            ManualCodeEntry.Text = string.Empty;
+            _selection.Set(payload);
+            await Navigation.PopAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            await DisplayAlert("Pairing timed out", "Manual pairing expired before it completed.", "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Manual pairing failed", ex.Message, "OK");
+        }
+        finally
+        {
+            if (sender is Button button) button.IsEnabled = true;
         }
     }
 
