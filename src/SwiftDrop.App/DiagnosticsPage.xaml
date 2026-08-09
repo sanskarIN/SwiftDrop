@@ -3,24 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="SwiftDrop.App.DiagnosticsPage"
              Title="Diagnostics">
-  <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="14">
+  <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="6">
-      <Label Text="Local network diagnostics" FontSize="28" FontAttributes="Bold" />
-      <Label Text="Diagnostics contain network capability and protocol status only. SwiftDrop does not include file contents, text contents, private keys, or pairing nonces." FontSize="13" Opacity="0.75" />
+      <Label Text="Local network diagnostics" FontSize="28" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+      <Label Text="Diagnostics contain network capability and protocol status only. SwiftDrop does not include file contents, text contents, private keys, full pairing invitations, or pairing nonces." FontSize="13" Opacity="0.75" />
     </VerticalStackLayout>
 
     <Border Grid.Row="1" StrokeShape="RoundRectangle 16" Padding="14">
       <VerticalStackLayout Spacing="6">
-        <Label Text="Developer status" FontAttributes="Bold" />
+        <Label Text="Developer status" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
         <Label x:Name="ProtocolLabel" />
         <Label x:Name="MdnsStatusLabel" />
         <Label x:Name="UdpStatusLabel" />
         <Label Text="QR and pasted pairing invitations remain available when automatic discovery is blocked by Wi-Fi policy or platform restrictions." FontSize="12" />
-        <Button Text="Refresh diagnostics" Clicked="RefreshClicked" />
+        <HorizontalStackLayout Spacing="10">
+          <Button Text="Refresh diagnostics" Clicked="RefreshClicked" />
+          <Button Text="Export safe log" Clicked="ExportClicked" />
+          <Button Text="Clear log" Clicked="ClearLogClicked" />
+        </HorizontalStackLayout>
       </VerticalStackLayout>
     </Border>
 
-    <CollectionView Grid.Row="2" x:Name="DiagnosticsList" EmptyView="No diagnostic messages.">
+    <CollectionView Grid.Row="2" x:Name="DiagnosticsList" HeightRequest="220" EmptyView="No current diagnostic messages.">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,0,0,10">
@@ -29,6 +33,24 @@
               <Label Text="{Binding Message}" FontSize="13" />
               <Label Text="{Binding Severity}" FontSize="11" Opacity="0.65" />
             </VerticalStackLayout>
+          </Border>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+
+    <CollectionView Grid.Row="3" x:Name="EventLogList" EmptyView="No persisted diagnostic events.">
+      <CollectionView.Header>
+        <Label Text="Recent safe diagnostic events" FontSize="18" FontAttributes="Bold" Margin="0,6" SemanticProperties.HeadingLevel="Level2" />
+      </CollectionView.Header>
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Border StrokeShape="RoundRectangle 14" Padding="12" Margin="0,0,0,8">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+              <Label Text="{Binding Level}" FontAttributes="Bold" />
+              <Label Grid.Column="1" Text="{Binding Code}" />
+              <Label Grid.Column="2" Text="{Binding TimestampUtc, StringFormat='{0:g}'}" FontSize="11" Opacity="0.7" />
+              <Label Grid.Row="1" Grid.ColumnSpan="3" Text="{Binding Message}" FontSize="12" />
+            </Grid>
           </Border>
         </DataTemplate>
       </CollectionView.ItemTemplate>
