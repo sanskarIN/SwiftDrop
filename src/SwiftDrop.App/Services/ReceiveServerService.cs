@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using SwiftDrop.Core.Models;
@@ -23,8 +24,12 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<string>? _createPairingLink;
     private readonly Func<string?, bool>? _consumePairingCode;
     private readonly AttemptRateLimiter _pairingAttemptLimiter = new(8, TimeSpan.FromMinutes(1));
+    private readonly ConcurrentDictionary<long, Task> _activeHandlers = new();
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
+    private long _nextHandlerId;
+    private int _started;
+    private int _disposed;
 
     public ReceiveServerService(
         X509Certificate2 certificate,
@@ -57,8 +62,18 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
     public void Start()
     {
-        _server.Start();
-        _loop ??= Task.Run(() => LoopAsync(_cts.Token));
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        if (Interlocked.CompareExchange(ref _started, 1, 0) != 0) return;
+        try
+        {
+            _server.Start();
+            _loop = Task.Run(() => LoopAsync(_cts.Token));
+        }
+        catch
+        {
+            Interlocked.Exchange(ref _started, 0);
+            throw;
+        }
     }
 
     private async Task LoopAsync(CancellationToken ct)
@@ -68,7 +83,10 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try
             {
                 var ssl = await _server.AcceptAsync(ct);
-                _ = HandleAsync(ssl, ct);
+                var id = Interlocked.Increment(ref _nextHandlerId);
+                var handler = HandleAsync(ssl, ct);
+                _activeHandlers[id] = handler;
+                _ = ObserveHandlerAsync(id, handler);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -78,6 +96,21 @@ public sealed class ReceiveServerService : IAsyncDisposable
             {
                 if (ct.IsCancellationRequested) break;
             }
+        }
+    }
+
+    private async Task ObserveHandlerAsync(long id, Task handler)
+    {
+        try
+        {
+            await handler;
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _activeHandlers.TryRemove(id, out _);
         }
     }
 
@@ -477,12 +510,22 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+
         _cts.Cancel();
         await _server.DisposeAsync();
         if (_loop is not null)
         {
             try { await _loop; } catch (OperationCanceledException) { }
         }
+
+        var active = _activeHandlers.Values.ToArray();
+        if (active.Length > 0)
+        {
+            try { await Task.WhenAll(active); } catch { }
+        }
+
+        _activeHandlers.Clear();
         _cts.Dispose();
     }
 
