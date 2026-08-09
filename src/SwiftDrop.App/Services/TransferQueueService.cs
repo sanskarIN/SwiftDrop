@@ -5,13 +5,15 @@ namespace SwiftDrop.App.Services;
 public sealed class TransferQueueService
 {
     private readonly AppSettingsService _settings;
+    private readonly TransferActivityService _activity;
     private readonly AsyncConcurrencyGate _gate = new();
     private readonly object _sync = new();
     private readonly Dictionary<Guid, TransferQueueEntry> _entries = new();
 
-    public TransferQueueService(AppSettingsService settings)
+    public TransferQueueService(AppSettingsService settings, TransferActivityService activity)
     {
         _settings = settings;
+        _activity = activity;
     }
 
     public event EventHandler? Changed;
@@ -51,7 +53,8 @@ public sealed class TransferQueueService
         Update(new TransferQueueEntry(id, visibleLabel, TransferQueueState.Queued, DateTimeOffset.UtcNow));
         try
         {
-            await using var lease = await _gate.EnterAsync(currentSettings.TransferConcurrency, ct);
+            await using var concurrencyLease = await _gate.EnterAsync(currentSettings.TransferConcurrency, ct);
+            await using var activityLease = await _activity.EnterAsync(ct);
             Update(Get(id) with { State = TransferQueueState.Running, StartedUtc = DateTimeOffset.UtcNow });
             var result = await action(ct);
             Update(Get(id) with { State = TransferQueueState.Completed, FinishedUtc = DateTimeOffset.UtcNow });
@@ -81,7 +84,10 @@ public sealed class TransferQueueService
     {
         lock (_sync)
         {
-            foreach (var id in _entries.Where(x => x.Value.State is TransferQueueState.Completed or TransferQueueState.Cancelled or TransferQueueState.Failed).Select(x => x.Key).ToArray())
+            foreach (var id in _entries
+                         .Where(x => x.Value.State is TransferQueueState.Completed or TransferQueueState.Cancelled or TransferQueueState.Failed)
+                         .Select(x => x.Key)
+                         .ToArray())
                 _entries.Remove(id);
         }
         RaiseChanged();
