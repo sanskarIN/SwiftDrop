@@ -1,29 +1,34 @@
 # SwiftDrop
 
-SwiftDrop is an open-source, account-free local-network transfer application built with .NET MAUI and C#. It is designed for direct peer-to-peer transfers between nearby devices without uploading user files to a SwiftDrop cloud service.
+SwiftDrop is an open-source, account-free local-network file and text transfer app built with .NET MAUI and C#. It is designed for direct peer-to-peer transfers across Android, iOS, macOS (Mac Catalyst), and Windows without uploading transfer content to a SwiftDrop cloud service.
 
-> **Privacy model:** local transfer is the product. No account, email, phone number, subscription server, or SwiftDrop cloud upload path is required for the current release.
+> **Privacy model:** transfer payloads stay on the local peer-to-peer path. SwiftDrop stores only local metadata required for settings, trust, history, and privacy-safe diagnostics. See `PRIVACY.md`.
 
-## Current implementation
+## Current capabilities
 
-- Android, iOS, Mac Catalyst, and Windows .NET MAUI targets.
-- Local device identity with a self-signed ECDSA certificate stored through platform secure storage.
-- Short-lived QR/deep-link pairing invitations containing the receiver address, port, certificate fingerprint, expiration, and cryptographically random one-time nonce.
-- TLS 1.3/1.2 transport through .NET/platform cryptographic primitives; no custom cipher or key-exchange implementation.
-- Receiver certificate SHA-256 fingerprint pinning on the sender.
-- Sender certificate presentation on the TLS channel and explicit incoming-transfer confirmation showing sender certificate fingerprint.
-- User approval before incoming file bytes are accepted.
-- Potentially dangerous file-type warnings before acceptance.
-- Chunked direct file streaming with cancellation and progress.
-- `.swiftdrop.part` staging, resumable offsets, exact-length receive loops, and SHA-256 final integrity verification.
-- Root/path traversal protection and filename collision avoidance.
-- Per-file safety limit and destination free-space guard.
-- Local SQLite transfer-history metadata with privacy mode support.
-- Local SQLite trusted-peer persistence primitives.
-- Local-network diagnostics and UDP discovery core service.
-- Settings and transfer-history pages.
-- Unit tests for framing, pairing codec, fingerprints, paths, history, trusted peers, file-risk classification, and settings validation.
-- GitHub Actions CI for the portable core and unit tests.
+- Automatic nearby discovery with mDNS/Bonjour plus bounded UDP broadcast fallback.
+- QR/deep-link pairing, nearby pairing requests, manual local-IP fallback, and short-lived one-time 8-digit pairing codes.
+- Receiver-certificate SHA-256 pinning and sender client certificates over platform/.NET TLS 1.3/1.2.
+- Explicit receiver approval, sender certificate display, trusted-device storage/revocation, and optional normal-file auto-accept for explicitly trusted certificates.
+- Single-file transfer with streaming progress, cancellation, safe pause/resume through fresh pairing, `.swiftdrop.part` staging, SHA-256 verification, free-space checks, and collision-safe receive names.
+- Multi-file and recursive folder manifests with receiver accept-all/selective/reject decisions, per-file integrity verification, and resumable staged files.
+- Explicit text-snippet transfer and user-triggered clipboard paste. SwiftDrop does not continuously monitor the clipboard.
+- Configurable transfer queue/concurrency with local queue status and privacy-mode label redaction.
+- Android share-sheet ingestion for text/files and Android foreground data-sync lifetime for active user-initiated transfers.
+- `swiftdrop://` pairing protocol activation on Android, iOS, Mac Catalyst, and Windows.
+- Local transfer history with retention pruning and per-record deletion.
+- Configurable receive folder on Windows through the system folder picker; conservative app-private receive storage on platforms where broad folder access is not implemented.
+- Privacy-aware bounded diagnostic events, safe diagnostic export, and synthetic developer self-tests for success, interruption, and checksum mismatch behavior.
+- SQLite schema versioning for metadata-only stores.
+- English/Hindi localization resource catalogs, theme controls, larger-interface controls, and accessibility-oriented semantic labels on key surfaces.
+
+## Security boundaries
+
+SwiftDrop uses established .NET/platform cryptographic primitives rather than custom encryption. Pairing invitations are short-lived and are authorization metadata, not encrypted secrets. Transfer integrity verifies that received bytes match the sender-declared SHA-256 digest; it does **not** prove that a file is safe or malware-free. Incoming files are never automatically opened.
+
+SwiftDrop intentionally rejects public-internet/DNS peer addresses in the current local-network protocol. Supported pairing addresses must be numeric loopback, private, unique-local, or link-local IP addresses. The app does not attempt to bypass firewall, Wi-Fi isolation, operating-system background, or enterprise network policies.
+
+Read `SECURITY.md`, `docs/security/THREAT_MODEL.md`, `docs/protocol/security.md`, and `docs/protocol/wire-format.md` before changing networking, pairing, trust, or transfer behavior.
 
 ## Repository
 
@@ -32,12 +37,12 @@ https://github.com/sanskarIN/SwiftDrop
 ## Requirements
 
 - .NET 10 SDK
-- .NET MAUI workload (`dotnet workload install maui`)
+- .NET MAUI workloads for the target platform
 - Android SDK for Android builds
 - Xcode on macOS for iOS/Mac Catalyst builds
-- Windows 10/11 plus Windows App SDK prerequisites for Windows builds
+- Windows 10/11 and Windows App SDK prerequisites for Windows builds
 
-## Build
+## Build and test
 
 ```bash
 dotnet restore SwiftDrop.sln
@@ -45,89 +50,53 @@ dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release
 dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
 ```
 
-For a MAUI target, install the relevant workload and build the target framework. Example for Android:
+Build a MAUI target after installing its workload, for example:
 
 ```bash
+dotnet workload install maui-android
 dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Debug
 ```
 
-Apple builds require macOS/Xcode. Windows packaging/signing requires the corresponding Windows tooling and release signing configuration.
+GitHub Actions includes portable core/test CI, CodeQL analysis, and target-platform compile workflows. Platform signing, store packaging, and physical-device validation remain release steps and are not implied by a successful portable unit-test run.
 
-## Pairing and sending
+## Pairing
 
-1. Open SwiftDrop on the receiving device.
-2. Create a fresh pairing invitation. A QR image and `swiftdrop://pair?...` link are generated locally.
-3. On the sending device, scan/open or paste the invitation.
-4. Verify the receiver certificate fingerprint shown to the sender.
-5. Choose a file and start the transfer.
-6. The receiver sees the sender device name, sender certificate fingerprint, filename, size, and any file-risk warning.
-7. The receiver explicitly accepts or rejects the transfer.
-8. SwiftDrop streams the file into a staged partial file and finalizes it only after SHA-256 verification succeeds.
+You can pair in several local-network ways:
 
-Pairing invitations expire quickly and are one-time use. They are temporary capabilities, not long-term passwords. Do not publish them.
+1. **QR/link:** the receiver creates a short-lived `swiftdrop://pair?...` invitation. The sender scans/opens/pastes it and visually verifies the receiver certificate fingerprint.
+2. **Nearby request:** automatic discovery identifies the peer and its advertised certificate fingerprint. The receiver must approve the request.
+3. **8-digit code:** the receiver creates a short-lived one-time code. Nearby/manual pairing submits it, the receiver approves, and SwiftDrop binds the returned invitation to the TLS certificate observed during pairing.
+4. **Manual local IP:** intended only when automatic discovery is blocked. A fresh 8-digit code is required and the certificate fingerprint is still shown for visual confirmation before transfer.
 
-## Transfer safety
-
-SwiftDrop does not automatically open received files. Executable, installer, script, macro-enabled, and archive-like extensions can trigger additional warnings, but an extension warning cannot prove that a file is safe. Treat unexpected files as untrusted.
-
-Received paths are constrained beneath the receive root. Existing final names are not silently overwritten; SwiftDrop selects a collision-free destination. Before receiving the remaining payload, SwiftDrop checks available destination capacity with a safety reserve.
-
-## History and privacy mode
-
-Transfer history is local metadata only. It can record direction, peer name, timestamp, size, status, integrity result, and filename. When privacy mode is enabled, newly recorded filenames are replaced with a generic history label. Transfer file contents are never stored in SQLite.
-
-See `PRIVACY.md` for the current privacy behavior.
+A transfer invitation is consumed for one transfer attempt. Pause/resume and retry require fresh pairing so authorization is not silently replayed.
 
 ## Networking notes
 
-SwiftDrop works best when both devices are on the same normal LAN/Wi-Fi network. Guest Wi-Fi, AP/client isolation, enterprise policy, local-network permissions, host firewalls, IPv4 limitations in the UDP fallback, and mobile background restrictions can prevent peer connectivity.
+SwiftDrop works best when both devices are on the same normal LAN/Wi-Fi. Guest networks, AP/client isolation, multicast filtering, enterprise Wi-Fi policy, mobile OS background restrictions, local-network permissions, and host firewalls can block discovery or inbound connections. QR or manual pairing can help with discovery failures but cannot bypass network policy.
 
-The repository contains a UDP broadcast discovery primitive. QR/deep-link pairing is the dependable fallback when automatic discovery is unavailable or blocked. Platform mDNS/Bonjour integration can be expanded independently without changing the core transfer security model.
+See `docs/troubleshooting.md` and `docs/platform-permissions.md`.
 
-See:
+## Local data
 
-- `docs/troubleshooting.md`
-- `docs/platform-permissions.md`
-- `docs/architecture.md`
+SwiftDrop stores metadata only in SQLite: trusted peers, transfer history, and bounded diagnostic events. Transfer bytes stream directly to the receive destination, with incomplete files staged as `.swiftdrop.part`. Device certificate/private-key material is stored through platform secure storage.
 
-## Security
+See `docs/storage/database-schema.md` and `PRIVACY.md`.
 
-Start with:
+## Development and release
 
-- `SECURITY.md`
-- `docs/security/THREAT_MODEL.md`
-- `docs/protocol/security.md`
+- Contribution rules: `CONTRIBUTING.md`
+- Architecture: `docs/architecture.md`
+- Manual test matrix: `docs/testing/manual-test-matrix.md`
+- Release checklist: `docs/release/release-checklist.md`
+- Product status: `PROJECT_STATUS.md`
+- Detailed implementation ledger: `what_changed.md`
+- Third-party notice process: `THIRD_PARTY_NOTICES.md`
 
-Report security issues privately to **sanskarin@outlook.in**. Do not place vulnerabilities, pairing invitations, private certificates, or real transferred content into a public issue.
+## Support and security
 
-## Testing
-
-Portable automated tests run from:
-
-```bash
-dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
-```
-
-Cross-platform release validation requires physical-device/manual testing. Use `docs/testing/manual-test-matrix.md` and `docs/release/release-checklist.md`.
-
-## Project structure
-
-```text
-src/SwiftDrop.App/          .NET MAUI UI and platform integration
-src/SwiftDrop.Core/         protocol, security, networking, storage, diagnostics
-tests/SwiftDrop.Core.Tests/ portable automated tests
-docs/                       architecture, security, testing, release guidance
-```
-
-## Contributing
-
-Read `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`. Security-sensitive changes should include tests and should avoid custom cryptography, unbounded input handling, secret logging, or broad platform permissions that are not required by the user-initiated flow.
-
-## Support
-
-- Business/project inquiries: sanskarin@outlook.in
-- Support: supportramsandesh@gmail.com
-- GitHub profile: https://www.github.com/sanskarIN
+- Project/business inquiries: **sanskarin@outlook.in**
+- General support: **supportramsandesh@gmail.com**
+- Security-sensitive reports: follow `SECURITY.md` and use **sanskarin@outlook.in** rather than publishing exploit details or secrets in a public issue.
 
 ## License
 
