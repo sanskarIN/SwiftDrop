@@ -45,12 +45,13 @@ public sealed class TransferQueueService
         ArgumentException.ThrowIfNullOrWhiteSpace(label);
         ArgumentNullException.ThrowIfNull(action);
 
+        var currentSettings = _settings.Load();
+        var visibleLabel = currentSettings.PrivacyMode ? "Transfer" : label;
         var id = Guid.NewGuid();
-        Update(new TransferQueueEntry(id, label, TransferQueueState.Queued, DateTimeOffset.UtcNow));
+        Update(new TransferQueueEntry(id, visibleLabel, TransferQueueState.Queued, DateTimeOffset.UtcNow));
         try
         {
-            var limit = _settings.Load().TransferConcurrency;
-            await using var lease = await _gate.EnterAsync(limit, ct);
+            await using var lease = await _gate.EnterAsync(currentSettings.TransferConcurrency, ct);
             Update(Get(id) with { State = TransferQueueState.Running, StartedUtc = DateTimeOffset.UtcNow });
             var result = await action(ct);
             Update(Get(id) with { State = TransferQueueState.Completed, FinishedUtc = DateTimeOffset.UtcNow });
@@ -69,7 +70,7 @@ public sealed class TransferQueueService
             {
                 State = TransferQueueState.Failed,
                 FinishedUtc = DateTimeOffset.UtcNow,
-                Error = SanitizeError(ex)
+                Error = SanitizeError(ex, currentSettings.PrivacyMode)
             });
             TrimFinished();
             throw;
@@ -118,8 +119,9 @@ public sealed class TransferQueueService
         else MainThread.BeginInvokeOnMainThread(() => Changed?.Invoke(this, EventArgs.Empty));
     }
 
-    private static string SanitizeError(Exception ex)
+    private static string SanitizeError(Exception ex, bool privacyMode)
     {
+        if (privacyMode) return ex.GetType().Name;
         var message = ex.Message.Replace('\r', ' ').Replace('\n', ' ').Trim();
         return message.Length <= 240 ? message : message[..240];
     }
