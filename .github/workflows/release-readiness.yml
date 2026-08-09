@@ -17,12 +17,17 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Validate localization catalogs
+        run: python3 scripts/validate_localization.py
       - run: ./scripts/verify-core.sh
+      - name: Compile synthetic benchmark harness
+        run: dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release
       - name: Capture dependency graph
         run: |
           mkdir -p artifacts
           dotnet list src/SwiftDrop.Core/SwiftDrop.Core.csproj package --include-transitive > artifacts/core-packages.txt
           dotnet list tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj package --include-transitive > artifacts/test-packages.txt
+          dotnet list benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj package --include-transitive > artifacts/benchmark-packages.txt
       - uses: actions/upload-artifact@v4
         with:
           name: dependency-graph
@@ -60,6 +65,20 @@ jobs:
       - run: dotnet workload install maui-ios maui-maccatalyst
       - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
       - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
+      - name: Select iOS simulator runtime
+        shell: bash
+        run: |
+          if [ "$(uname -m)" = "arm64" ]; then
+            echo "IOS_SIMULATOR_RID=iossimulator-arm64" >> "$GITHUB_ENV"
+          else
+            echo "IOS_SIMULATOR_RID=iossimulator-x64" >> "$GITHUB_ENV"
+          fi
+      - name: Restore iOS simulator target
+        shell: bash
+        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+      - name: Build iOS simulator target
+        shell: bash
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
 
   release-gate:
     if: always()
