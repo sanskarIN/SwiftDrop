@@ -15,9 +15,13 @@ public static class BatchTransferPlanValidator
         if (response.Items is null)
             throw new InvalidDataException("Receiver batch plan is missing.");
 
-        var sourceByPath = sourceEntries.ToDictionary(x => x.RelativePath, StringComparer.Ordinal);
-        if (sourceByPath.Count != sourceEntries.Count)
-            throw new InvalidDataException("Batch source manifest contains duplicate paths.");
+        var sourceByPath = new Dictionary<string, FileManifestEntry>(StringComparer.Ordinal);
+        foreach (var entry in sourceEntries)
+        {
+            var validated = ManifestValidator.ValidateEntry(entry);
+            if (!sourceByPath.TryAdd(validated.RelativePath, validated))
+                throw new InvalidDataException("Batch source manifest contains duplicate paths.");
+        }
         if (response.Items.Count > sourceEntries.Count)
             throw new InvalidDataException("Receiver returned too many batch plan items.");
 
