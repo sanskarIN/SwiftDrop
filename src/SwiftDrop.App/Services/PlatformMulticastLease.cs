@@ -2,22 +2,12 @@ namespace SwiftDrop.App.Services;
 
 public sealed class PlatformMulticastLease : IDisposable
 {
-#if ANDROID
-    private readonly Android.Net.Wifi.WifiManager.MulticastLock? _lock;
-#endif
-    private bool _disposed;
+    private int _disposed;
 
     private PlatformMulticastLease()
     {
 #if ANDROID
-        var context = Android.App.Application.Context;
-        var wifi = context.GetSystemService(Android.Content.Context.WifiService) as Android.Net.Wifi.WifiManager;
-        _lock = wifi?.CreateMulticastLock("SwiftDrop.mDNS");
-        if (_lock is not null)
-        {
-            _lock.SetReferenceCounted(false);
-            _lock.Acquire();
-        }
+        Platforms.Android.AndroidMulticastLockManager.Acquire();
 #endif
     }
 
@@ -25,11 +15,9 @@ public sealed class PlatformMulticastLease : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
 #if ANDROID
-        if (_lock?.IsHeld == true) _lock.Release();
-        _lock?.Dispose();
+        Platforms.Android.AndroidMulticastLockManager.Release();
 #endif
     }
 }
