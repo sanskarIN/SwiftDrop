@@ -24,6 +24,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<DiagnosticLogService>();
         builder.Services.AddSingleton<TrustedDevicesService>();
         builder.Services.AddSingleton<NetworkDiagnosticsService>();
+        builder.Services.AddSingleton<TransferSelfTestService>();
         builder.Services.AddSingleton<NearbyDiscoveryService>();
         builder.Services.AddSingleton<NearbyPairingService>();
         builder.Services.AddSingleton<PairingSelectionService>();
