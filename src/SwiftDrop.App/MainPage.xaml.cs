@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
@@ -19,6 +20,7 @@ public partial class MainPage : ContentPage
     private readonly IServiceProvider _services;
     private PairingPayload? _remote;
     private FileResult? _selectedFile;
+    private FileResult[] _selectedBatchFiles = Array.Empty<FileResult>();
     private ReceiveServerService? _receiveServer;
     private CancellationTokenSource? _sendCts;
 
@@ -69,7 +71,8 @@ public partial class MainPage : ContentPage
                     RecordIncomingTextAsync,
                     ApproveNearbyPairingAsync,
                     _identity.CreatePairingLink,
-                    code => _pairingCodes.TryConsume(code, DateTimeOffset.UtcNow));
+                    code => _pairingCodes.TryConsume(code, DateTimeOffset.UtcNow),
+                    ApproveIncomingBatchAsync);
                 _receiveServer.Start();
                 TransferStatusLabel.Text = $"Ready to receive into {receiveRoot}";
             }
@@ -141,6 +144,28 @@ public partial class MainPage : ContentPage
         }
 
         return true;
+    }
+
+    private async Task<IncomingBatchDecision> ApproveIncomingBatchAsync(
+        IncomingBatchPreview preview,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var settings = _settings.Load();
+        var trustedMatch = await _trustedDevices.MatchesAsync(
+            preview.SenderDeviceId,
+            preview.SenderCertificateFingerprint,
+            ct);
+
+        if (trustedMatch && settings.AutoAcceptTrustedDevices && preview.HighestRisk == FileRiskLevel.Normal)
+            return IncomingBatchDecision.AcceptAll(preview.Files);
+
+        return await MainThread.InvokeOnMainThreadAsync(async () =>
+        {
+            var page = new BatchApprovalPage(preview);
+            await Navigation.PushModalAsync(new NavigationPage(page));
+            return await page.DecisionTask;
+        });
     }
 
     private async Task<bool> ApproveNearbyPairingAsync(IncomingPairingRequest request, CancellationToken ct)
@@ -279,6 +304,27 @@ public partial class MainPage : ContentPage
         SelectedFileLabel.Text = _selectedFile?.FullPath ?? "No file selected";
     }
 
+    private async void ChooseMultipleFilesClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var selected = await FilePicker.Default.PickMultipleAsync(new PickOptions { PickerTitle = "Choose files to send" });
+            _selectedBatchFiles = selected
+                .Where(x => !string.IsNullOrWhiteSpace(x.FullPath))
+                .Take(2048)
+                .ToArray();
+            SelectedBatchLabel.Text = _selectedBatchFiles.Length == 0
+                ? "No batch selected"
+                : _selectedBatchFiles.Length == 1
+                    ? _selectedBatchFiles[0].FileName
+                    : $"{_selectedBatchFiles.Length:N0} files selected";
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("File selection failed", ex.Message, "OK");
+        }
+    }
+
     private async void SendFileClicked(object? sender, EventArgs e)
     {
         if (_remote is null)
@@ -322,6 +368,89 @@ public partial class MainPage : ContentPage
             _remote = null;
             CancelSendButton.IsEnabled = false;
             SendFileButton.IsEnabled = true;
+        }
+    }
+
+    private async void SendBatchClicked(object? sender, EventArgs e)
+    {
+        if (_remote is null)
+        {
+            await DisplayAlert("Device required", "Validate a fresh pairing invitation first.", "OK");
+            return;
+        }
+        if (_selectedBatchFiles.Length == 0)
+        {
+            await DisplayAlert("Files required", "Choose one or more files first.", "OK");
+            return;
+        }
+
+        var remote = _remote;
+        var selectedPaths = _selectedBatchFiles.Select(x => x.FullPath).ToArray();
+        _sendCts?.Dispose();
+        _sendCts = new CancellationTokenSource();
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            SendBatchButton.IsEnabled = false;
+            CancelBatchButton.IsEnabled = true;
+            BatchTransferProgress.Progress = 0;
+            BatchTransferStatusLabel.Text = "Preparing checksums…";
+            var progress = new Progress<BatchProgress>(value =>
+            {
+                BatchTransferProgress.Progress = value.Fraction;
+                var seconds = Math.Max(stopwatch.Elapsed.TotalSeconds, 0.001);
+                var speed = value.CompletedBytes / seconds;
+                var remaining = Math.Max(0, value.TotalBytes - value.CompletedBytes);
+                var eta = speed <= 1 ? "calculating" : TimeSpan.FromSeconds(remaining / speed).ToString(@"hh\:mm\:ss");
+                BatchTransferStatusLabel.Text =
+                    $"{value.CompletedItems}/{value.TotalItems} files • {FormatBytes(value.CompletedBytes)}/{FormatBytes(value.TotalBytes)} • {FormatBytes((long)speed)}/s • ETA {eta}\n{value.CurrentFile}";
+            });
+
+            var result = await _transfers.SendBatchAsync(remote, selectedPaths, progress, _sendCts.Token);
+            foreach (var item in result.Completed)
+            {
+                await _history.AddAsync(
+                    "sent",
+                    remote.DeviceName,
+                    item.Entry.RelativePath,
+                    item.Entry.Length,
+                    "completed",
+                    true);
+            }
+            foreach (var item in result.Skipped)
+            {
+                await _history.AddAsync(
+                    "sent",
+                    remote.DeviceName,
+                    item.Entry.RelativePath,
+                    item.Entry.Length,
+                    "not-selected",
+                    false);
+            }
+
+            BatchTransferProgress.Progress = 1;
+            BatchTransferStatusLabel.Text = $"Completed {result.Completed.Count:N0} file(s); receiver skipped {result.Skipped.Count:N0}. A fresh pairing invitation is required for another transfer.";
+        }
+        catch (OperationCanceledException)
+        {
+            BatchTransferStatusLabel.Text = "Batch cancelled. Partial files remain staged on the receiver for a future verified resume.";
+            foreach (var file in _selectedBatchFiles)
+            {
+                var info = new FileInfo(file.FullPath);
+                await _history.AddAsync("sent", remote.DeviceName, file.FileName, info.Exists ? info.Length : 0, "cancelled", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            BatchTransferStatusLabel.Text = "Batch failed safely. Use a fresh pairing invitation before retrying.";
+            await DisplayAlert("Batch transfer failed", ex.Message, "OK");
+        }
+        finally
+        {
+            stopwatch.Stop();
+            _remote = null;
+            SendBatchButton.IsEnabled = true;
+            CancelBatchButton.IsEnabled = false;
         }
     }
 
@@ -387,6 +516,7 @@ public partial class MainPage : ContentPage
     }
 
     private void CancelSendClicked(object? sender, EventArgs e) => _sendCts?.Cancel();
+    private void CancelBatchClicked(object? sender, EventArgs e) => _sendCts?.Cancel();
 
     private async void OpenDevicesClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<DevicesPage>());
@@ -399,4 +529,17 @@ public partial class MainPage : ContentPage
 
     private async void OpenDiagnosticsClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<DiagnosticsPage>());
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double value = Math.Max(0, bytes);
+        var unit = 0;
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+        return $"{value:0.##} {units[unit]}";
+    }
 }
