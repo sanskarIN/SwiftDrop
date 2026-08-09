@@ -17,7 +17,7 @@ public partial class HistoryPage : ContentPage
     private async Task LoadAsync()
     {
         try { await _viewModel.RefreshAsync(); }
-        catch (Exception ex) { await DisplayAlert("History error", ex.Message, "OK"); }
+        catch (Exception ex) { await DisplayAlertAsync("History error", ex.Message, "OK"); }
     }
 
     private async void RefreshClicked(object? sender, EventArgs e) => await LoadAsync();
@@ -25,7 +25,7 @@ public partial class HistoryPage : ContentPage
     private async void DeleteClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not string id) return;
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             "Delete history item",
             "Delete this local history record? This does not delete transferred or received content.",
             "Delete",
@@ -36,7 +36,7 @@ public partial class HistoryPage : ContentPage
 
     private async void ClearClicked(object? sender, EventArgs e)
     {
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             "Clear history",
             "Delete all local transfer history? This does not delete received files.",
             "Clear",
