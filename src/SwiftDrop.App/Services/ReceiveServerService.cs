@@ -303,7 +303,6 @@ public sealed class ReceiveServerService : IAsyncDisposable
             var effectiveEntry = file with { RelativePath = effectiveRelativePath };
             var partial = final + ".swiftdrop.part";
             var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
-            StorageCapacityGuard.EnsureCapacity(final, effectiveEntry.Length - offset);
             plans.Add(new BatchItemPlan(file.RelativePath, offset, true));
             receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveEntry, offset));
         }
@@ -316,6 +315,11 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 ct);
             return;
         }
+
+        var aggregateRemainingBytes = receiveItems.Aggregate(
+            0L,
+            static (total, item) => checked(total + item.EffectiveEntry.Length - item.ResumeOffset));
+        StorageCapacityGuard.EnsureCapacity(_receiveRoot, aggregateRemainingBytes);
 
         await FrameProtocol.WriteJsonAsync(connection, new BatchTransferResponse(true, plans), ct);
         foreach (var item in receiveItems)
@@ -354,27 +358,23 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
     private static FileManifestEntry ValidateAndSanitizeEntry(FileManifestEntry entry)
     {
-        if (entry.Length < 0 || entry.Length > ProtocolConstants.MaxSingleFileBytes)
-            throw new InvalidDataException("Unsafe file size.");
+        ArgumentNullException.ThrowIfNull(entry);
         var sanitizedPath = FileNameSanitizer.SanitizeRelativePath(entry.RelativePath);
-        return entry with { RelativePath = sanitizedPath };
+        return ManifestValidator.ValidateEntry(entry with { RelativePath = sanitizedPath });
     }
 
     private IReadOnlyList<FileManifestEntry> ValidateAndSanitizeBatch(
         IReadOnlyList<FileManifestEntry>? files,
         long? declaredTotal)
     {
-        if (files is null || files.Count == 0 || files.Count > BatchTransferSourceBuilder.MaxFilesPerBatch)
-            throw new InvalidDataException("Invalid batch file count.");
+        if (files is null)
+            throw new InvalidDataException("Batch metadata is required.");
 
         var safe = files.Select(ValidateAndSanitizeEntry).ToArray();
-        if (safe.Select(x => x.RelativePath).Distinct(StringComparer.Ordinal).Count() != safe.Length)
-            throw new InvalidDataException("Duplicate batch path.");
-        foreach (var file in safe) _ = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
-        var actualTotal = checked(safe.Sum(x => x.Length));
-        if (declaredTotal is null || declaredTotal.Value != actualTotal)
-            throw new InvalidDataException("Batch total size mismatch.");
-        return safe;
+        var validated = BatchManifestValidator.Validate(safe, declaredTotal);
+        foreach (var file in validated)
+            _ = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
+        return validated;
     }
 
     private async Task HandlePairingRequestAsync(
