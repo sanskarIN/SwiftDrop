@@ -10,7 +10,7 @@
       <Label Text="{services:Localize NearbyDescription}" FontSize="13" Opacity="0.75" />
       <HorizontalStackLayout Spacing="10">
         <Button Text="{services:Localize Refresh}" Clicked="RefreshClicked" />
-        <Label x:Name="StatusLabel" VerticalTextAlignment="Center" />
+        <Label Text="{Binding Status}" VerticalTextAlignment="Center" />
       </HorizontalStackLayout>
     </VerticalStackLayout>
 
@@ -27,7 +27,7 @@
       </VerticalStackLayout>
     </Border>
 
-    <CollectionView Grid.Row="2" x:Name="DevicesList" EmptyView="{services:Localize NearbyEmpty}">
+    <CollectionView Grid.Row="2" ItemsSource="{Binding Items}" EmptyView="{services:Localize NearbyEmpty}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 16" Padding="14" Margin="0,0,0,10">
