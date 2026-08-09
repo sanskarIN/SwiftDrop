@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:services="clr-namespace:SwiftDrop.App.Services"
              x:Class="SwiftDrop.App.HistoryPage"
-             Title="Transfer history">
+             Title="{x:Static services:AppText.TransferHistory}">
   <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="14">
     <VerticalStackLayout Grid.Row="0" Spacing="6">
-      <Label Text="Transfer history" FontSize="30" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
-      <Label Text="Stored only on this device. File contents and text contents are never stored in history." Opacity="0.75" />
+      <Label Text="{x:Static services:AppText.TransferHistory}" FontSize="30" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+      <Label Text="{x:Static services:AppText.HistoryDescription}" Opacity="0.75" />
       <Label Text="{Binding Status}" FontSize="12" Opacity="0.7" />
     </VerticalStackLayout>
-    <CollectionView x:Name="HistoryList" Grid.Row="1" ItemsSource="{Binding Items}" EmptyView="No transfer history yet.">
+    <CollectionView x:Name="HistoryList" Grid.Row="1" ItemsSource="{Binding Items}" EmptyView="{x:Static services:AppText.HistoryEmpty}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,5">
             <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
               <Label Grid.Row="0" Grid.Column="0" Text="{Binding FileName}" FontAttributes="Bold" LineBreakMode="MiddleTruncation" />
-              <Button Grid.Row="0" Grid.Column="1" Text="Delete" CommandParameter="{Binding Id}" Clicked="DeleteClicked" />
+              <Button Grid.Row="0" Grid.Column="1" Text="{x:Static services:AppText.Delete}" CommandParameter="{Binding Id}" Clicked="DeleteClicked" />
               <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PeerDeviceName}" />
               <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="12">
                 <Label Text="{Binding Direction}" FontSize="12" Opacity="0.7" />
@@ -29,8 +30,8 @@
       </CollectionView.ItemTemplate>
     </CollectionView>
     <HorizontalStackLayout Grid.Row="2" Spacing="12">
-      <Button Text="Refresh" Clicked="RefreshClicked" />
-      <Button Text="Clear history" Clicked="ClearClicked" />
+      <Button Text="{x:Static services:AppText.Refresh}" Clicked="RefreshClicked" />
+      <Button Text="{x:Static services:AppText.ClearHistory}" Clicked="ClearClicked" />
     </HorizontalStackLayout>
   </Grid>
 </ContentPage>
