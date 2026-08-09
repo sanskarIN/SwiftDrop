@@ -12,7 +12,6 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
     {
         _queue = queue;
         _queue.Changed += QueueChanged;
-        Refresh();
     }
 
     public ObservableCollection<QueueRow> Items { get; } = new();
@@ -23,6 +22,12 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
         private set => SetProperty(ref _status, value);
     }
 
+    public async Task InitializeAsync(CancellationToken ct = default)
+    {
+        await _queue.InitializeAsync(ct);
+        Refresh();
+    }
+
     public void Refresh()
     {
         var rows = _queue.Snapshot().Select(QueueRow.FromEntry).ToArray();
@@ -30,12 +35,13 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
         foreach (var row in rows) Items.Add(row);
         var running = rows.Count(x => x.State == TransferQueueState.Running.ToString());
         var queued = rows.Count(x => x.State == TransferQueueState.Queued.ToString());
-        Status = $"{running:N0} running • {queued:N0} queued";
+        var interrupted = rows.Count(x => x.State == TransferQueueState.Interrupted.ToString());
+        Status = $"{running:N0} running • {queued:N0} queued • {interrupted:N0} interrupted";
     }
 
-    public void ClearFinished()
+    public async Task ClearFinishedAsync(CancellationToken ct = default)
     {
-        _queue.ClearFinished();
+        await _queue.ClearFinishedAsync(ct);
         Refresh();
     }
 
@@ -51,6 +57,7 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
             {
                 TransferQueueState.Queued => $"Queued {entry.CreatedUtc.LocalDateTime:T}",
                 TransferQueueState.Running => $"Started {entry.StartedUtc?.LocalDateTime:T}",
+                TransferQueueState.Interrupted => $"Interrupted {entry.FinishedUtc?.LocalDateTime:T}",
                 _ => $"Finished {entry.FinishedUtc?.LocalDateTime:T}"
             };
             return new QueueRow(entry.Label, entry.State.ToString(), timing, entry.Error ?? string.Empty);
