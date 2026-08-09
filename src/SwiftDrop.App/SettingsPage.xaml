@@ -58,8 +58,9 @@
           <Label Text="Notifications and accessibility" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="NotificationsSwitch" />
-            <Label Text="Allow SwiftDrop transfer-status notifications where the platform permits" VerticalTextAlignment="Center" />
+            <Label Text="Allow optional transfer completion/failure notifications where supported" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
+          <Label x:Name="NotificationSupportLabel" FontSize="12" Opacity="0.7" />
           <HorizontalStackLayout Spacing="12">
             <Switch x:Name="ReduceMotionSwitch" />
             <Label Text="Reduce non-essential motion" VerticalTextAlignment="Center" />
@@ -68,7 +69,7 @@
             <Switch x:Name="LargerInterfaceSwitch" />
             <Label Text="Use larger interface text and controls" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
-          <Label Text="SwiftDrop remains usable without notifications. Platform notification permission is requested only when a feature needs it." FontSize="12" Opacity="0.7" />
+          <Label Text="SwiftDrop remains usable without optional notifications. Required foreground-service status, where imposed by an operating system, is controlled separately by platform rules." FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
 
