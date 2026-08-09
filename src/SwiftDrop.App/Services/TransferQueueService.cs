@@ -6,14 +6,19 @@ public sealed class TransferQueueService
 {
     private readonly AppSettingsService _settings;
     private readonly TransferActivityService _activity;
+    private readonly TransferNotificationService _notifications;
     private readonly AsyncConcurrencyGate _gate = new();
     private readonly object _sync = new();
     private readonly Dictionary<Guid, TransferQueueEntry> _entries = new();
 
-    public TransferQueueService(AppSettingsService settings, TransferActivityService activity)
+    public TransferQueueService(
+        AppSettingsService settings,
+        TransferActivityService activity,
+        TransferNotificationService notifications)
     {
         _settings = settings;
         _activity = activity;
+        _notifications = notifications;
     }
 
     public event EventHandler? Changed;
@@ -59,6 +64,7 @@ public sealed class TransferQueueService
             var result = await action(ct);
             Update(Get(id) with { State = TransferQueueState.Completed, FinishedUtc = DateTimeOffset.UtcNow });
             TrimFinished();
+            await NotifyBestEffortAsync(success: true);
             return result;
         }
         catch (OperationCanceledException)
@@ -76,6 +82,7 @@ public sealed class TransferQueueService
                 Error = SanitizeError(ex, currentSettings.PrivacyMode)
             });
             TrimFinished();
+            await NotifyBestEffortAsync(success: false);
             throw;
         }
     }
@@ -117,6 +124,19 @@ public sealed class TransferQueueService
             foreach (var id in finished) _entries.Remove(id);
         }
         RaiseChanged();
+    }
+
+    private async Task NotifyBestEffortAsync(bool success)
+    {
+        try
+        {
+            if (success) await _notifications.NotifyCompletedAsync();
+            else await _notifications.NotifyFailedAsync();
+        }
+        catch
+        {
+            // Notification/platform policy must never change the transfer result.
+        }
     }
 
     private void RaiseChanged()
