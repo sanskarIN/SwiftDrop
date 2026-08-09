@@ -31,6 +31,7 @@
             <Switch x:Name="AutoAcceptSwitch" />
             <Label Text="Auto-accept from explicitly trusted devices" VerticalTextAlignment="Center" />
           </HorizontalStackLayout>
+          <Button Text="Manage trusted devices" Clicked="ManageTrustedDevicesClicked" />
         </VerticalStackLayout>
       </Border>
 
