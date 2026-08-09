@@ -7,12 +7,14 @@ namespace SwiftDrop.App;
 public partial class SettingsPage : ContentPage
 {
     private readonly AppSettingsService _settings;
+    private readonly TransferHistoryService _history;
     private readonly IServiceProvider _services;
 
-    public SettingsPage(AppSettingsService settings, IServiceProvider services)
+    public SettingsPage(AppSettingsService settings, TransferHistoryService history, IServiceProvider services)
     {
         InitializeComponent();
         _settings = settings;
+        _history = history;
         _services = services;
         LoadSettings();
     }
@@ -31,7 +33,9 @@ public partial class SettingsPage : ContentPage
     private void UpdateLabels()
     {
         ConcurrencyLabel.Text = $"{(int)ConcurrencyStepper.Value}";
-        RetentionLabel.Text = $"{(int)RetentionStepper.Value} days";
+        RetentionLabel.Text = RetentionStepper.Value == 0
+            ? "Do not retain history"
+            : $"{(int)RetentionStepper.Value} days";
     }
 
     private void ConcurrencyChanged(object? sender, ValueChangedEventArgs e) => UpdateLabels();
@@ -51,6 +55,7 @@ public partial class SettingsPage : ContentPage
                 AutoAcceptSwitch.IsToggled,
                 ThemePicker.SelectedItem?.ToString() ?? "System");
             _settings.Save(settings);
+            await _history.ApplyRetentionAsync();
             Application.Current!.UserAppTheme = settings.Theme switch
             {
                 "Light" => AppTheme.Light,
@@ -70,6 +75,7 @@ public partial class SettingsPage : ContentPage
         var confirm = await DisplayAlert("Reset settings", "Restore SwiftDrop settings to their defaults?", "Reset", "Cancel");
         if (!confirm) return;
         _settings.Reset();
+        await _history.ApplyRetentionAsync();
         Application.Current!.UserAppTheme = AppTheme.Unspecified;
         LoadSettings();
     }
