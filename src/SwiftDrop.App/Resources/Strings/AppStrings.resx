@@ -46,4 +46,68 @@
   <data name="OpenRepositoryDescription" xml:space="preserve"><value>Open the SwiftDrop GitHub repository</value></data>
   <data name="OpenCreatorProfileDescription" xml:space="preserve"><value>Open the creator GitHub profile</value></data>
   <data name="BuyMeACoffeeDescription" xml:space="preserve"><value>Open the SwiftDrop Buy Me a Coffee support page</value></data>
+  <data name="SwiftDropSettings" xml:space="preserve"><value>SwiftDrop Settings</value></data>
+  <data name="SettingsSummary" xml:space="preserve"><value>Transfers stay on your local network. Auto-accept is disabled by default.</value></data>
+  <data name="DeviceIdentity" xml:space="preserve"><value>Device identity</value></data>
+  <data name="DeviceName" xml:space="preserve"><value>Device name</value></data>
+  <data name="SwiftDropDevicePlaceholder" xml:space="preserve"><value>SwiftDrop device</value></data>
+  <data name="ResetDeviceIdentity" xml:space="preserve"><value>Reset device identity</value></data>
+  <data name="ResetIdentityDescription" xml:space="preserve"><value>Resetting creates a new device ID and certificate and removes all local trusted-device relationships.</value></data>
+  <data name="Transfers" xml:space="preserve"><value>Transfers</value></data>
+  <data name="DefaultReceiveFolder" xml:space="preserve"><value>Default receive folder</value></data>
+  <data name="ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="UseAppFolder" xml:space="preserve"><value>Use app folder</value></data>
+  <data name="ConcurrentTransfers" xml:space="preserve"><value>Concurrent transfers</value></data>
+  <data name="HistoryRetentionDays" xml:space="preserve"><value>History retention (days)</value></data>
+  <data name="PrivacyAndTrust" xml:space="preserve"><value>Privacy and trust</value></data>
+  <data name="HideFilenamesHistory" xml:space="preserve"><value>Hide filenames in transfer history</value></data>
+  <data name="AutoAcceptTrusted" xml:space="preserve"><value>Auto-accept normal files from explicitly trusted devices</value></data>
+  <data name="ManageTrustedDevices" xml:space="preserve"><value>Manage trusted devices</value></data>
+  <data name="NotificationsAndAccessibility" xml:space="preserve"><value>Notifications and accessibility</value></data>
+  <data name="OptionalNotifications" xml:space="preserve"><value>Allow optional transfer completion/failure notifications where supported</value></data>
+  <data name="ReduceMotion" xml:space="preserve"><value>Reduce non-essential motion</value></data>
+  <data name="LargerInterface" xml:space="preserve"><value>Use larger interface text and controls</value></data>
+  <data name="NotificationRuleNote" xml:space="preserve"><value>SwiftDrop remains usable without optional notifications. Required foreground-service status, where imposed by an operating system, is controlled separately by platform rules.</value></data>
+  <data name="AppearanceAndLanguage" xml:space="preserve"><value>Appearance and language</value></data>
+  <data name="Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="System" xml:space="preserve"><value>System</value></data>
+  <data name="Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Language" xml:space="preserve"><value>Language</value></data>
+  <data name="English" xml:space="preserve"><value>English</value></data>
+  <data name="Hindi" xml:space="preserve"><value>Hindi</value></data>
+  <data name="LocalizationFallbackNote" xml:space="preserve"><value>English is the fallback language. Hindi strings use the same resource catalog and untranslated values safely fall back to English.</value></data>
+  <data name="DeveloperOptions" xml:space="preserve"><value>Developer options</value></data>
+  <data name="EnableSafeDeveloperDiagnostics" xml:space="preserve"><value>Enable safe developer diagnostics</value></data>
+  <data name="DeveloperDiagnosticsNote" xml:space="preserve"><value>Developer diagnostics must never expose transferred content, private keys, pairing nonces, or full pairing invitations.</value></data>
+  <data name="OpenDiagnostics" xml:space="preserve"><value>Open diagnostics</value></data>
+  <data name="SaveSettings" xml:space="preserve"><value>Save settings</value></data>
+  <data name="ResetSettingsDefaults" xml:space="preserve"><value>Reset settings to defaults</value></data>
+  <data name="NearbyDescription" xml:space="preserve"><value>SwiftDrop discovers peers through mDNS/Bonjour with UDP fallback. Devices expire automatically when they stop announcing.</value></data>
+  <data name="ManualIpFallback" xml:space="preserve"><value>Manual IP fallback</value></data>
+  <data name="ManualIpDescription" xml:space="preserve"><value>Use this only when automatic discovery is blocked. Enter the receiver IP address and its fresh 8-digit one-time code. SwiftDrop will still show the TLS certificate fingerprint for visual confirmation before transfer.</value></data>
+  <data name="EightDigitCode" xml:space="preserve"><value>8-digit code</value></data>
+  <data name="PairByIpCode" xml:space="preserve"><value>Pair by IP and code</value></data>
+  <data name="NearbyEmpty" xml:space="preserve"><value>No nearby devices found yet. QR, manual IP, or pasted invitations remain available.</value></data>
+  <data name="RequestPairing" xml:space="preserve"><value>Request pairing</value></data>
+  <data name="TrustedDevices" xml:space="preserve"><value>Trusted devices</value></data>
+  <data name="TrustedDevicesDescription" xml:space="preserve"><value>Trust is tied to a device ID and certificate fingerprint. Revoke a device if it is lost, replaced, or reinstalled.</value></data>
+  <data name="ClearAll" xml:space="preserve"><value>Clear all</value></data>
+  <data name="TrustedEmpty" xml:space="preserve"><value>No trusted devices.</value></data>
+  <data name="Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="LocalNetworkDiagnostics" xml:space="preserve"><value>Local network diagnostics</value></data>
+  <data name="DiagnosticsPrivacyDescription" xml:space="preserve"><value>Diagnostics contain network capability and protocol status only. SwiftDrop does not include file contents, text contents, private keys, full pairing invitations, or pairing nonces.</value></data>
+  <data name="DeveloperStatus" xml:space="preserve"><value>Developer status</value></data>
+  <data name="QrFallbackNote" xml:space="preserve"><value>QR and pasted pairing invitations remain available when automatic discovery is blocked by Wi-Fi policy or platform restrictions.</value></data>
+  <data name="RefreshDiagnostics" xml:space="preserve"><value>Refresh diagnostics</value></data>
+  <data name="ExportSafeLog" xml:space="preserve"><value>Export safe log</value></data>
+  <data name="ClearLog" xml:space="preserve"><value>Clear log</value></data>
+  <data name="SafeDeveloperSelfTests" xml:space="preserve"><value>Safe developer self-tests</value></data>
+  <data name="SelfTestDescription" xml:space="preserve"><value>These tests use synthetic random bytes in temporary storage. They do not inspect user files or network peers.</value></data>
+  <data name="GoodRoundTrip" xml:space="preserve"><value>Good round-trip</value></data>
+  <data name="ChecksumMismatch" xml:space="preserve"><value>Checksum mismatch</value></data>
+  <data name="InterruptedReceive" xml:space="preserve"><value>Interrupted receive</value></data>
+  <data name="DiagnosticsEmpty" xml:space="preserve"><value>No current diagnostic messages.</value></data>
+  <data name="PersistedEventsEmpty" xml:space="preserve"><value>No persisted diagnostic events.</value></data>
+  <data name="RecentSafeDiagnosticEvents" xml:space="preserve"><value>Recent safe diagnostic events</value></data>
 </root>
