@@ -199,6 +199,9 @@ public partial class MainPage : ContentPage
 
     private void CancelSendClicked(object? sender, EventArgs e) => _sendCts?.Cancel();
 
+    private async void OpenDevicesClicked(object? sender, EventArgs e)
+        => await Navigation.PushAsync(_services.GetRequiredService<DevicesPage>());
+
     private async void OpenSettingsClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<SettingsPage>());
 
