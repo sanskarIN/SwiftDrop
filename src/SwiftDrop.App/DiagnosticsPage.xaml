@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="SwiftDrop.App.DiagnosticsPage"
+             Title="Diagnostics">
+  <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="14">
+    <VerticalStackLayout Grid.Row="0" Spacing="6">
+      <Label Text="Local network diagnostics" FontSize="28" FontAttributes="Bold" />
+      <Label Text="Diagnostics contain network capability and protocol status only. SwiftDrop does not include file contents, text contents, private keys, or pairing nonces." FontSize="13" Opacity="0.75" />
+    </VerticalStackLayout>
+
+    <Border Grid.Row="1" StrokeShape="RoundRectangle 16" Padding="14">
+      <VerticalStackLayout Spacing="6">
+        <Label Text="Developer status" FontAttributes="Bold" />
+        <Label x:Name="ProtocolLabel" />
+        <Label x:Name="UdpStatusLabel" />
+        <Label Text="mDNS/Bonjour: not enabled in this build; UDP, QR, and manual invitation fallback remain available." FontSize="12" />
+        <Button Text="Refresh diagnostics" Clicked="RefreshClicked" />
+      </VerticalStackLayout>
+    </Border>
+
+    <CollectionView Grid.Row="2" x:Name="DiagnosticsList" EmptyView="No diagnostic messages.">
+      <CollectionView.ItemTemplate>
+        <DataTemplate>
+          <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,0,0,10">
+            <VerticalStackLayout Spacing="5">
+              <Label Text="{Binding Title}" FontAttributes="Bold" />
+              <Label Text="{Binding Message}" FontSize="13" />
+              <Label Text="{Binding Severity}" FontSize="11" Opacity="0.65" />
+            </VerticalStackLayout>
+          </Border>
+        </DataTemplate>
+      </CollectionView.ItemTemplate>
+    </CollectionView>
+  </Grid>
+</ContentPage>
