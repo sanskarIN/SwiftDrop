@@ -126,12 +126,14 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 var request = await FrameProtocol.ReadJsonAsync<ProtocolRequest>(connection, ct);
                 try
                 {
-                    IncomingRequestPolicy.ValidateEnvelope(request.ProtocolVersion, request.Type);
-                    IncomingRequestPolicy.ValidateSenderIdentity(request.SenderDeviceId, request.SenderDeviceName);
+                    ProtocolSessionAuthorizer.ValidateAndAuthorize(
+                        request,
+                        DateTimeOffset.UtcNow,
+                        _consumePairingNonce);
                 }
-                catch (Exception ex) when (ex is InvalidDataException or NotSupportedException)
+                catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or UnauthorizedAccessException or ArgumentException or OverflowException)
                 {
-                    await RejectAsync(connection, "Unsupported or invalid transfer request.", ct);
+                    await RejectAsync(connection, "Unsupported, invalid, or unauthorized transfer request.", ct);
                     return;
                 }
 
@@ -160,12 +162,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 DateTimeOffset? textExpiry = null;
                 if (request.Type == "file")
                 {
-                    if (request.Entry is null)
-                    {
-                        await RejectAsync(connection, "File metadata is required.", ct);
-                        return;
-                    }
-                    safeEntry = ValidateAndSanitizeEntry(request.Entry);
+                    safeEntry = ValidateAndSanitizeEntry(request.Entry!);
                 }
                 else if (request.Type == "batch")
                 {
@@ -191,22 +188,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
                         await RejectAsync(connection, "Text receiving is unavailable.", ct);
                         return;
                     }
-                    try
-                    {
-                        textExpiry = DateTimeOffset.FromUnixTimeSeconds(request.ExpiresUnixSeconds ?? 0);
-                        TextSnippetValidator.Validate(request.Text, textExpiry.Value, DateTimeOffset.UtcNow);
-                    }
-                    catch (Exception ex) when (ex is InvalidDataException or ArgumentOutOfRangeException)
-                    {
-                        await RejectAsync(connection, "Text snippet is invalid or expired.", ct);
-                        return;
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(request.PairingNonce) || !_consumePairingNonce(request.PairingNonce))
-                {
-                    await RejectAsync(connection, "Pairing authorization failed.", ct);
-                    return;
+                    textExpiry = DateTimeOffset.FromUnixTimeSeconds(request.ExpiresUnixSeconds!.Value);
                 }
 
                 if (request.Type == "text")
@@ -275,20 +257,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
         IReadOnlyList<FileManifestEntry> safeFiles,
         CancellationToken ct)
     {
-        string transferId;
-        try
-        {
-            transferId = IncomingRequestPolicy.ValidateTransferId(request.TransferId);
-        }
-        catch (InvalidDataException)
-        {
-            await FrameProtocol.WriteJsonAsync(
-                connection,
-                new BatchTransferResponse(false, Array.Empty<BatchItemPlan>(), "Invalid transfer identifier."),
-                ct);
-            return;
-        }
-
+        var transferId = IncomingRequestPolicy.ValidateTransferId(request.TransferId);
         var preview = new IncomingBatchPreview(
             request.SenderDeviceId!,
             request.SenderDeviceName!,
