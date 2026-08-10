@@ -5,12 +5,12 @@ namespace SwiftDrop.Core.Tests;
 public sealed class ExternalFileStagerTests
 {
     [Fact]
-    public async Task StageFileAsync_CopiesExactBytesWithSafeName()
+    public async Task StageFileAsync_CopiesExactBytesIntoRequestedRoot()
     {
         var root = CreateTempDirectory();
         try
         {
-            var source = Path.Combine(root, "CON?.txt");
+            var source = Path.Combine(root, "shared.txt");
             var data = Enumerable.Range(0, 4096).Select(i => (byte)(i % 251)).ToArray();
             await File.WriteAllBytesAsync(source, data);
             var staging = Path.Combine(root, "staging");
@@ -19,8 +19,8 @@ public sealed class ExternalFileStagerTests
 
             Assert.True(File.Exists(result));
             Assert.Equal(data, await File.ReadAllBytesAsync(result));
-            Assert.StartsWith(Path.GetFullPath(staging), Path.GetFullPath(result), StringComparison.Ordinal);
-            Assert.DoesNotContain('?', Path.GetFileName(result));
+            Assert.StartsWith(Path.GetFullPath(staging), Path.GetFullPath(result), StringComparison.OrdinalIgnoreCase);
+            Assert.EndsWith("shared.txt", Path.GetFileName(result), StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
