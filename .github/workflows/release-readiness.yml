@@ -19,6 +19,8 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Validate localization catalogs
         run: python3 scripts/validate_localization.py
+      - name: Validate Apple integration metadata
+        run: python3 scripts/validate_apple_integration.py
       - run: ./scripts/verify-core.sh
       - name: Compile synthetic benchmark harness
         run: dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release
@@ -95,6 +97,7 @@ jobs:
         run: |
           mkdir -p artifacts
           dotnet list src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj package --framework net10.0-maccatalyst --include-transitive > artifacts/share-extension-maccatalyst-packages.txt
+          dotnet list src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj package --framework net10.0-ios --include-transitive > artifacts/share-extension-ios-packages.txt
       - uses: actions/upload-artifact@v4
         with:
           name: apple-share-extension-dependency-graph
