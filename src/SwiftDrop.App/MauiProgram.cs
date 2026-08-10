@@ -33,6 +33,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<PairingSelectionService>();
         builder.Services.AddSingleton<OneTimePairingCodeManager>();
 
+        builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddTransient<HistoryViewModel>();
         builder.Services.AddTransient<QueueViewModel>();
         builder.Services.AddTransient<TrustedDevicesViewModel>();
