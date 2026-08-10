@@ -22,10 +22,10 @@
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize ThisDevice}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label x:Name="DeviceNameLabel" />
-          <Label x:Name="DeviceIdLabel" FontSize="12" Opacity="0.65" LineBreakMode="TailTruncation" />
-          <Label x:Name="DeviceFingerprintLabel" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
-          <Label x:Name="ReceiveFolderLabel" FontSize="11" Opacity="0.7" LineBreakMode="MiddleTruncation" />
+          <Label Text="{Binding DeviceName}" />
+          <Label Text="{Binding DeviceId}" FontSize="12" Opacity="0.65" LineBreakMode="TailTruncation" />
+          <Label Text="{Binding DeviceFingerprint}" FontSize="11" Opacity="0.7" LineBreakMode="CharacterWrap" />
+          <Label Text="{Binding ReceiveFolder}" FontSize="11" Opacity="0.7" LineBreakMode="MiddleTruncation" />
           <HorizontalStackLayout Spacing="10">
             <Button Text="{services:Localize CreateQrLink}" Clicked="CreatePairingClicked" SemanticProperties.Description="{services:Localize CreateQrLinkDescription}" />
             <Button Text="{services:Localize CreateEightDigitCode}" Clicked="CreatePairingCodeClicked" SemanticProperties.Description="{services:Localize CreateEightDigitCodeDescription}" />
@@ -46,7 +46,7 @@
           <Label Text="{services:Localize ConnectToDevice}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Entry x:Name="RemoteLinkEntry" Placeholder="{services:Localize PastePairingLinkPlaceholder}" />
           <Button Text="{services:Localize ValidatePairingLink}" Clicked="ValidatePairingClicked" />
-          <Label x:Name="RemotePeerLabel" />
+          <Label Text="{Binding RemotePeer}" />
           <Label Text="{services:Localize FingerprintSafetyNote}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
       </Border>
@@ -55,15 +55,15 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize SendOneFile}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
           <Button Text="{services:Localize ChooseFile}" Clicked="ChooseFileClicked" />
-          <Label x:Name="SelectedFileLabel" LineBreakMode="MiddleTruncation" />
-          <ProgressBar x:Name="TransferProgress" Progress="0" SemanticProperties.Description="{services:Localize SingleTransferProgressDescription}" />
+          <Label Text="{Binding SelectedFile}" LineBreakMode="MiddleTruncation" />
+          <ProgressBar Progress="{Binding TransferProgress}" SemanticProperties.Description="{services:Localize SingleTransferProgressDescription}" />
           <HorizontalStackLayout Spacing="10">
-            <Button x:Name="SendFileButton" Text="{services:Localize SendSelectedFile}" Clicked="SendFileClicked" />
-            <Button x:Name="PauseSendButton" Text="{services:Localize Pause}" Clicked="PauseSendClicked" IsEnabled="False" />
-            <Button x:Name="ResumeSendButton" Text="{services:Localize Resume}" Clicked="ResumeSendClicked" IsEnabled="False" />
-            <Button x:Name="CancelSendButton" Text="{services:Localize Cancel}" Clicked="CancelSendClicked" IsEnabled="False" />
+            <Button Text="{services:Localize SendSelectedFile}" Clicked="SendFileClicked" IsEnabled="{Binding SendFileEnabled}" />
+            <Button Text="{services:Localize Pause}" Clicked="PauseSendClicked" IsEnabled="{Binding PauseSendEnabled}" />
+            <Button Text="{services:Localize Resume}" Clicked="ResumeSendClicked" IsEnabled="{Binding ResumeSendEnabled}" />
+            <Button Text="{services:Localize Cancel}" Clicked="CancelSendClicked" IsEnabled="{Binding CancelSendEnabled}" />
           </HorizontalStackLayout>
-          <Label x:Name="TransferStatusLabel" />
+          <Label Text="{Binding TransferStatus}" />
         </VerticalStackLayout>
       </Border>
 
@@ -75,15 +75,15 @@
             <Button Text="{services:Localize ChooseMultipleFiles}" Clicked="ChooseMultipleFilesClicked" />
             <Button Text="{services:Localize ChooseFolder}" Clicked="ChooseFolderClicked" />
           </HorizontalStackLayout>
-          <Label x:Name="SelectedBatchLabel" Text="{services:Localize NoBatchSelected}" LineBreakMode="TailTruncation" />
-          <ProgressBar x:Name="BatchTransferProgress" Progress="0" SemanticProperties.Description="{services:Localize BatchProgressDescription}" />
+          <Label Text="{Binding SelectedBatch}" LineBreakMode="TailTruncation" />
+          <ProgressBar Progress="{Binding BatchTransferProgress}" SemanticProperties.Description="{services:Localize BatchProgressDescription}" />
           <HorizontalStackLayout Spacing="10">
-            <Button x:Name="SendBatchButton" Text="{services:Localize SendSelectedItems}" Clicked="SendBatchClicked" />
-            <Button x:Name="PauseBatchButton" Text="{services:Localize Pause}" Clicked="PauseBatchClicked" IsEnabled="False" />
-            <Button x:Name="ResumeBatchButton" Text="{services:Localize Resume}" Clicked="ResumeBatchClicked" IsEnabled="False" />
-            <Button x:Name="CancelBatchButton" Text="{services:Localize Cancel}" Clicked="CancelBatchClicked" IsEnabled="False" />
+            <Button Text="{services:Localize SendSelectedItems}" Clicked="SendBatchClicked" IsEnabled="{Binding SendBatchEnabled}" />
+            <Button Text="{services:Localize Pause}" Clicked="PauseBatchClicked" IsEnabled="{Binding PauseBatchEnabled}" />
+            <Button Text="{services:Localize Resume}" Clicked="ResumeBatchClicked" IsEnabled="{Binding ResumeBatchEnabled}" />
+            <Button Text="{services:Localize Cancel}" Clicked="CancelBatchClicked" IsEnabled="{Binding CancelBatchEnabled}" />
           </HorizontalStackLayout>
-          <Label x:Name="BatchTransferStatusLabel" FontSize="12" />
+          <Label Text="{Binding BatchTransferStatus}" FontSize="12" />
         </VerticalStackLayout>
       </Border>
 
@@ -96,7 +96,7 @@
             <Button Text="{services:Localize PasteFromClipboard}" Clicked="PasteClipboardClicked" />
             <Button Text="{services:Localize SendText}" Clicked="SendTextClicked" />
           </HorizontalStackLayout>
-          <Label x:Name="TextTransferStatusLabel" FontSize="12" />
+          <Label Text="{Binding TextTransferStatus}" FontSize="12" />
         </VerticalStackLayout>
       </Border>
 
