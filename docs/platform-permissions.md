@@ -1,96 +1,103 @@
-# Platform permissions
+# Platform permissions and entitlements
 
-Updated: 2026-08-10
-
-SwiftDrop follows a permission-minimization rule: request only what a user-initiated local-transfer path requires, and do not add broad storage, contacts, microphone, location, advertising, internet-relay, or background-surveillance capabilities merely for convenience.
+SwiftDrop follows a permission-minimization rule: request only what a user-initiated local-transfer path requires. Do not add broad storage, contacts, microphone, location, advertising, analytics, or surveillance permissions for convenience.
 
 ## Android
 
-Declared capabilities/permissions support:
+Declared permissions/capabilities support:
 
-- Internet socket API access required by Android for local TCP/TLS communication.
-- Network-state inspection for diagnostics/connectivity behavior.
-- Wi-Fi-state access required by local discovery support.
-- Wi-Fi multicast-state changes for the reference-counted mDNS multicast lock.
-- Foreground data-sync service status while a user-initiated transfer is active.
-- Notification permission declaration for Android versions that gate optional notifications.
+- local TCP/TLS sockets;
+- network/Wi-Fi state needed by local discovery/diagnostics;
+- multicast state required by the reference-counted mDNS lock;
+- foreground data-sync service while an active user-initiated transfer is running;
+- notification permission declaration for Android versions that gate optional notifications.
 
-File selection uses Android system picker/content-provider surfaces, so broad legacy storage permissions are intentionally avoided.
+File selection uses system picker/content-provider surfaces, so broad legacy storage permissions are intentionally avoided.
 
-Inbound Android share-sheet files arrive as content URIs. SwiftDrop copies selected shared items into bounded app-cache staging before presenting them in the normal transfer-selection UI. Staged cache entries are pruned; shared content is never automatically transferred.
+Inbound share-sheet content URIs are copied into bounded app-cache staging. SwiftDrop enforces file/count limits, portable names, capacity checks, exact provider size when available, runtime byte caps when size is unavailable, and cleanup on failure. Shared content enters the review UI and is never automatically sent.
 
-Optional transfer completion/failure notifications are opt-in. On Android versions that gate notification permission, SwiftDrop requests it only after the user enables the preference and saves Settings. If permission is denied, transfers continue normally.
+Optional completion/failure notifications are opt-in. Where Android requires notification permission, permission is requested only after explicit enable; denial does not change transfer success/failure.
 
-Android foreground-service notification/status is a separate OS lifecycle requirement. Disabling optional completion notifications does not mean SwiftDrop can hide a foreground-service status required by Android.
+Foreground-service notification/status is a separate Android lifecycle requirement and cannot be hidden merely because optional completion notifications are disabled.
 
-The Android application manifest now sets `android:allowBackup="false"`, so SwiftDrop does not opt local application metadata into Android application backup/restore.
+`android:allowBackup="false"` is set for SwiftDrop app-local metadata.
 
 ## iOS
 
-The app declares:
+The containing app declares:
 
 - local-network usage description;
-- Bonjour service type `_swiftdrop._tcp`;
-- custom `swiftdrop` URL scheme;
-- a document type for `public.data` so explicit document/open-file activation can hand a file URL to SwiftDrop;
-- opening documents in place support as advertised to the OS, while SwiftDrop still stages external content into its own bounded cache before transfer review.
+- Bonjour SwiftDrop service type;
+- `swiftdrop` custom URL scheme;
+- App Group entitlement:
+  `group.in.sanskar.swiftdrop`.
 
-Apple platforms may prompt for local-network permission when SwiftDrop first accesses LAN peers.
+SwiftDrop includes a dedicated iOS Share Extension with bundle ID:
 
-Incoming Apple file URLs are handled with temporary security-scoped access when supplied by the OS. SwiftDrop copies the file through the shared bounded `ExternalFileStager`, releases the security-scoped access immediately after staging, and presents the staged file for explicit review; it is never automatically sent.
+`in.sanskar.swiftdrop.share`
 
-SwiftDrop does not request camera permission for baseline QR pairing. A pairing QR encodes the custom SwiftDrop URI; users may scan it with a system camera/scanner and open the registered link where the OS supports that flow.
+The extension declares the same App Group. It supports bounded share activation for text, files, images, movies, and web URLs, writes only validated temporary packages into the shared App Group container, and never starts a transfer automatically.
 
-A dedicated inbound Apple Share Extension for arbitrary files/text remains a separate target and is not currently included. Document/open-file support must not be described as equivalent to a Share Extension.
+The App Group entitlement in source does not create the capability in an Apple Developer account. Release provisioning profiles for both app and extension must include the same App Group.
 
-Optional completion/failure system notifications are not implemented on iOS in the current source; unsupported targets do not pretend to provide that behavior.
+SwiftDrop does not request camera permission for baseline QR pairing; users can use a system camera/scanner that opens the registered pairing link.
 
-## macOS / Mac Catalyst
+SwiftDrop does not claim arbitrary background socket continuation on iOS.
 
-Mac Catalyst declares:
+## Mac Catalyst
 
-- local-network usage description;
-- Bonjour service type;
-- `swiftdrop` URL activation;
-- `public.data` document opening;
-- an explicit app-sandbox entitlement;
-- sandbox network-client and network-server entitlements required for peer-to-peer local networking.
+The containing app declares:
 
-Incoming document/file URLs use temporary security-scoped access and the same bounded cache staging path as iOS. SwiftDrop does not retain security-scoped access beyond staging.
+- App Sandbox;
+- network client/server entitlements required for local peer networking;
+- App Group `group.in.sanskar.swiftdrop`;
+- local-network/Bonjour declarations;
+- `swiftdrop` URL activation.
 
-Custom unrestricted external receive folders are not requested in the current Mac Catalyst source. Received files default to the application receive location unless a supported explicit mechanism exists.
+The Mac Catalyst Share Extension uses:
 
-First-class native Mac Catalyst file/folder/text drag-and-drop remains separate source work because sandbox/security-scoped URL lifetime must be handled correctly rather than assuming Windows filesystem semantics.
+- App Sandbox;
+- the same App Group.
 
-A dedicated Apple Share Extension and optional completion/failure system notifications are not currently implemented for Mac Catalyst.
+The main app also has native `UIDropInteraction` for Finder files/folders, text, and pairing links. External file/folder representations are accessed only for the user-triggered drop, copied into bounded app-cache staging while security-scoped access is valid, and then reviewed in SwiftDrop. Symlinks/reparse entries are rejected.
+
+A signed release must verify the real sandbox/App Group entitlements, extension embedding, security-scoped access, and notarization/store behavior.
 
 ## Windows
 
-SwiftDrop declares only `privateNetworkClientServer` in the current package capability set for its peer networking model. The package no longer requests a general `internetClient` capability because protocol v1 rejects public-internet and DNS peer destinations.
+SwiftDrop declares:
 
-Windows Firewall can still prompt, restrict, or block inbound traffic according to user/admin/network-profile policy.
+- `privateNetworkClientServer` for local LAN communication;
+- package protocol activation for `swiftdrop://` pairing links.
+
+SwiftDrop does **not** currently declare general `internetClient` capability for protocol-v1 local-only peer transfer.
 
 Windows uses:
 
-- the native system folder picker for explicit custom receive-folder selection;
-- package protocol activation for `swiftdrop://` pairing links;
-- WinUI desktop drag-and-drop for files, folders, text, and pairing links.
+- native FolderPicker for explicit receive/folder-transfer locations;
+- native files/folders/text/pair-link drag/drop.
 
-Drag-and-drop does not add broad filesystem permission. Dropped paths still pass through SwiftDrop's bounded external-input, source preflight, manifest, path, and transfer-authorization pipeline.
-
-Optional completion/failure system notifications are not implemented on Windows in the current source.
+Drag/drop does not grant SwiftDrop a general filesystem crawler. Dropped paths remain explicit user input and still pass through source preflight, manifest hashing, transfer authorization, and receiver safety rules.
 
 ## QR pairing and camera permission
 
-SwiftDrop generates a QR code containing a short-lived pairing URI. The baseline app does not embed a camera/scanner library and therefore does not request camera permission merely for pairing. A user can use a system camera/scanner capable of opening the registered `swiftdrop://pair` URI, or use the pairing link/nearby/manual-code alternatives.
+SwiftDrop generates QR codes but does not embed a camera scanner in the current baseline, so camera permission is not requested merely for pairing.
 
-If an in-app QR scanner is added later, camera permission must be requested only when the user explicitly opens that scanner and privacy/store declarations must be updated.
+If a future in-app scanner is added, camera permission must be requested only when that scanner is explicitly opened and privacy/store declarations must be updated.
 
-## Background behavior
+## App Group privacy boundary
 
-SwiftDrop does not request permissions or entitlements intended to evade normal platform lifecycle restrictions. Android foreground data-sync support exists for active user-initiated transfers. Apple targets do not claim that arbitrary TCP sockets continue indefinitely after suspension. Windows/macOS lifecycle behavior still requires packaged/signed runtime testing.
+Apple App Group storage is used only as a bounded handoff between the Share Extension and containing SwiftDrop app. The extension package can contain selected share text/file staging plus its strict metadata manifest. It does not contain:
 
-## Network and OS policy boundaries
+- SwiftDrop certificate private keys;
+- trusted-device credentials;
+- reusable pairing authorization;
+- transfer history/diagnostic database;
+- automatic-send instructions.
+
+The containing app revalidates and re-stages accepted package files into ordinary app cache before presenting them for review.
+
+## OS/network policy boundary
 
 SwiftDrop does not attempt to bypass:
 
@@ -99,7 +106,8 @@ SwiftDrop does not attempt to bypass:
 - multicast filtering;
 - local-network permission denial;
 - Android/iOS background suspension rules;
-- package/app sandbox restrictions;
-- managed-device/MDM policy.
+- app/package sandbox restrictions;
+- managed-device policy;
+- Apple provisioning/signing requirements.
 
-When policy blocks direct peer-to-peer traffic, SwiftDrop should fail safely and explain the limitation rather than requesting unrelated permissions or adding an undisclosed cloud relay.
+If direct peer-to-peer traffic is blocked, SwiftDrop should fail safely and explain the limitation rather than requesting unrelated permissions or adding an undisclosed relay.
