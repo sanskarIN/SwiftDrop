@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using SwiftDrop.App.Services;
+using SwiftDrop.Core.Protocol;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.DataTransfer;
 
@@ -74,27 +75,34 @@ public partial class App : MauiWinUIApplication
         try
         {
             var data = e.DataView;
+            var paths = new List<string>();
             if (data.Contains(StandardDataFormats.StorageItems))
             {
                 var items = await data.GetStorageItemsAsync();
-                foreach (var item in items.Take(2048))
+                foreach (var item in items.Take(ProtocolConstants.MaxBatchFiles))
                 {
-                    if (!string.IsNullOrWhiteSpace(item.Path))
-                        ExternalInputInbox.AddSharedPath(item.Path);
+                    if (!string.IsNullOrWhiteSpace(item.Path)) paths.Add(item.Path);
                 }
             }
 
+            string? sharedText = null;
+            string? pairingLink = null;
             if (data.Contains(StandardDataFormats.Text))
             {
                 var text = await data.GetTextAsync();
                 if (!string.IsNullOrWhiteSpace(text))
                 {
-                    if (text.TrimStart().StartsWith("swiftdrop://pair", StringComparison.OrdinalIgnoreCase))
-                        ExternalInputInbox.SetPairingLink(text.Trim());
+                    var trimmed = text.Trim();
+                    if (trimmed.StartsWith("swiftdrop://pair", StringComparison.OrdinalIgnoreCase) && trimmed.Length <= 16_384)
+                        pairingLink = trimmed;
                     else
-                        ExternalInputInbox.SetSharedText(text);
+                        sharedText = text;
                 }
             }
+
+            if (pairingLink is not null) ExternalInputInbox.SetPairingLink(pairingLink);
+            if (paths.Count > 0 || sharedText is not null)
+                ExternalInputInbox.AddSharedBatch(sharedText, paths);
 
             e.AcceptedOperation = DataPackageOperation.Copy;
             e.Handled = true;
