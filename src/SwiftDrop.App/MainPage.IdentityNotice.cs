@@ -1,3 +1,5 @@
+using SwiftDrop.App.Services;
+
 namespace SwiftDrop.App;
 
 public partial class MainPage
@@ -12,8 +14,8 @@ public partial class MainPage
 
         var reason = _identity.AutomaticRegenerationReason?.ToString() ?? "UnusableCertificate";
         await DisplayAlert(
-            "Device identity refreshed",
-            $"SwiftDrop created a new local device ID and certificate because the previous certificate could not be safely reused ({reason}). Other devices that trusted the previous certificate must pair with this device again. Received files, transfer history, and your list of devices you trust were not deleted.",
-            "OK");
+            AppText.Get("DeviceIdentityRefreshed"),
+            AppText.Format("DeviceIdentityRefreshedFormat", reason),
+            AppText.Get("Ok"));
     }
 }
