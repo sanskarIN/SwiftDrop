@@ -22,6 +22,25 @@ public sealed class ExternalSharePackageValidatorTests
         Assert.Same(manifest, ExternalSharePackageValidator.Validate(manifest, Now));
     }
 
+    [Fact]
+    public void Validate_AcceptsExactAgeAndFutureClockBoundaries()
+    {
+        Assert.Same(
+            ExternalSharePackageValidator.Validate(
+                Create(created: Now - ExternalSharePackageConstants.MaximumPackageAge), Now),
+            ExternalSharePackageValidator.Validate(
+                Create(created: Now - ExternalSharePackageConstants.MaximumPackageAge), Now));
+        _ = ExternalSharePackageValidator.Validate(
+            Create(created: Now + ExternalSharePackageConstants.MaximumFutureClockSkew), Now);
+    }
+
+    [Fact]
+    public void Validate_RejectsUnknownVersion()
+    {
+        var manifest = Create() with { Version = "2" };
+        Assert.Throws<InvalidDataException>(() => ExternalSharePackageValidator.Validate(manifest, Now));
+    }
+
     [Theory]
     [InlineData("0")]
     [InlineData("GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG")]
@@ -90,6 +109,16 @@ public sealed class ExternalSharePackageValidatorTests
             ExternalSharePackageValidator.Validate(
                 Create(files: [new ExternalSharePackageFile("big.bin", ProtocolConstants.MaxSingleFileBytes + 1)]),
                 Now));
+
+    [Fact]
+    public void Validate_RejectsAggregateSizeAboveBatchLimit()
+    {
+        var files = Enumerable.Range(0, 11)
+            .Select(i => new ExternalSharePackageFile($"{i}.bin", ProtocolConstants.MaxSingleFileBytes))
+            .ToArray();
+        Assert.Throws<InvalidDataException>(() =>
+            ExternalSharePackageValidator.Validate(Create(files: files), Now));
+    }
 
     [Fact]
     public void Validate_RejectsEmptyPackage()
