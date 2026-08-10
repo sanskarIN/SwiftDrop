@@ -1,3 +1,5 @@
+using SwiftDrop.App.Services;
+
 namespace SwiftDrop.App;
 
 public partial class MainPage
@@ -10,19 +12,24 @@ public partial class MainPage
             if (string.IsNullOrWhiteSpace(selected))
             {
                 await DisplayAlert(
-                    "Folder picker unavailable",
-                    "This platform does not currently expose a SwiftDrop folder picker without broader storage integration. You can still choose multiple files, use a share sheet where supported, or send a folder from Windows.",
-                    "OK");
+                    AppText.Get("FolderPickerUnavailable"),
+                    AppText.Get("FolderPickerUnavailableDetailed"),
+                    AppText.Get("Ok"));
                 return;
             }
 
             _selectedBatchFiles = new[] { new FileResult(selected) };
-            SelectedBatchLabel.Text = $"Folder: {new DirectoryInfo(selected).Name}";
-            BatchTransferStatusLabel.Text = "The folder will be enumerated recursively when sending. Empty directories are not transferred because SwiftDrop transfers file content and relative paths.";
+            _viewModel.SelectedBatch = AppText.Format(
+                "FolderSelectedFormat",
+                new DirectoryInfo(selected).Name);
+            _viewModel.BatchTransferStatus = AppText.Get("FolderRecursiveStatus");
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Folder selection failed", ex.Message, "OK");
+            await DisplayAlert(
+                AppText.Get("FolderSelectionFailed"),
+                ex.Message,
+                AppText.Get("Ok"));
         }
     }
 }
