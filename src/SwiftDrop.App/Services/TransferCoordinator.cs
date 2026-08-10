@@ -55,19 +55,16 @@ public sealed class TransferCoordinator
             info.Length,
             await Hashing.Sha256FileAsync(path, ct),
             info.LastWriteTimeUtc));
+        var request = ProtocolRequestFactory.CreateFile(
+            remote.Nonce,
+            _identity.DeviceId,
+            _identity.DeviceName,
+            entry);
 
         var client = new TlsPeerClient();
         await using var ssl = await client.ConnectAsync(remote.Host, remote.Port, remote.CertificateFingerprint, _identity.Certificate, ct);
-        await FrameProtocol.WriteJsonAsync(ssl, new
-        {
-            type = "file",
-            protocolVersion = ProtocolConstants.CurrentVersion,
-            pairingNonce = remote.Nonce,
-            senderDeviceId = _identity.DeviceId,
-            senderDeviceName = _identity.DeviceName,
-            entry
-        }, ct);
-        var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
+        await FrameProtocol.WriteJsonAsync(ssl, request, ct);
+        var response = await FrameProtocol.ReadJsonAsync<TransferAcknowledgement>(ssl, ct);
         var resumeOffset = TransferResponsePolicy.ValidateResumeOffset(
             response.Accepted,
             response.ResumeOffset,
@@ -83,7 +80,7 @@ public sealed class TransferCoordinator
             entry.Length,
             bytesProgress,
             ct);
-        var completed = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
+        var completed = await FrameProtocol.ReadJsonAsync<TransferAcknowledgement>(ssl, ct);
         TransferResponsePolicy.ValidateCompletion(
             completed.Accepted,
             completed.ResumeOffset,
@@ -100,6 +97,15 @@ public sealed class TransferCoordinator
     {
         remote = await PrepareRemoteAsync(remote, ct);
         var batch = await BatchTransferSourceBuilder.BuildAsync(paths, ct);
+        var entries = batch.Items.Select(x => x.Entry).ToArray();
+        var request = ProtocolRequestFactory.CreateBatch(
+            remote.Nonce,
+            _identity.DeviceId,
+            _identity.DeviceName,
+            batch.TransferId,
+            entries,
+            batch.TotalBytes);
+
         var client = new TlsPeerClient();
         await using var ssl = await client.ConnectAsync(
             remote.Host,
@@ -107,21 +113,10 @@ public sealed class TransferCoordinator
             remote.CertificateFingerprint,
             _identity.Certificate,
             ct);
-
-        await FrameProtocol.WriteJsonAsync(ssl, new
-        {
-            type = "batch",
-            protocolVersion = ProtocolConstants.CurrentVersion,
-            pairingNonce = remote.Nonce,
-            senderDeviceId = _identity.DeviceId,
-            senderDeviceName = _identity.DeviceName,
-            transferId = batch.TransferId,
-            files = batch.Items.Select(x => x.Entry).ToArray(),
-            totalBytes = batch.TotalBytes
-        }, ct);
+        await FrameProtocol.WriteJsonAsync(ssl, request, ct);
 
         var response = await FrameProtocol.ReadJsonAsync<BatchTransferResponse>(ssl, ct);
-        var validatedPlans = BatchTransferPlanValidator.Validate(batch.Items.Select(x => x.Entry).ToArray(), response);
+        var validatedPlans = BatchTransferPlanValidator.Validate(entries, response);
         if (!response.Accepted)
             throw new IOException(response.Message ?? "Receiver rejected the batch transfer.");
 
@@ -165,7 +160,7 @@ public sealed class TransferCoordinator
                 source.Entry.Length,
                 itemProgress,
                 ct);
-            var itemResponse = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
+            var itemResponse = await FrameProtocol.ReadJsonAsync<TransferAcknowledgement>(ssl, ct);
             TransferResponsePolicy.ValidateCompletion(
                 itemResponse.Accepted,
                 itemResponse.ResumeOffset,
@@ -183,7 +178,7 @@ public sealed class TransferCoordinator
                 source.Entry.RelativePath));
         }
 
-        var final = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
+        var final = await FrameProtocol.ReadJsonAsync<TransferAcknowledgement>(ssl, ct);
         TransferResponsePolicy.ValidateCompletion(
             final.Accepted,
             final.ResumeOffset,
@@ -201,21 +196,18 @@ public sealed class TransferCoordinator
         remote = await PrepareRemoteAsync(remote, ct);
         var now = DateTimeOffset.UtcNow;
         var expires = now.Add(ProtocolConstants.TextSnippetLifetime);
-        TextSnippetValidator.Validate(text, expires, now);
+        var request = ProtocolRequestFactory.CreateText(
+            remote.Nonce,
+            _identity.DeviceId,
+            _identity.DeviceName,
+            text,
+            expires,
+            now);
 
         var client = new TlsPeerClient();
         await using var ssl = await client.ConnectAsync(remote.Host, remote.Port, remote.CertificateFingerprint, _identity.Certificate, ct);
-        await FrameProtocol.WriteJsonAsync(ssl, new
-        {
-            type = "text",
-            protocolVersion = ProtocolConstants.CurrentVersion,
-            pairingNonce = remote.Nonce,
-            senderDeviceId = _identity.DeviceId,
-            senderDeviceName = _identity.DeviceName,
-            text,
-            expiresUnixSeconds = expires.ToUnixTimeSeconds()
-        }, ct);
-        var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
+        await FrameProtocol.WriteJsonAsync(ssl, request, ct);
+        var response = await FrameProtocol.ReadJsonAsync<TransferAcknowledgement>(ssl, ct);
         TransferResponsePolicy.ValidateTextAcknowledgement(
             response.Accepted,
             response.ResumeOffset,
@@ -229,9 +221,6 @@ public sealed class TransferCoordinator
         await _identity.InitializeAsync();
         return PairingCodec.Validate(remote, DateTimeOffset.UtcNow);
     }
-
-    private sealed record TransferResponse(bool Accepted, long ResumeOffset, string? Message);
-    private sealed record BatchItemStart(string RelativePath);
 }
 
 public sealed record BatchProgress(
