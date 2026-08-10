@@ -11,6 +11,7 @@ public partial class MainPage : IAsyncDisposable
         _settings.Changed -= SettingsChanged;
         _singleCts?.Cancel();
         _batchCts?.Cancel();
+        DisposePlatformIntegrations();
 
         await StopReceiveServerAsync();
 
@@ -19,4 +20,6 @@ public partial class MainPage : IAsyncDisposable
         _batchCts?.Dispose();
         _batchCts = null;
     }
+
+    partial void DisposePlatformIntegrations();
 }
