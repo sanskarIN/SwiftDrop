@@ -28,7 +28,7 @@ public sealed class NearbyPairingService
         var host = LocalAddressPolicy.ParseAndValidate(peer.Host).ToString();
         if (peer.Port is < 1 or > 65_535)
             throw new InvalidDataException("The discovered device advertised an invalid port.");
-        ValidatePairingCode(pairingCode, required: false);
+        ValidateOptionalPairingCode(pairingCode);
 
         await _identity.InitializeAsync();
 
@@ -68,7 +68,9 @@ public sealed class NearbyPairingService
         ArgumentException.ThrowIfNullOrWhiteSpace(host);
         var validatedHost = LocalAddressPolicy.ParseAndValidate(host.Trim('[', ']')).ToString();
         if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
-        ValidatePairingCode(pairingCode, required: true);
+        if (string.IsNullOrWhiteSpace(pairingCode))
+            throw new ArgumentException("An eight-digit pairing code is required.", nameof(pairingCode));
+        ValidateOptionalPairingCode(pairingCode);
 
         await _identity.InitializeAsync();
         var client = new TlsPeerClient();
@@ -95,25 +97,15 @@ public sealed class NearbyPairingService
     }
 
     private Task WritePairingRequestAsync(Stream stream, string? pairingCode, CancellationToken ct)
-        => FrameProtocol.WriteJsonAsync(stream, new
-        {
-            type = "pair-request",
-            protocolVersion = ProtocolConstants.CurrentVersion,
-            senderDeviceId = _identity.DeviceId,
-            senderDeviceName = _identity.DeviceName,
-            pairingCode
-        }, ct);
+        => FrameProtocol.WriteJsonAsync(
+            stream,
+            ProtocolRequestFactory.CreatePairRequest(_identity.DeviceId, _identity.DeviceName, pairingCode),
+            ct);
 
-    private static void ValidatePairingCode(string? pairingCode, bool required)
+    private static void ValidateOptionalPairingCode(string? pairingCode)
     {
-        if (string.IsNullOrWhiteSpace(pairingCode))
-        {
-            if (required) throw new ArgumentException("An eight-digit pairing code is required.", nameof(pairingCode));
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(pairingCode)) return;
         if (pairingCode.Length != 8 || pairingCode.Any(ch => ch is < '0' or > '9'))
             throw new ArgumentException("Pairing code must contain exactly eight digits.", nameof(pairingCode));
     }
-
-    private sealed record PairingResponse(bool Accepted, string? Message, string? PairingLink);
 }
