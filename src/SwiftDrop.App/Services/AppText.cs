@@ -11,12 +11,24 @@ public static class AppText
     private static readonly ResourceManager MainResources = new(
         "SwiftDrop.App.Resources.Strings.MainStrings",
         typeof(AppText).Assembly);
+    private static readonly ResourceManager DialogResources = new(
+        "SwiftDrop.App.Resources.Strings.DialogStrings",
+        typeof(AppText).Assembly);
 
     public static string Get(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         var culture = CultureInfo.CurrentUICulture;
-        return Resources.GetString(key, culture) ?? MainResources.GetString(key, culture) ?? key;
+        return Resources.GetString(key, culture) ??
+               MainResources.GetString(key, culture) ??
+               DialogResources.GetString(key, culture) ??
+               key;
+    }
+
+    public static string Format(string key, params object?[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        return string.Format(CultureInfo.CurrentCulture, Get(key), args);
     }
 
     public static string AppName => Get(nameof(AppName));
