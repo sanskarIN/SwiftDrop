@@ -5,6 +5,7 @@
     <RootNamespace>SwiftDrop.ShareExtension</RootNamespace>
     <AssemblyName>SwiftDrop.ShareExtension</AssemblyName>
     <IsAppExtension>true</IsAppExtension>
+    <InfoPlist>Info.plist</InfoPlist>
     <ApplicationTitle>SwiftDrop Share</ApplicationTitle>
     <ApplicationId>in.sanskar.swiftdrop.share</ApplicationId>
     <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
