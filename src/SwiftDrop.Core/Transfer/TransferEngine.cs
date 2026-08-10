@@ -111,7 +111,7 @@ public sealed class TransferEngine
             CryptographicOperations.ZeroMemory(expectedBytes);
         }
 
-        File.Move(partial, finalPath, true);
+        File.Move(partial, finalPath, overwrite: false);
         File.SetLastWriteTimeUtc(finalPath, entry.LastWriteUtc.UtcDateTime);
     }
 
