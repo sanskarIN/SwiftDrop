@@ -1,4 +1,3 @@
-using System.Text;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 
@@ -64,7 +63,7 @@ public static class ExternalInputInbox
         {
             if (text is not null)
             {
-                _sharedText = TruncateUtf8(text, ProtocolConstants.MaxTextSnippetBytes);
+                _sharedText = Utf8TextLimiter.Truncate(text, ProtocolConstants.MaxTextSnippetBytes);
                 changed = true;
             }
 
@@ -122,27 +121,6 @@ public static class ExternalInputInbox
             {
             }
         }
-    }
-
-    private static string TruncateUtf8(string value, int maximumBytes)
-    {
-        if (Encoding.UTF8.GetByteCount(value) <= maximumBytes) return value;
-
-        var low = 0;
-        var high = value.Length;
-        while (low < high)
-        {
-            var mid = low + (high - low + 1) / 2;
-            var end = mid;
-            if (end > 0 && end < value.Length && char.IsHighSurrogate(value[end - 1]) && char.IsLowSurrogate(value[end]))
-                end--;
-            if (Encoding.UTF8.GetByteCount(value.AsSpan(0, end)) <= maximumBytes) low = end;
-            else high = mid - 1;
-        }
-
-        if (low > 0 && low < value.Length && char.IsHighSurrogate(value[low - 1]) && char.IsLowSurrogate(value[low]))
-            low--;
-        return value[..low];
     }
 
     private static void RaiseChanged()
