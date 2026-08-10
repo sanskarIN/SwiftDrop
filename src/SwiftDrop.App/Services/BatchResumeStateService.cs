@@ -13,6 +13,7 @@ public sealed class BatchResumeStateService
     private readonly string _receiveRootKey;
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private bool _initialized;
+    private bool _persistenceAvailable = true;
 
     public BatchResumeStateService(string receiveRoot)
     {
@@ -27,19 +28,31 @@ public sealed class BatchResumeStateService
         FileManifestEntry sourceEntry,
         CancellationToken ct = default)
     {
-        await EnsureInitializedAsync(ct);
-        var completion = await _store.GetAsync(transferId, sourceEntry.RelativePath, _receiveRootKey, ct);
-        if (completion is null) return null;
+        if (!await EnsureInitializedAsync(ct)) return null;
+        try
+        {
+            var completion = await _store.GetAsync(transferId, sourceEntry.RelativePath, _receiveRootKey, ct);
+            if (completion is null) return null;
 
-        var verifiedDestination = await BatchCompletionVerifier.TryVerifyAsync(
-            _receiveRoot,
-            completion,
-            sourceEntry,
-            ct);
-        if (verifiedDestination is not null) return completion;
+            var verifiedDestination = await BatchCompletionVerifier.TryVerifyAsync(
+                _receiveRoot,
+                completion,
+                sourceEntry,
+                ct);
+            if (verifiedDestination is not null) return completion;
 
-        await _store.RemoveAsync(transferId, sourceEntry.RelativePath, _receiveRootKey, ct);
-        return null;
+            await _store.RemoveAsync(transferId, sourceEntry.RelativePath, _receiveRootKey, ct);
+            return null;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            _persistenceAvailable = false;
+            return null;
+        }
     }
 
     public async Task RecordCompletedAsync(
@@ -48,28 +61,55 @@ public sealed class BatchResumeStateService
         FileManifestEntry effectiveEntry,
         CancellationToken ct = default)
     {
-        await EnsureInitializedAsync(ct);
-        var item = new CompletedBatchItem(
-            transferId,
-            sourceRelativePath,
-            _receiveRootKey,
-            effectiveEntry.RelativePath,
-            effectiveEntry.Length,
-            effectiveEntry.Sha256,
-            DateTimeOffset.UtcNow);
-        await _store.UpsertAsync(item, ct);
+        if (!await EnsureInitializedAsync(ct)) return;
+        try
+        {
+            var item = new CompletedBatchItem(
+                transferId,
+                sourceRelativePath,
+                _receiveRootKey,
+                effectiveEntry.RelativePath,
+                effectiveEntry.Length,
+                effectiveEntry.Sha256,
+                DateTimeOffset.UtcNow);
+            await _store.UpsertAsync(item, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Resume metadata is an optimization and must never change file-transfer success.
+            _persistenceAvailable = false;
+        }
     }
 
-    private async Task EnsureInitializedAsync(CancellationToken ct)
+    private async Task<bool> EnsureInitializedAsync(CancellationToken ct)
     {
-        if (_initialized) return;
+        if (!_persistenceAvailable) return false;
+        if (_initialized) return true;
         await _initializeGate.WaitAsync(ct);
         try
         {
-            if (_initialized) return;
-            await _store.InitializeAsync(ct);
-            await _store.PruneAsync(DateTimeOffset.UtcNow - Retention, ct: ct);
-            _initialized = true;
+            if (!_persistenceAvailable) return false;
+            if (_initialized) return true;
+            try
+            {
+                await _store.InitializeAsync(ct);
+                await _store.PruneAsync(DateTimeOffset.UtcNow - Retention, ct: ct);
+                _initialized = true;
+                return true;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                _persistenceAvailable = false;
+                return false;
+            }
         }
         finally
         {
