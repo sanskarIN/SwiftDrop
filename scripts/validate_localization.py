@@ -21,6 +21,10 @@ PAIRS = [
         ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.resx",
         ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.hi.resx",
     ),
+    (
+        ROOT / "src/SwiftDrop.App/Resources/Strings/PlatformRuntimeStrings.resx",
+        ROOT / "src/SwiftDrop.App/Resources/Strings/PlatformRuntimeStrings.hi.resx",
+    ),
 ]
 
 
