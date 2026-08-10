@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
 using SwiftDrop.App.Services;
+using SwiftDrop.App.ViewModels;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Security;
 
@@ -18,6 +19,7 @@ public partial class MainPage : ContentPage
     private readonly ReceiveLocationService _receiveLocation;
     private readonly PairingSelectionService _pairingSelection;
     private readonly OneTimePairingCodeManager _pairingCodes;
+    private readonly MainViewModel _viewModel;
     private readonly IServiceProvider _services;
     private readonly SemaphoreSlim _receiveServerGate = new(1, 1);
 
@@ -42,6 +44,7 @@ public partial class MainPage : ContentPage
         ReceiveLocationService receiveLocation,
         PairingSelectionService pairingSelection,
         OneTimePairingCodeManager pairingCodes,
+        MainViewModel viewModel,
         IServiceProvider services)
     {
         InitializeComponent();
@@ -53,7 +56,11 @@ public partial class MainPage : ContentPage
         _receiveLocation = receiveLocation;
         _pairingSelection = pairingSelection;
         _pairingCodes = pairingCodes;
+        _viewModel = viewModel;
         _services = services;
+        BindingContext = viewModel;
+        _viewModel.SelectedFile = AppText.Get("NoFileSelected");
+        _viewModel.SelectedBatch = AppText.Get("NoBatchSelected");
         _settings.Changed += SettingsChanged;
         Loaded += async (_, _) => await InitializeAsync();
         Unloaded += async (_, _) => await StopReceiveServerAsync();
@@ -79,9 +86,9 @@ public partial class MainPage : ContentPage
             await _identity.InitializeAsync();
             await _history.InitializeAsync();
             await _trustedDevices.InitializeAsync();
-            DeviceNameLabel.Text = _identity.DeviceName;
-            DeviceIdLabel.Text = _identity.DeviceId;
-            DeviceFingerprintLabel.Text = AppText.Format(
+            _viewModel.DeviceName = _identity.DeviceName;
+            _viewModel.DeviceId = _identity.DeviceId;
+            _viewModel.DeviceFingerprint = AppText.Format(
                 "CertificateFormat",
                 Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate)));
 
@@ -218,7 +225,7 @@ public partial class MainPage : ContentPage
         {
             try
             {
-                TransferStatusLabel.Text = AppText.Get("ApplyingReceiveFolder");
+                _viewModel.TransferStatus = AppText.Get("ApplyingReceiveFolder");
                 await EnsureReceiveServerMatchesSettingsAsync();
             }
             catch (Exception ex)
@@ -239,7 +246,7 @@ public partial class MainPage : ContentPage
             var receiveRoot = _receiveLocation.ResolveReceiveRoot();
             if (_receiveServer is not null && PathsEqual(_activeReceiveRoot, receiveRoot))
             {
-                ReceiveFolderLabel.Text = AppText.Format("ReceiveFolderFormat", receiveRoot);
+                _viewModel.ReceiveFolder = AppText.Format("ReceiveFolderFormat", receiveRoot);
                 return;
             }
 
@@ -265,8 +272,8 @@ public partial class MainPage : ContentPage
             server.Start();
             _receiveServer = server;
             _activeReceiveRoot = receiveRoot;
-            ReceiveFolderLabel.Text = AppText.Format("ReceiveFolderFormat", receiveRoot);
-            TransferStatusLabel.Text = AppText.Format("ReadyToReceiveFormat", receiveRoot);
+            _viewModel.ReceiveFolder = AppText.Format("ReceiveFolderFormat", receiveRoot);
+            _viewModel.TransferStatus = AppText.Format("ReadyToReceiveFormat", receiveRoot);
         }
         finally
         {
@@ -351,7 +358,7 @@ public partial class MainPage : ContentPage
     private async Task ConfirmRemotePairingAsync(PairingPayload payload)
     {
         var pretty = Fingerprint.Pretty(payload.CertificateFingerprint);
-        RemotePeerLabel.Text = AppText.Format("RemotePeerFormat", payload.DeviceName, payload.Host, payload.Port, pretty);
+        _viewModel.RemotePeer = AppText.Format("RemotePeerFormat", payload.DeviceName, payload.Host, payload.Port, pretty);
         var confirmed = await DisplayAlert(
             AppText.Get("ConfirmDeviceFingerprint"),
             AppText.Format("VerifyFingerprintFormat", pretty),
@@ -360,12 +367,12 @@ public partial class MainPage : ContentPage
         if (confirmed)
         {
             _remote = payload;
-            RemotePeerLabel.Text += Environment.NewLine + AppText.Get("VerifiedInvitationStatus");
+            _viewModel.RemotePeer += Environment.NewLine + AppText.Get("VerifiedInvitationStatus");
         }
         else
         {
             _remote = null;
-            RemotePeerLabel.Text = AppText.Get("PairingCancelledStatus");
+            _viewModel.RemotePeer = AppText.Get("PairingCancelledStatus");
         }
     }
 
@@ -375,7 +382,7 @@ public partial class MainPage : ContentPage
         {
             PickerTitle = AppText.Get("ChooseFileToSend")
         });
-        SelectedFileLabel.Text = _selectedFile?.FullPath ?? AppText.Get("NoFileSelected");
+        _viewModel.SelectedFile = _selectedFile?.FullPath ?? AppText.Get("NoFileSelected");
     }
 
     private async void ChooseMultipleFilesClicked(object? sender, EventArgs e)
@@ -389,7 +396,7 @@ public partial class MainPage : ContentPage
                 .Where(x => !string.IsNullOrWhiteSpace(x.FullPath))
                 .Take(2048)
                 .ToArray();
-            SelectedBatchLabel.Text = _selectedBatchFiles.Length switch
+            _viewModel.SelectedBatch = _selectedBatchFiles.Length switch
             {
                 0 => AppText.Get("NoBatchSelected"),
                 1 => _selectedBatchFiles[0].FileName,
@@ -427,7 +434,7 @@ public partial class MainPage : ContentPage
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
             _pausedSinglePath = null;
-            ResumeSendButton.IsEnabled = false;
+            _viewModel.ResumeSendEnabled = false;
             await DisplayAlert(
                 AppText.Get("ResumeUnavailable"),
                 AppText.Get("SourceFileUnavailable"),
@@ -453,21 +460,18 @@ public partial class MainPage : ContentPage
         var info = new FileInfo(path);
         try
         {
-            SendFileButton.IsEnabled = false;
-            PauseSendButton.IsEnabled = true;
-            ResumeSendButton.IsEnabled = false;
-            CancelSendButton.IsEnabled = true;
-            TransferStatusLabel.Text = _pausedSinglePath is null
+            _viewModel.SetSingleTransferControls(sending: true, canResume: false);
+            _viewModel.TransferStatus = _pausedSinglePath is null
                 ? AppText.Get("SendingStatus")
                 : AppText.Get("ResumingStatus");
             await _transfers.SendAsync(
                 remote,
                 path,
-                new Progress<double>(x => TransferProgress.Progress = x),
+                new Progress<double>(x => _viewModel.TransferProgress = x),
                 _singleCts.Token);
-            TransferProgress.Progress = 1;
+            _viewModel.TransferProgress = 1;
             _pausedSinglePath = null;
-            TransferStatusLabel.Text = AppText.Get("CompletedVerifiedStatus");
+            _viewModel.TransferStatus = AppText.Get("CompletedVerifiedStatus");
             await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "completed", true);
         }
         catch (OperationCanceledException)
@@ -475,20 +479,20 @@ public partial class MainPage : ContentPage
             if (_pauseSingle)
             {
                 _pausedSinglePath = path;
-                TransferStatusLabel.Text = AppText.Get("PausedResumeStatus");
+                _viewModel.TransferStatus = AppText.Get("PausedResumeStatus");
                 await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "paused", false);
             }
             else
             {
                 _pausedSinglePath = null;
-                TransferStatusLabel.Text = AppText.Get("CancelledStatus");
+                _viewModel.TransferStatus = AppText.Get("CancelledStatus");
                 await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "cancelled", false);
             }
         }
         catch (Exception ex)
         {
             _pausedSinglePath = File.Exists(path) ? path : null;
-            TransferStatusLabel.Text = _pausedSinglePath is null
+            _viewModel.TransferStatus = _pausedSinglePath is null
                 ? AppText.Get("FailedStatus")
                 : AppText.Get("FailedSafeResumeStatus");
             await _history.AddAsync(
@@ -502,10 +506,7 @@ public partial class MainPage : ContentPage
         }
         finally
         {
-            SendFileButton.IsEnabled = true;
-            PauseSendButton.IsEnabled = false;
-            CancelSendButton.IsEnabled = false;
-            ResumeSendButton.IsEnabled = _pausedSinglePath is not null;
+            _viewModel.SetSingleTransferControls(sending: false, canResume: _pausedSinglePath is not null);
         }
     }
 
@@ -546,7 +547,7 @@ public partial class MainPage : ContentPage
         if (paths.Length == 0)
         {
             _pausedBatchPaths = Array.Empty<string>();
-            ResumeBatchButton.IsEnabled = false;
+            _viewModel.ResumeBatchEnabled = false;
             await DisplayAlert(
                 AppText.Get("ResumeUnavailable"),
                 AppText.Get("BatchFilesUnavailable"),
@@ -572,23 +573,20 @@ public partial class MainPage : ContentPage
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            SendBatchButton.IsEnabled = false;
-            PauseBatchButton.IsEnabled = true;
-            ResumeBatchButton.IsEnabled = false;
-            CancelBatchButton.IsEnabled = true;
-            BatchTransferStatusLabel.Text = _pausedBatchPaths.Length == 0
+            _viewModel.SetBatchTransferControls(sending: true, canResume: false);
+            _viewModel.BatchTransferStatus = _pausedBatchPaths.Length == 0
                 ? AppText.Get("PreparingChecksums")
                 : AppText.Get("PreparingResumeChecksums");
             var progress = new Progress<BatchProgress>(value =>
             {
-                BatchTransferProgress.Progress = value.Fraction;
+                _viewModel.BatchTransferProgress = value.Fraction;
                 var seconds = Math.Max(stopwatch.Elapsed.TotalSeconds, .001);
                 var speed = value.CompletedBytes / seconds;
                 var remaining = Math.Max(0, value.TotalBytes - value.CompletedBytes);
                 var eta = speed <= 1
                     ? AppText.Get("Calculating")
                     : TimeSpan.FromSeconds(remaining / speed).ToString(@"hh\:mm\:ss");
-                BatchTransferStatusLabel.Text = AppText.Format(
+                _viewModel.BatchTransferStatus = AppText.Format(
                     "BatchProgressFormat",
                     value.CompletedItems,
                     value.TotalItems,
@@ -605,8 +603,8 @@ public partial class MainPage : ContentPage
             foreach (var item in result.Skipped)
                 await _history.AddAsync("sent", remote.DeviceName, item.Entry.RelativePath, item.Entry.Length, "not-selected", false);
             _pausedBatchPaths = Array.Empty<string>();
-            BatchTransferProgress.Progress = 1;
-            BatchTransferStatusLabel.Text = AppText.Format(
+            _viewModel.BatchTransferProgress = 1;
+            _viewModel.BatchTransferStatus = AppText.Format(
                 "BatchCompletedFormat",
                 result.Completed.Count,
                 result.Skipped.Count);
@@ -616,7 +614,7 @@ public partial class MainPage : ContentPage
             if (_pauseBatch)
             {
                 _pausedBatchPaths = paths.Where(File.Exists).ToArray();
-                BatchTransferStatusLabel.Text = AppText.Get("PausedResumeStatus");
+                _viewModel.BatchTransferStatus = AppText.Get("PausedResumeStatus");
                 foreach (var path in _pausedBatchPaths)
                 {
                     var info = new FileInfo(path);
@@ -626,13 +624,13 @@ public partial class MainPage : ContentPage
             else
             {
                 _pausedBatchPaths = Array.Empty<string>();
-                BatchTransferStatusLabel.Text = AppText.Get("BatchCancelledStatus");
+                _viewModel.BatchTransferStatus = AppText.Get("BatchCancelledStatus");
             }
         }
         catch (Exception ex)
         {
             _pausedBatchPaths = paths.Where(File.Exists).ToArray();
-            BatchTransferStatusLabel.Text = _pausedBatchPaths.Length == 0
+            _viewModel.BatchTransferStatus = _pausedBatchPaths.Length == 0
                 ? AppText.Get("BatchFailedStatus")
                 : AppText.Get("BatchFailedSafeResumeStatus");
             await DisplayAlert(AppText.Get("BatchTransferFailed"), ex.Message, AppText.Get("Ok"));
@@ -640,10 +638,7 @@ public partial class MainPage : ContentPage
         finally
         {
             stopwatch.Stop();
-            SendBatchButton.IsEnabled = true;
-            PauseBatchButton.IsEnabled = false;
-            CancelBatchButton.IsEnabled = false;
-            ResumeBatchButton.IsEnabled = _pausedBatchPaths.Length > 0;
+            _viewModel.SetBatchTransferControls(sending: false, canResume: _pausedBatchPaths.Length > 0);
         }
     }
 
@@ -664,7 +659,7 @@ public partial class MainPage : ContentPage
         try
         {
             TextSnippetEditor.Text = await Clipboard.Default.GetTextAsync() ?? string.Empty;
-            TextTransferStatusLabel.Text = AppText.Get("ClipboardReadOnce");
+            _viewModel.TextTransferStatus = AppText.Get("ClipboardReadOnce");
         }
         catch (Exception ex)
         {
@@ -690,7 +685,7 @@ public partial class MainPage : ContentPage
         }
         try
         {
-            TextTransferStatusLabel.Text = AppText.Get("SendingEncryptedText");
+            _viewModel.TextTransferStatus = AppText.Get("SendingEncryptedText");
             await _transfers.SendTextAsync(remote, text, CancellationToken.None);
             await _history.AddAsync(
                 "sent",
@@ -700,7 +695,7 @@ public partial class MainPage : ContentPage
                 "completed",
                 false);
             TextSnippetEditor.Text = string.Empty;
-            TextTransferStatusLabel.Text = AppText.Get("TextDelivered");
+            _viewModel.TextTransferStatus = AppText.Get("TextDelivered");
         }
         catch (Exception ex)
         {
@@ -711,7 +706,7 @@ public partial class MainPage : ContentPage
                 Encoding.UTF8.GetByteCount(text),
                 "failed",
                 false);
-            TextTransferStatusLabel.Text = AppText.Get("TextTransferFailedStatus");
+            _viewModel.TextTransferStatus = AppText.Get("TextTransferFailedStatus");
             await DisplayAlert(AppText.Get("TextTransferFailed"), ex.Message, AppText.Get("Ok"));
         }
     }
@@ -725,7 +720,7 @@ public partial class MainPage : ContentPage
         }
         remote = _remote;
         _remote = null;
-        RemotePeerLabel.Text = AppText.Format("InvitationInUseFormat", remote.DeviceName);
+        _viewModel.RemotePeer = AppText.Format("InvitationInUseFormat", remote.DeviceName);
         return true;
     }
 
