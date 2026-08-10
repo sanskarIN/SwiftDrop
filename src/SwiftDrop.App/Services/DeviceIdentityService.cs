@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -16,7 +15,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
     private const string DeviceNameKey = "device_name";
     private const string CertificateKey = "device_certificate";
 
-    private readonly ConcurrentDictionary<string, DateTimeOffset> _activePairingNonces = new(StringComparer.Ordinal);
+    private readonly OneTimeAuthorizationStore _pairingAuthorizations = new(1024);
     private readonly SemaphoreSlim _initializeGate = new(1, 1);
     private X509Certificate2? _certificate;
     private bool _initialized;
@@ -77,10 +76,10 @@ public sealed class DeviceIdentityService : IAsyncDisposable
     public string CreatePairingLink()
     {
         if (!_initialized) throw new InvalidOperationException("Identity not initialized.");
-        PruneExpiredNonces();
-        var expires = DateTimeOffset.UtcNow.Add(ProtocolConstants.PairingLifetime);
+        var now = DateTimeOffset.UtcNow;
+        var expires = now.Add(ProtocolConstants.PairingLifetime);
         var nonce = PairingCodec.CreateNonce();
-        _activePairingNonces[nonce] = expires;
+        _pairingAuthorizations.Register(nonce, expires, now);
         var payload = new PairingPayload(
             ProtocolConstants.CurrentVersion,
             DeviceId,
@@ -94,11 +93,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
     }
 
     public bool TryConsumePairingNonce(string nonce)
-    {
-        if (string.IsNullOrWhiteSpace(nonce)) return false;
-        PruneExpiredNonces();
-        return _activePairingNonces.TryRemove(nonce, out var expires) && expires >= DateTimeOffset.UtcNow;
-    }
+        => _pairingAuthorizations.TryConsume(nonce, DateTimeOffset.UtcNow);
 
     private async Task LoadOrCreateCertificateAsync()
     {
@@ -141,7 +136,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
 
     private async Task RegenerateIdentityAsync(bool automatic, IdentityCertificateIssue? reason)
     {
-        _activePairingNonces.Clear();
+        _pairingAuthorizations.Clear();
         _certificate?.Dispose();
         _certificate = null;
         SecureStorage.Default.Remove(CertificateKey);
@@ -170,13 +165,6 @@ public sealed class DeviceIdentityService : IAsyncDisposable
         }
     }
 
-    private void PruneExpiredNonces()
-    {
-        var now = DateTimeOffset.UtcNow;
-        foreach (var item in _activePairingNonces)
-            if (item.Value < now) _activePairingNonces.TryRemove(item.Key, out _);
-    }
-
     private static string NormalizeDeviceName(string? value)
     {
         var trimmed = (value ?? string.Empty).Trim();
@@ -202,7 +190,7 @@ public sealed class DeviceIdentityService : IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
-        _activePairingNonces.Clear();
+        _pairingAuthorizations.Clear();
         _certificate?.Dispose();
         _certificate = null;
         _initializeGate.Dispose();
