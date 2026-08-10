@@ -26,25 +26,25 @@ public sealed class OneTimeAuthorizationStore
         PruneExpired(now);
         if (_entries.Count >= _maximumEntries && !_entries.ContainsKey(nonce))
             throw new InvalidOperationException("Too many active one-time authorizations.");
-        if (!_entries.TryAdd(nonce, expiresUtc.ToUnixTimeSeconds()))
+        if (!_entries.TryAdd(nonce, expiresUtc.UtcDateTime.Ticks))
             throw new InvalidOperationException("Authorization nonce is already active.");
     }
 
     public bool TryConsume(string? nonce, DateTimeOffset? nowUtc = null)
     {
         if (string.IsNullOrWhiteSpace(nonce)) return false;
-        var now = nowUtc ?? DateTimeOffset.UtcNow;
-        if (!_entries.TryRemove(nonce, out var expiresUnixSeconds)) return false;
-        return expiresUnixSeconds >= now.ToUnixTimeSeconds();
+        var nowTicks = (nowUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Ticks;
+        if (!_entries.TryRemove(nonce, out var expiresTicks)) return false;
+        return expiresTicks >= nowTicks;
     }
 
     public int PruneExpired(DateTimeOffset? nowUtc = null)
     {
-        var nowUnixSeconds = (nowUtc ?? DateTimeOffset.UtcNow).ToUnixTimeSeconds();
+        var nowTicks = (nowUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Ticks;
         var removed = 0;
         foreach (var pair in _entries)
         {
-            if (pair.Value >= nowUnixSeconds) continue;
+            if (pair.Value >= nowTicks) continue;
             if (_entries.TryRemove(new KeyValuePair<string, long>(pair.Key, pair.Value))) removed++;
         }
         return removed;
