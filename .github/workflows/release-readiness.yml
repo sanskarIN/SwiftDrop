@@ -63,8 +63,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - run: dotnet workload install maui-ios maui-maccatalyst
-      - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
-      - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
+      - name: Restore Mac Catalyst extension and app
+        run: |
+          dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:TargetFramework=net10.0-maccatalyst
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
+      - name: Build Mac Catalyst share extension
+        run: dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-maccatalyst -c Release --no-restore
+      - name: Build Mac Catalyst app
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
       - name: Select iOS simulator runtime
         shell: bash
         run: |
@@ -73,12 +79,26 @@ jobs:
           else
             echo "IOS_SIMULATOR_RID=iossimulator-x64" >> "$GITHUB_ENV"
           fi
-      - name: Restore iOS simulator target
+      - name: Restore iOS simulator extension and app
         shell: bash
-        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
-      - name: Build iOS simulator target
+        run: |
+          dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+      - name: Build iOS simulator share extension
+        shell: bash
+        run: dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+      - name: Build iOS simulator app
         shell: bash
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+      - name: Capture Apple extension dependency graph
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          dotnet list src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj package --framework net10.0-maccatalyst --include-transitive > artifacts/share-extension-maccatalyst-packages.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apple-share-extension-dependency-graph
+          path: artifacts/
 
   release-gate:
     if: always()
@@ -91,4 +111,4 @@ jobs:
           test "${{ needs.android-compile.result }}" = "success"
           test "${{ needs.windows-compile.result }}" = "success"
           test "${{ needs.apple-compile.result }}" = "success"
-          echo "Automated release-readiness gates passed. Physical-device, signing, notarization, and store checks remain mandatory."
+          echo "Automated release-readiness gates passed. Physical-device, signing, notarization, App Group provisioning, Share Extension behavior, and store checks remain mandatory."
