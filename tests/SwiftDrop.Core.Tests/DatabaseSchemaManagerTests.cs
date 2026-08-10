@@ -23,6 +23,7 @@ public sealed class DatabaseSchemaManagerTests
             Assert.Contains("transfer_history", tables);
             Assert.Contains("diagnostic_events", tables);
             Assert.Contains("transfer_queue_metadata", tables);
+            Assert.Contains("completed_batch_items", tables);
         }
         finally
         {
@@ -31,7 +32,7 @@ public sealed class DatabaseSchemaManagerTests
     }
 
     [Fact]
-    public async Task EnsureCurrentAsync_MigratesVersionOneToQueueMetadataSchema()
+    public async Task EnsureCurrentAsync_MigratesVersionOneToCurrentSchema()
     {
         var path = TempDatabasePath();
         try
@@ -45,7 +46,32 @@ public sealed class DatabaseSchemaManagerTests
             await DatabaseSchemaManager.EnsureCurrentAsync(connection);
 
             Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
-            Assert.Contains("transfer_queue_metadata", await ReadTablesAsync(connection));
+            var tables = await ReadTablesAsync(connection);
+            Assert.Contains("transfer_queue_metadata", tables);
+            Assert.Contains("completed_batch_items", tables);
+        }
+        finally
+        {
+            DeleteDatabase(path);
+        }
+    }
+
+    [Fact]
+    public async Task EnsureCurrentAsync_MigratesVersionTwoToBatchCompletionSchema()
+    {
+        var path = TempDatabasePath();
+        try
+        {
+            await using var connection = new SqliteConnection($"Data Source={path}");
+            await connection.OpenAsync();
+            var command = connection.CreateCommand();
+            command.CommandText = "PRAGMA user_version = 2;";
+            await command.ExecuteNonQueryAsync();
+
+            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+
+            Assert.Equal(3, await DatabaseSchemaManager.GetVersionAsync(connection));
+            Assert.Contains("completed_batch_items", await ReadTablesAsync(connection));
         }
         finally
         {
