@@ -1,3 +1,4 @@
+using SwiftDrop.App.Services;
 using SwiftDrop.App.ViewModels;
 
 namespace SwiftDrop.App;
@@ -15,24 +16,32 @@ public partial class AboutPage : ContentPage
     }
 
     private async void OpenRepositoryClicked(object? sender, EventArgs e)
-        => await OpenExternalAsync(RepositoryUri, "repository");
+        => await OpenExternalAsync(RepositoryUri, AppText.Get("RepositoryLinkLabel"));
 
     private async void OpenProfileClicked(object? sender, EventArgs e)
-        => await OpenExternalAsync(ProfileUri, "creator profile");
+        => await OpenExternalAsync(ProfileUri, AppText.Get("CreatorProfileLinkLabel"));
 
     private async void OpenBuyMeACoffeeClicked(object? sender, EventArgs e)
-        => await OpenExternalAsync(BuyMeACoffeeUri, "Buy Me a Coffee page");
+        => await OpenExternalAsync(BuyMeACoffeeUri, AppText.Get("BuyMeACoffeeLinkLabel"));
 
     private async Task OpenExternalAsync(Uri uri, string label)
     {
         try
         {
             if (!await Launcher.Default.TryOpenAsync(uri))
-                await DisplayAlertAsync("Unable to open link", $"SwiftDrop could not open the {label} on this device.", "OK");
+            {
+                await DisplayAlertAsync(
+                    AppText.Get("UnableToOpenLink"),
+                    AppText.Format("UnableToOpenLinkFormat", label),
+                    AppText.Get("Ok"));
+            }
         }
         catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
         {
-            await DisplayAlertAsync("Unable to open link", $"Opening the {label} is not supported on this device.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("UnableToOpenLink"),
+                AppText.Format("OpeningLinkUnsupportedFormat", label),
+                AppText.Get("Ok"));
         }
     }
 }
