@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="BatchSenderFormat" xml:space="preserve"><value>From {0}&#10;Certificate: {1}</value></data>
+  <data name="BatchSummaryFormat" xml:space="preserve"><value>{0:N0} files • {1} total</value></data>
+  <data name="BatchHighRiskWarning" xml:space="preserve"><value>Warning: at least one selected item can execute code or install software. Review the list carefully.</value></data>
+  <data name="BatchCautionWarning" xml:space="preserve"><value>Caution: at least one selected item is an archive, disk image, or active-content file.</value></data>
+  <data name="BatchNormalWarning" xml:space="preserve"><value>No high-risk extension was identified. Extension checks are warnings only, not malware scanning.</value></data>
+  <data name="NothingSelected" xml:space="preserve"><value>Nothing selected</value></data>
+  <data name="NothingSelectedMessage" xml:space="preserve"><value>Select at least one file or reject the transfer.</value></data>
+  <data name="HighRiskExtension" xml:space="preserve"><value>High-risk extension</value></data>
+  <data name="CautionExtension" xml:space="preserve"><value>Caution extension</value></data>
+  <data name="NormalExtension" xml:space="preserve"><value>Normal extension</value></data>
+</root>
