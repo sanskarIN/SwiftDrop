@@ -40,7 +40,7 @@ public partial class DevicesPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Discovery unavailable", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("DiscoveryUnavailable"), ex.Message, AppText.Get("Ok"));
             _viewModel.RefreshSnapshot();
         }
     }
@@ -54,46 +54,63 @@ public partial class DevicesPage : ContentPage
         var peer = _viewModel.FindPeer(id);
         if (peer is null)
         {
-            await DisplayAlertAsync("Device unavailable", "The device is no longer advertising. Refresh and try again.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("DeviceUnavailable"),
+                AppText.Get("DeviceUnavailableMessage"),
+                AppText.Get("Ok"));
             return;
         }
         if (string.IsNullOrWhiteSpace(peer.CertificateFingerprint))
         {
-            await DisplayAlertAsync("Pairing unavailable", "This discovery record does not include a certificate fingerprint. Use QR pairing instead.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("PairingUnavailable"),
+                AppText.Get("PairingFingerprintMissingMessage"),
+                AppText.Get("Ok"));
             return;
         }
 
+        var codeChoice = AppText.Get("UseEightDigitCode");
         var mode = await DisplayActionSheetAsync(
-            $"Pair with {peer.Name}",
+            AppText.Format("PairWithFormat", peer.Name),
             AppText.Get("Cancel"),
             null,
             AppText.Get("RequestPairing"),
-            "Use 8-digit code");
+            codeChoice);
         if (string.IsNullOrWhiteSpace(mode) || string.Equals(mode, AppText.Get("Cancel"), StringComparison.Ordinal)) return;
 
         string? code = null;
-        if (string.Equals(mode, "Use 8-digit code", StringComparison.Ordinal))
+        if (string.Equals(mode, codeChoice, StringComparison.Ordinal))
         {
             code = (await DisplayPromptAsync(
-                "One-time pairing code",
-                "Enter the 8-digit code shown on the receiving device. The code expires quickly and is still combined with TLS certificate verification and receiver approval.",
-                "Continue",
+                AppText.Get("OneTimePairingCode"),
+                AppText.Get("OneTimePairingCodePrompt"),
+                AppText.Get("Continue"),
                 AppText.Get("Cancel"),
                 keyboard: Keyboard.Numeric,
                 maxLength: 8))?.Trim();
             if (string.IsNullOrWhiteSpace(code)) return;
             if (code.Length != 8 || code.Any(ch => ch is < '0' or > '9'))
             {
-                await DisplayAlertAsync("Invalid code", "Enter exactly eight digits.", "OK");
+                await DisplayAlertAsync(
+                    AppText.Get("InvalidCode"),
+                    AppText.Get("InvalidCodeMessage"),
+                    AppText.Get("Ok"));
                 return;
             }
         }
         else
         {
+            var details = AppText.Format(
+                    "RequestPairingDetailsFormat",
+                    peer.Name,
+                    peer.Host,
+                    peer.Port,
+                    Fingerprint.Pretty(peer.CertificateFingerprint))
+                .Replace("\\n", Environment.NewLine, StringComparison.Ordinal);
             var requested = await DisplayAlertAsync(
-                "Request pairing?",
-                $"Device: {peer.Name}\nAddress: {peer.Host}:{peer.Port}\nCertificate: {Fingerprint.Pretty(peer.CertificateFingerprint)}\n\nThe other device must approve this request.",
-                "Request",
+                AppText.Get("RequestPairingQuestion"),
+                details,
+                AppText.Get("Request"),
                 AppText.Get("Cancel"));
             if (!requested) return;
         }
@@ -101,7 +118,7 @@ public partial class DevicesPage : ContentPage
         try
         {
             button.IsEnabled = false;
-            button.Text = "Waiting for approval…";
+            button.Text = AppText.Get("WaitingForApproval");
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             var payload = await _pairing.RequestAsync(peer, code, cts.Token);
             _selection.Set(payload);
@@ -109,11 +126,14 @@ public partial class DevicesPage : ContentPage
         }
         catch (OperationCanceledException)
         {
-            await DisplayAlertAsync("Pairing timed out", "The pairing request expired before it was approved.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("PairingTimedOut"),
+                AppText.Get("PairingTimedOutMessage"),
+                AppText.Get("Ok"));
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Pairing failed", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("PairingFailed"), ex.Message, AppText.Get("Ok"));
         }
         finally
         {
@@ -128,19 +148,25 @@ public partial class DevicesPage : ContentPage
         var code = ManualCodeEntry.Text?.Trim() ?? string.Empty;
         if (!int.TryParse(ManualPortEntry.Text, out var port))
         {
-            await DisplayAlertAsync("Invalid port", "Enter a numeric port from 1 to 65535.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("InvalidPort"),
+                AppText.Get("InvalidPortMessage"),
+                AppText.Get("Ok"));
             return;
         }
         if (code.Length != 8 || code.Any(ch => ch is < '0' or > '9'))
         {
-            await DisplayAlertAsync("Invalid code", "Enter the fresh 8-digit code shown on the receiving device.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("InvalidCode"),
+                AppText.Get("FreshCodeMessage"),
+                AppText.Get("Ok"));
             return;
         }
 
         var confirmed = await DisplayAlertAsync(
-            "Manual pairing bootstrap",
-            "Manual IP pairing initially connects before the receiver certificate fingerprint is known. The 8-digit code and receiver approval authorize the bootstrap. SwiftDrop then binds the returned invitation to the exact TLS certificate it observed and will ask you to visually confirm that fingerprint before sending. Continue only on a network and device you expect.",
-            "Continue",
+            AppText.Get("ManualPairingBootstrap"),
+            AppText.Get("ManualPairingBootstrapMessage"),
+            AppText.Get("Continue"),
             AppText.Get("Cancel"));
         if (!confirmed) return;
 
@@ -155,11 +181,14 @@ public partial class DevicesPage : ContentPage
         }
         catch (OperationCanceledException)
         {
-            await DisplayAlertAsync("Pairing timed out", "Manual pairing expired before it completed.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("PairingTimedOut"),
+                AppText.Get("ManualPairingTimedOutMessage"),
+                AppText.Get("Ok"));
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Manual pairing failed", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("ManualPairingFailed"), ex.Message, AppText.Get("Ok"));
         }
         finally
         {
