@@ -210,6 +210,8 @@ public sealed class TransferCoordinator
         }, ct);
         var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
         if (!response.Accepted) throw new IOException(response.Message ?? "Receiver rejected the text snippet.");
+        if (response.ResumeOffset != 0)
+            throw new InvalidDataException("Receiver returned an invalid text acknowledgement offset.");
     }
 
     private async Task<PairingPayload> PrepareRemoteAsync(PairingPayload remote, CancellationToken ct)
