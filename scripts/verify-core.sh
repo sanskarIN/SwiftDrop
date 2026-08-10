@@ -6,6 +6,7 @@ cd "$repo_root"
 
 dotnet --info
 python3 scripts/validate_localization.py
+python3 scripts/validate_apple_integration.py
 dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
 dotnet restore tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj
 dotnet restore benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj
