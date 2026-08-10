@@ -9,9 +9,10 @@ public static class PairingCodec
 {
     private const int MaxLinkLength = 16_384;
     private const int MaxPayloadTextLength = 12_000;
+    private const int PairingJsonMaxDepth = 16;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
-        MaxDepth = 16
+        MaxDepth = PairingJsonMaxDepth
     };
 
     public static string Encode(PairingPayload payload)
@@ -46,10 +47,12 @@ public static class PairingCodec
             var decoded = Base64UrlDecode(encoded);
             if (decoded.Length > ProtocolConstants.HeaderLimitBytes)
                 throw new FormatException("Pairing payload is too large.");
+
+            StrictJsonGuard.Validate(decoded, PairingJsonMaxDepth);
             payload = JsonSerializer.Deserialize<PairingPayload>(decoded, Json)
                 ?? throw new FormatException("Pairing payload is invalid.");
         }
-        catch (Exception ex) when (ex is FormatException or JsonException)
+        catch (Exception ex) when (ex is FormatException or JsonException or InvalidDataException)
         {
             throw new FormatException("Pairing payload is invalid.", ex);
         }
