@@ -19,14 +19,17 @@ public partial class MainPage
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Shared pairing link rejected", ex.Message, "OK");
+                await DisplayAlert(
+                    AppText.Get("SharedPairingLinkRejected"),
+                    ex.Message,
+                    AppText.Get("Ok"));
             }
         }
 
         if (!string.IsNullOrWhiteSpace(input.SharedText))
         {
             TextSnippetEditor.Text = input.SharedText;
-            TextTransferStatusLabel.Text = "Text was received from the platform share or drop surface. Review it before sending.";
+            _viewModel.TextTransferStatus = AppText.Get("ExternalTextReviewStatus");
         }
 
         if (input.SharedFiles.Count > 0)
@@ -39,14 +42,16 @@ public partial class MainPage
 
             var folderCount = _selectedBatchFiles.Count(x => Directory.Exists(x.FullPath));
             var fileCount = _selectedBatchFiles.Length - folderCount;
-            SelectedBatchLabel.Text = _selectedBatchFiles.Length switch
+            _viewModel.SelectedBatch = _selectedBatchFiles.Length switch
             {
-                0 => "Shared files or folders were unavailable",
-                1 when folderCount == 1 => $"Shared folder: {new DirectoryInfo(_selectedBatchFiles[0].FullPath).Name}",
-                1 => $"Shared file: {_selectedBatchFiles[0].FileName}",
-                _ => $"{fileCount:N0} shared file(s) and {folderCount:N0} folder(s) ready to send"
+                0 => AppText.Get("SharedSourcesUnavailable"),
+                1 when folderCount == 1 => AppText.Format(
+                    "SharedFolderFormat",
+                    new DirectoryInfo(_selectedBatchFiles[0].FullPath).Name),
+                1 => AppText.Format("SharedFileFormat", _selectedBatchFiles[0].FileName),
+                _ => AppText.Format("SharedSourcesReadyFormat", fileCount, folderCount)
             };
-            BatchTransferStatusLabel.Text = "Shared/dropped sources are selected locally. Review the selection and verify a receiving device before sending.";
+            _viewModel.BatchTransferStatus = AppText.Get("ExternalSourcesReviewStatus");
         }
     }
 }
