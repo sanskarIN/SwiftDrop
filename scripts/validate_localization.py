@@ -5,26 +5,12 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 PAIRS = [
-    (
-        ROOT / "src/SwiftDrop.App/Resources/Strings/AppStrings.resx",
-        ROOT / "src/SwiftDrop.App/Resources/Strings/AppStrings.hi.resx",
-    ),
-    (
-        ROOT / "src/SwiftDrop.App/Resources/Strings/MainStrings.resx",
-        ROOT / "src/SwiftDrop.App/Resources/Strings/MainStrings.hi.resx",
-    ),
-    (
-        ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.resx",
-        ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.hi.resx",
-    ),
-    (
-        ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.resx",
-        ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.hi.resx",
-    ),
-    (
-        ROOT / "src/SwiftDrop.App/Resources/Strings/PlatformRuntimeStrings.resx",
-        ROOT / "src/SwiftDrop.App/Resources/Strings/PlatformRuntimeStrings.hi.resx",
-    ),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/AppStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/AppStrings.hi.resx"),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/MainStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/MainStrings.hi.resx"),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.hi.resx"),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.hi.resx"),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/PlatformRuntimeStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/PlatformRuntimeStrings.hi.resx"),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/BatchRuntimeStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/BatchRuntimeStrings.hi.resx"),
 ]
 
 
@@ -62,13 +48,9 @@ def main() -> int:
         missing_hindi = sorted(set(english) - set(hindi))
         extra_hindi = sorted(set(hindi) - set(english))
         if missing_hindi:
-            errors.append(
-                f"{hindi_path.relative_to(ROOT)} is missing keys: {', '.join(missing_hindi)}"
-            )
+            errors.append(f"{hindi_path.relative_to(ROOT)} is missing keys: {', '.join(missing_hindi)}")
         if extra_hindi:
-            errors.append(
-                f"{hindi_path.relative_to(ROOT)} has unmatched keys: {', '.join(extra_hindi)}"
-            )
+            errors.append(f"{hindi_path.relative_to(ROOT)} has unmatched keys: {', '.join(extra_hindi)}")
 
     if errors:
         for error in errors:
