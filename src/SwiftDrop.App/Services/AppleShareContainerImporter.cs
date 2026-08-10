@@ -108,11 +108,7 @@ public static class AppleShareContainerImporter
                 stagedPaths.Add(finalPath);
             }
 
-            if (!string.IsNullOrEmpty(manifest.Text))
-                ExternalInputInbox.SetSharedText(manifest.Text);
-            foreach (var stagedPath in stagedPaths)
-                ExternalInputInbox.AddSharedFile(stagedPath);
-
+            ExternalInputInbox.AddSharedBatch(manifest.Text, stagedPaths);
             DeleteBestEffort(safePackagePath);
             return ImportOutcome.Imported;
         }
