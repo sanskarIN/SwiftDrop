@@ -329,7 +329,11 @@ public static class MdnsCodec
                 var item = Encoding.UTF8.GetString(_data.Slice(Position, itemLength));
                 Position += itemLength;
                 var separator = item.IndexOf('=');
-                if (separator > 0) result[item[..separator]] = item[(separator + 1)..];
+                if (separator <= 0) continue;
+                var key = item[..separator];
+                var value = item[(separator + 1)..];
+                if (!result.TryAdd(key, value))
+                    throw new InvalidDataException("Duplicate mDNS TXT key.");
             }
             return result;
         }
