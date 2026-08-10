@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="HistoryError" xml:space="preserve"><value>इतिहास त्रुटि</value></data>
+  <data name="DeleteHistoryItem" xml:space="preserve"><value>इतिहास रिकॉर्ड हटाएँ</value></data>
+  <data name="DeleteHistoryItemMessage" xml:space="preserve"><value>यह स्थानीय इतिहास रिकॉर्ड हटाएँ? इससे ट्रांसफ़र की गई या प्राप्त सामग्री नहीं हटेगी।</value></data>
+  <data name="ClearHistoryQuestion" xml:space="preserve"><value>इतिहास साफ़ करें</value></data>
+  <data name="ClearHistoryMessage" xml:space="preserve"><value>सारा स्थानीय ट्रांसफ़र इतिहास हटाएँ? इससे प्राप्त फ़ाइलें नहीं हटेंगी।</value></data>
+  <data name="HistoryCountOne" xml:space="preserve"><value>1 स्थानीय इतिहास रिकॉर्ड</value></data>
+  <data name="HistoryCountFormat" xml:space="preserve"><value>{0:N0} स्थानीय इतिहास रिकॉर्ड</value></data>
+  <data name="NoHistoryRecords" xml:space="preserve"><value>कोई स्थानीय इतिहास रिकॉर्ड नहीं</value></data>
+</root>
