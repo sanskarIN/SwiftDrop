@@ -29,6 +29,19 @@ public sealed class OneTimeAuthorizationStoreTests
     }
 
     [Fact]
+    public void TryConsume_RejectsImmediatelyAfterSubsecondExpiry()
+    {
+        var store = new OneTimeAuthorizationStore();
+        var now = DateTimeOffset.UtcNow;
+        var nonce = Nonce('J');
+        var expires = now.AddMilliseconds(250);
+        store.Register(nonce, expires, now);
+
+        Assert.False(store.TryConsume(nonce, expires.AddTicks(1)));
+        Assert.Equal(0, store.Count);
+    }
+
+    [Fact]
     public async Task TryConsume_ConcurrentCallersHaveSingleWinner()
     {
         var store = new OneTimeAuthorizationStore();
