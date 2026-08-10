@@ -26,17 +26,19 @@ public sealed class TransferCoordinator
     public Task<BatchSendResult> SendBatchAsync(
         PairingPayload remote,
         IEnumerable<string> paths,
+        string transferId,
         IProgress<BatchProgress>? progress,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(paths);
+        transferId = IncomingRequestPolicy.ValidateTransferId(transferId);
         var materialized = paths.ToArray();
         var label = materialized.Length == 1
             ? $"Send {Path.GetFileName(materialized[0])}"
             : $"Send {materialized.Length:N0} files";
         return _queue.ExecuteAsync(
             label,
-            token => SendBatchCoreAsync(remote, materialized, progress, token),
+            token => SendBatchCoreAsync(remote, materialized, transferId, progress, token),
             ct);
     }
 
@@ -92,11 +94,12 @@ public sealed class TransferCoordinator
     private async Task<BatchSendResult> SendBatchCoreAsync(
         PairingPayload remote,
         IEnumerable<string> paths,
+        string transferId,
         IProgress<BatchProgress>? progress,
         CancellationToken ct)
     {
         remote = await PrepareRemoteAsync(remote, ct);
-        var batch = await BatchTransferSourceBuilder.BuildAsync(paths, ct);
+        var batch = await BatchTransferSourceBuilder.BuildAsync(paths, transferId, ct);
         var entries = batch.Items.Select(x => x.Entry).ToArray();
         var request = ProtocolRequestFactory.CreateBatch(
             remote.Nonce,
@@ -188,7 +191,7 @@ public sealed class TransferCoordinator
         var skipped = batch.Items
             .Where(x => !acceptedPlans.ContainsKey(x.Entry.RelativePath))
             .ToArray();
-        return new BatchSendResult(completedSources, skipped);
+        return new BatchSendResult(batch.TransferId, completedSources, skipped);
     }
 
     private async Task SendTextCoreAsync(PairingPayload remote, string text, CancellationToken ct)
@@ -234,5 +237,6 @@ public sealed record BatchProgress(
 }
 
 public sealed record BatchSendResult(
+    string TransferId,
     IReadOnlyList<FileTransferSource> Completed,
     IReadOnlyList<FileTransferSource> Skipped);
