@@ -20,13 +20,19 @@ public partial class BatchApprovalPage : ContentPage
         _preview = preview;
         _rows = preview.Files.Select(BatchApprovalRow.FromEntry).ToArray();
         FilesList.ItemsSource = _rows;
-        SenderLabel.Text = $"From {preview.SenderDeviceName}\nCertificate: {Fingerprint.Pretty(preview.SenderCertificateFingerprint)}";
-        SummaryLabel.Text = $"{preview.FileCount:N0} files • {FormatBytes(preview.TotalBytes)} total";
+        SenderLabel.Text = AppText.Format(
+            "BatchSenderFormat",
+            preview.SenderDeviceName,
+            Fingerprint.Pretty(preview.SenderCertificateFingerprint));
+        SummaryLabel.Text = AppText.Format(
+            "BatchSummaryFormat",
+            preview.FileCount,
+            FormatBytes(preview.TotalBytes));
         RiskLabel.Text = preview.HighestRisk switch
         {
-            FileRiskLevel.High => "Warning: at least one selected item can execute code or install software. Review the list carefully.",
-            FileRiskLevel.Caution => "Caution: at least one selected item is an archive, disk image, or active-content file.",
-            _ => "No high-risk extension was identified. Extension checks are warnings only, not malware scanning."
+            FileRiskLevel.High => AppText.Get("BatchHighRiskWarning"),
+            FileRiskLevel.Caution => AppText.Get("BatchCautionWarning"),
+            _ => AppText.Get("BatchNormalWarning")
         };
         Disappearing += (_, _) => _completion.TrySetResult(IncomingBatchDecision.Reject);
     }
@@ -41,7 +47,10 @@ public partial class BatchApprovalPage : ContentPage
         var selected = _rows.Where(x => x.IsSelected).Select(x => x.RelativePath).ToHashSet(StringComparer.Ordinal);
         if (selected.Count == 0)
         {
-            await DisplayAlertAsync("Nothing selected", "Select at least one file or reject the transfer.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("NothingSelected"),
+                AppText.Get("NothingSelectedMessage"),
+                AppText.Get("Ok"));
             return;
         }
 
@@ -87,9 +96,9 @@ public partial class BatchApprovalPage : ContentPage
         public string SizeText => FormatBytes(SizeBytes);
         public string RiskText => Risk switch
         {
-            FileRiskLevel.High => "High-risk extension",
-            FileRiskLevel.Caution => "Caution extension",
-            _ => "Normal extension"
+            FileRiskLevel.High => AppText.Get("HighRiskExtension"),
+            FileRiskLevel.Caution => AppText.Get("CautionExtension"),
+            _ => AppText.Get("NormalExtension")
         };
 
         public bool IsSelected
