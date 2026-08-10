@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="SharedPairingLinkRejected" xml:space="preserve"><value>Shared pairing link rejected</value></data>
+  <data name="ExternalTextReviewStatus" xml:space="preserve"><value>Text was received from the platform share or drop surface. Review it before sending.</value></data>
+  <data name="SharedSourcesUnavailable" xml:space="preserve"><value>Shared files or folders were unavailable</value></data>
+  <data name="SharedFolderFormat" xml:space="preserve"><value>Shared folder: {0}</value></data>
+  <data name="SharedFileFormat" xml:space="preserve"><value>Shared file: {0}</value></data>
+  <data name="SharedSourcesReadyFormat" xml:space="preserve"><value>{0:N0} shared file(s) and {1:N0} folder(s) ready to send</value></data>
+  <data name="ExternalSourcesReviewStatus" xml:space="preserve"><value>Shared/dropped sources are selected locally. Review the selection and verify a receiving device before sending.</value></data>
+  <data name="FolderPickerUnavailableDetailed" xml:space="preserve"><value>This platform does not currently expose a SwiftDrop folder picker without broader storage integration. You can still choose multiple files or use a share surface where supported.</value></data>
+  <data name="FolderSelectedFormat" xml:space="preserve"><value>Folder: {0}</value></data>
+  <data name="FolderRecursiveStatus" xml:space="preserve"><value>The folder will be enumerated recursively when sending. Empty directories are not transferred because SwiftDrop transfers file content and relative paths.</value></data>
+  <data name="DeviceIdentityRefreshed" xml:space="preserve"><value>Device identity refreshed</value></data>
+  <data name="DeviceIdentityRefreshedFormat" xml:space="preserve"><value>SwiftDrop created a new local device ID and certificate because the previous certificate could not be safely reused ({0}). Other devices that trusted the previous certificate must pair with this device again. Received files, transfer history, and your local trusted-device list were not deleted.</value></data>
+</root>
