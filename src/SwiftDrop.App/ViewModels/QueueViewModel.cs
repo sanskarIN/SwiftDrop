@@ -38,7 +38,7 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
         var running = rows.Count(x => x.State == TransferQueueState.Running.ToString());
         var queued = rows.Count(x => x.State == TransferQueueState.Queued.ToString());
         var interrupted = rows.Count(x => x.State == TransferQueueState.Interrupted.ToString());
-        Status = $"{running:N0} running • {queued:N0} queued • {interrupted:N0} interrupted";
+        Status = AppText.Format("RunningCountFormat", running, queued, interrupted);
     }
 
     public async Task ClearFinishedAsync(CancellationToken ct = default)
@@ -69,10 +69,10 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
         {
             var timing = entry.State switch
             {
-                TransferQueueState.Queued => $"Queued {entry.CreatedUtc.LocalDateTime:T}",
-                TransferQueueState.Running => $"Started {entry.StartedUtc?.LocalDateTime:T}",
-                TransferQueueState.Interrupted => $"Interrupted {entry.FinishedUtc?.LocalDateTime:T}",
-                _ => $"Finished {entry.FinishedUtc?.LocalDateTime:T}"
+                TransferQueueState.Queued => AppText.Format("QueuedAtFormat", entry.CreatedUtc.LocalDateTime),
+                TransferQueueState.Running => AppText.Format("StartedAtFormat", entry.StartedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime),
+                TransferQueueState.Interrupted => AppText.Format("InterruptedAtFormat", entry.FinishedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime),
+                _ => AppText.Format("FinishedAtFormat", entry.FinishedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime)
             };
             return new QueueRow(entry.Label, entry.State.ToString(), timing, entry.Error ?? string.Empty);
         }
