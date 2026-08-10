@@ -1,3 +1,4 @@
+using SwiftDrop.App.Services;
 using SwiftDrop.App.ViewModels;
 
 namespace SwiftDrop.App;
@@ -16,8 +17,14 @@ public partial class HistoryPage : ContentPage
 
     private async Task LoadAsync()
     {
-        try { await _viewModel.RefreshAsync(); }
-        catch (Exception ex) { await DisplayAlertAsync("History error", ex.Message, "OK"); }
+        try
+        {
+            await _viewModel.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync(AppText.Get("HistoryError"), ex.Message, AppText.Get("Ok"));
+        }
     }
 
     private async void RefreshClicked(object? sender, EventArgs e) => await LoadAsync();
@@ -26,10 +33,10 @@ public partial class HistoryPage : ContentPage
     {
         if (sender is not Button button || button.CommandParameter is not string id) return;
         var confirm = await DisplayAlertAsync(
-            "Delete history item",
-            "Delete this local history record? This does not delete transferred or received content.",
-            "Delete",
-            "Cancel");
+            AppText.Get("DeleteHistoryItem"),
+            AppText.Get("DeleteHistoryItemMessage"),
+            AppText.Get("Delete"),
+            AppText.Get("Cancel"));
         if (!confirm) return;
         await _viewModel.DeleteAsync(id);
     }
@@ -37,10 +44,10 @@ public partial class HistoryPage : ContentPage
     private async void ClearClicked(object? sender, EventArgs e)
     {
         var confirm = await DisplayAlertAsync(
-            "Clear history",
-            "Delete all local transfer history? This does not delete received files.",
-            "Clear",
-            "Cancel");
+            AppText.Get("ClearHistoryQuestion"),
+            AppText.Get("ClearHistoryMessage"),
+            AppText.Get("Clear"),
+            AppText.Get("Cancel"));
         if (!confirm) return;
         await _viewModel.ClearAsync();
     }
