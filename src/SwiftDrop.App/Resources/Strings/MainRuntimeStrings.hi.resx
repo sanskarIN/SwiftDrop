@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="CertificateFormat" xml:space="preserve"><value>सर्टिफिकेट: {0}</value></data>
+  <data name="StartupError" xml:space="preserve"><value>स्टार्टअप त्रुटि</value></data>
+  <data name="IncomingTransfer" xml:space="preserve"><value>आने वाला ट्रांसफ़र</value></data>
+  <data name="IncomingTransferFormat" xml:space="preserve"><value>भेजने वाला: {0}&#10;फ़ाइल: {1}&#10;आकार: {2:N0} बाइट&#10;सर्टिफिकेट: {3}{4}&#10;&#10;SwiftDrop प्राप्त फ़ाइलों को कभी अपने-आप नहीं खोलता।</value></data>
+  <data name="HighRiskWarning" xml:space="preserve"><value>&#10;&#10;चेतावनी: यह एक्सटेंशन कोड चला सकता है या सॉफ़्टवेयर इंस्टॉल कर सकता है।</value></data>
+  <data name="CautionRiskWarning" xml:space="preserve"><value>&#10;&#10;सावधानी: यह एक्सटेंशन archive या active content रख सकता है।</value></data>
+  <data name="TrustThisDeviceQuestion" xml:space="preserve"><value>इस डिवाइस पर भरोसा करें?</value></data>
+  <data name="TrustThisDeviceMessage" xml:space="preserve"><value>Trust करने पर यह सटीक device ID और certificate fingerprint स्थानीय रूप से सहेजा जाता है। आप इसे Settings से बाद में हटा सकते हैं।</value></data>
+  <data name="TrustDevice" xml:space="preserve"><value>डिवाइस पर भरोसा करें</value></data>
+  <data name="NotNow" xml:space="preserve"><value>अभी नहीं</value></data>
+  <data name="NearbyPairingRequest" xml:space="preserve"><value>नज़दीकी पेयरिंग अनुरोध</value></data>
+  <data name="NearbyPairingRequestFormat" xml:space="preserve"><value>{0} पेयर होना चाहता है।&#10;&#10;भेजने वाले का सर्टिफिकेट:&#10;{1}&#10;&#10;इस डिवाइस का सर्टिफिकेट:&#10;{2}&#10;&#10;केवल तभी स्वीकृत करें जब आपने यह पेयरिंग शुरू की हो।</value></data>
+  <data name="Approve" xml:space="preserve"><value>स्वीकृत करें</value></data>
+  <data name="TextFromFormat" xml:space="preserve"><value>{0} से टेक्स्ट&#10;सर्टिफिकेट: {1}&#10;{2:N0} अक्षर&#10;&#10;{3}</value></data>
+  <data name="AcceptAndCopy" xml:space="preserve"><value>स्वीकार करें और कॉपी करें</value></data>
+  <data name="TextSnippetHistoryLabel" xml:space="preserve"><value>टेक्स्ट स्निपेट</value></data>
+  <data name="ApplyingReceiveFolder" xml:space="preserve"><value>नया receive folder लागू किया जा रहा है… सक्रिय आने वाले ट्रांसफ़र बाधित हो सकते हैं।</value></data>
+  <data name="ReceiveFolderError" xml:space="preserve"><value>Receive folder त्रुटि</value></data>
+  <data name="ReceiveFolderFormat" xml:space="preserve"><value>Receive folder: {0}</value></data>
+  <data name="ReadyToReceiveFormat" xml:space="preserve"><value>{0} में प्राप्त करने के लिए तैयार</value></data>
+  <data name="PairingCodeExpiryFormat" xml:space="preserve"><value>{0:T} पर समाप्त होगा। केवल एक बार उपयोग योग्य।</value></data>
+  <data name="PairingLinkShareTitle" xml:space="preserve"><value>SwiftDrop पेयरिंग लिंक</value></data>
+  <data name="ConfirmDeviceFingerprint" xml:space="preserve"><value>डिवाइस फिंगरप्रिंट की पुष्टि करें</value></data>
+  <data name="VerifyFingerprintFormat" xml:space="preserve"><value>प्राप्त करने वाले डिवाइस पर इस फिंगरप्रिंट की पुष्टि करें:&#10;&#10;{0}</value></data>
+  <data name="IVerifiedIt" xml:space="preserve"><value>मैंने सत्यापित किया</value></data>
+  <data name="RemotePeerFormat" xml:space="preserve"><value>{0} • {1}:{2}&#10;फिंगरप्रिंट: {3}</value></data>
+  <data name="VerifiedInvitationStatus" xml:space="preserve"><value>इस एक-बार उपयोग वाले निमंत्रण के लिए सत्यापित।</value></data>
+  <data name="PairingCancelledStatus" xml:space="preserve"><value>पेयरिंग रद्द हुई। तैयार होने पर नया निमंत्रण बनाएँ।</value></data>
+  <data name="ChooseFileToSend" xml:space="preserve"><value>भेजने के लिए फ़ाइल चुनें</value></data>
+  <data name="NoFileSelected" xml:space="preserve"><value>कोई फ़ाइल चयनित नहीं</value></data>
+  <data name="ChooseFilesToSend" xml:space="preserve"><value>भेजने के लिए फ़ाइलें चुनें</value></data>
+  <data name="NoBatchSelected" xml:space="preserve"><value>कोई बैच चयनित नहीं</value></data>
+  <data name="FilesSelectedFormat" xml:space="preserve"><value>{0:N0} फ़ाइलें चयनित</value></data>
+  <data name="FileSelectionFailed" xml:space="preserve"><value>फ़ाइल चयन विफल</value></data>
+  <data name="FileRequired" xml:space="preserve"><value>फ़ाइल आवश्यक है</value></data>
+  <data name="ChooseFileFirst" xml:space="preserve"><value>पहले एक फ़ाइल चुनें।</value></data>
+  <data name="FilesRequired" xml:space="preserve"><value>फ़ाइलें आवश्यक हैं</value></data>
+  <data name="ChooseFilesFirst" xml:space="preserve"><value>पहले एक या अधिक फ़ाइलें चुनें।</value></data>
+  <data name="DeviceRequired" xml:space="preserve"><value>डिवाइस आवश्यक है</value></data>
+  <data name="FreshPairingInvitationFirst" xml:space="preserve"><value>पहले नया पेयरिंग निमंत्रण सत्यापित करें।</value></data>
+  <data name="ResumeUnavailable" xml:space="preserve"><value>Resume उपलब्ध नहीं है</value></data>
+  <data name="SourceFileUnavailable" xml:space="preserve"><value>मूल source फ़ाइल अब उपलब्ध नहीं है।</value></data>
+  <data name="BatchFilesUnavailable" xml:space="preserve"><value>मूल बैच फ़ाइलें अब उपलब्ध नहीं हैं।</value></data>
+  <data name="FreshPairingRequired" xml:space="preserve"><value>नई पेयरिंग आवश्यक है</value></data>
+  <data name="FreshPairingResumeMessage" xml:space="preserve"><value>उसी रिसीवर से फिर पेयर करें, उसका फिंगरप्रिंट सत्यापित करें, फिर Resume दबाएँ।</value></data>
+  <data name="SendingStatus" xml:space="preserve"><value>भेजा जा रहा है…</value></data>
+  <data name="ResumingStatus" xml:space="preserve"><value>Resume किया जा रहा है…</value></data>
+  <data name="CompletedVerifiedStatus" xml:space="preserve"><value>पूरा और सत्यापित। दूसरा ट्रांसफ़र करने के लिए फिर पेयर करें।</value></data>
+  <data name="PausedResumeStatus" xml:space="preserve"><value>रुका हुआ। उसी रिसीवर से फिर पेयर करें, फिर Resume दबाएँ।</value></data>
+  <data name="CancelledStatus" xml:space="preserve"><value>रद्द किया गया।</value></data>
+  <data name="FailedStatus" xml:space="preserve"><value>विफल।</value></data>
+  <data name="FailedSafeResumeStatus" xml:space="preserve"><value>सुरक्षित रूप से विफल। फिर पेयर करें और उपलब्ध partial offset का उपयोग करने के लिए Resume दबाएँ।</value></data>
+  <data name="TransferFailed" xml:space="preserve"><value>ट्रांसफ़र विफल</value></data>
+  <data name="PreparingChecksums" xml:space="preserve"><value>चेकसम तैयार किए जा रहे हैं…</value></data>
+  <data name="PreparingResumeChecksums" xml:space="preserve"><value>Resume चेकसम तैयार किए जा रहे हैं…</value></data>
+  <data name="Calculating" xml:space="preserve"><value>गणना हो रही है</value></data>
+  <data name="BatchProgressFormat" xml:space="preserve"><value>{0}/{1} फ़ाइलें • {2}/{3} • {4}/s • ETA {5}&#10;{6}</value></data>
+  <data name="BatchCompletedFormat" xml:space="preserve"><value>{0:N0} फ़ाइलें पूरी; रिसीवर ने {1:N0} छोड़ीं। अगला ट्रांसफ़र करने के लिए फिर पेयर करें।</value></data>
+  <data name="BatchCancelledStatus" xml:space="preserve"><value>बैच रद्द किया गया।</value></data>
+  <data name="BatchFailedStatus" xml:space="preserve"><value>बैच विफल।</value></data>
+  <data name="BatchFailedSafeResumeStatus" xml:space="preserve"><value>बैच सुरक्षित रूप से विफल। फिर पेयर करें और Resume दबाएँ।</value></data>
+  <data name="BatchTransferFailed" xml:space="preserve"><value>बैच ट्रांसफ़र विफल</value></data>
+  <data name="ClipboardReadOnce" xml:space="preserve"><value>आपकी स्पष्ट कार्रवाई पर क्लिपबोर्ड एक बार पढ़ा गया।</value></data>
+  <data name="ClipboardUnavailable" xml:space="preserve"><value>क्लिपबोर्ड उपलब्ध नहीं है</value></data>
+  <data name="TextRequired" xml:space="preserve"><value>टेक्स्ट आवश्यक है</value></data>
+  <data name="TextRequiredMessage" xml:space="preserve"><value>पहले टेक्स्ट लिखें या स्पष्ट रूप से पेस्ट करें।</value></data>
+  <data name="SendingEncryptedText" xml:space="preserve"><value>एन्क्रिप्टेड टेक्स्ट भेजा जा रहा है…</value></data>
+  <data name="TextDelivered" xml:space="preserve"><value>टेक्स्ट पहुँच गया। अगला ट्रांसफ़र करने के लिए फिर पेयर करें।</value></data>
+  <data name="TextTransferFailed" xml:space="preserve"><value>टेक्स्ट ट्रांसफ़र विफल</value></data>
+  <data name="TextTransferFailedStatus" xml:space="preserve"><value>टेक्स्ट ट्रांसफ़र विफल।</value></data>
+  <data name="InvitationInUseFormat" xml:space="preserve"><value>{0} का निमंत्रण उपयोग में है। दूसरे ट्रांसफ़र या Resume के लिए फिर पेयर करें।</value></data>
+</root>
