@@ -30,7 +30,9 @@ public sealed class TrustedDevicesViewModel : ObservableObject
             .ToArray();
         Items.Clear();
         foreach (var row in rows) Items.Add(row);
-        Status = $"{rows.Length:N0} trusted device{(rows.Length == 1 ? string.Empty : "s")}";
+        Status = rows.Length == 1
+            ? AppText.Get("TrustedDeviceCountOne")
+            : AppText.Format("TrustedDeviceCountFormat", rows.Length);
     }
 
     public async Task RevokeAsync(string deviceId, CancellationToken ct = default)
@@ -57,6 +59,6 @@ public sealed class TrustedDevicesViewModel : ObservableObject
                 peer.DeviceId,
                 peer.DeviceName,
                 Fingerprint.Pretty(peer.CertificateFingerprint),
-                $"Trusted {peer.TrustedAtUtc.LocalDateTime:g} • Last seen {peer.LastSeenUtc.LocalDateTime:g}");
+                AppText.Format("TrustedAtFormat", peer.TrustedAtUtc.LocalDateTime, peer.LastSeenUtc.LocalDateTime));
     }
 }
