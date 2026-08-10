@@ -1,61 +1,68 @@
 # Platform Integration Status
 
-Updated: 2026-08-10
-
-This document describes source-level integration currently present in SwiftDrop. It does not replace target-platform compilation, signed packaging, physical-device validation, or store-policy review.
+This document describes source-level integration currently present in SwiftDrop. It does not replace signed package, store, or physical-device validation.
 
 ## Android
 
 Implemented in source:
 
-- Local-network TCP/TLS plus mDNS/UDP discovery permissions.
-- Reference-counted Wi-Fi multicast lock for mDNS operation.
+- Local TCP/TLS networking and mDNS/UDP discovery permissions.
+- Reference-counted Wi-Fi multicast lock for mDNS.
 - `swiftdrop://pair` protocol activation.
-- Inbound Android share intents for text, one file, or multiple files.
-- Shared content copied into bounded app-cache staging before SwiftDrop presents it for review/transfer.
+- `ACTION_SEND` / `ACTION_SEND_MULTIPLE` for text/files.
+- Content-URI staging with item/file limits, portable filename sanitation, provider-length checks where available, runtime byte limits when unavailable, capacity preflight, exact staging length checks, and cleanup on failure.
+- Atomic text+file handoff into the common review inbox.
 - Foreground data-sync service for active user-initiated queued transfers.
-- Ongoing generic low-priority foreground transfer notification.
-- Optional generic completion/failure notifications where enabled/supported.
-- No broad storage permission for normal picker/share workflows.
-- Android application backup explicitly disabled so app-local SwiftDrop metadata is not opted into Android app backup/restore.
-- Cleartext transport disabled.
+- Generic foreground transfer notification required by the platform lifecycle path.
+- Optional generic completion/failure notifications where supported/configured.
+- No broad legacy storage permission for ordinary picker/share flows.
+- Application backup disabled for SwiftDrop app-local metadata.
 
 Validation still required:
 
 - Supported Android API range on physical devices.
-- Current foreground-service and notification-policy behavior.
-- Vendor battery-management restrictions.
-- Notification permission deny/allow transitions.
+- Provider URIs with known/unknown size.
+- Foreground-service and notification behavior under current Android restrictions.
+- Vendor battery-management behavior.
 - Local-network multicast behavior on real Wi-Fi.
-- Very large files, many-file batches, storage pressure, sleep/lock, and network changes.
+- Large-file/low-storage/network-change behavior.
 
 ## iOS
 
 Implemented in source:
 
 - Local-network usage description.
-- Bonjour service declaration for `_swiftdrop._tcp`.
-- `swiftdrop://pair` URL handling.
-- Standard system file picker for outbound user-selected files.
-- Document/open-file declaration for `public.data`.
-- Incoming file URLs are copied under temporary security-scoped access into bounded SwiftDrop cache staging through the shared `ExternalFileStager` before they enter the normal review/send workflow.
-- Staging uses safe filenames, exact declared length, size limits, cancellation, and cleanup on failure.
+- Bonjour service declaration.
+- `swiftdrop://pair` activation.
+- Normal system file selection/document URL intake.
+- Containing-app App Group entitlement:
+  `group.in.sanskar.swiftdrop`.
+- Dedicated `SwiftDrop.ShareExtension` target for files/images/movies/text/web URLs.
+- Share Extension App Group entitlement matching the containing app.
+- Strict versioned App Group package manifest validated by `SwiftDrop.Core`.
+- Atomic extension publication from `.staging-*` to `pending-*`.
+- Containing-app import of pending packages on launch/foreground activation.
+- Stale extension staging cleanup.
+- Strict JSON/unknown-field/package-age/path/item-size/aggregate-size validation.
+- Rejection of symlink/reparse package/files where represented by the filesystem.
+- Re-staging accepted package files into the app's normal bounded cache before review.
+- No automatic send after extension import.
 
-Conservative current boundary:
+Conservative lifecycle boundary:
 
-- SwiftDrop does not claim arbitrary long-running background socket transfer on iOS.
-- A dedicated first-class iOS Share Extension target for arbitrary inbound files/text is still not included.
-- Opening a document/file URL is implemented; that is not presented as equivalent to a Share Extension.
-- Background behavior must respect iOS lifecycle/energy/store policy.
+- SwiftDrop does not claim arbitrary long-running background TCP sockets survive iOS suspension.
+- Share Extension work is bounded and completes into App Group handoff rather than attempting a background transfer from the extension.
 
 Validation still required:
 
-- Local-network permission prompt denied/allowed behavior.
+- Apple Developer App Group capability and provisioning profiles for app + extension.
+- Signed physical-device Share Extension appearance/activation behavior.
+- Local-network permission prompt behavior.
 - Bonjour discovery on physical devices.
-- URL/document activation across cold/warm starts.
-- Security-scoped file access under signed sandboxed builds.
-- Transfer interruption during lifecycle/sleep/lock changes.
-- Real file-provider/iCloud Drive/third-party document-provider cases.
+- URL activation across cold/warm starts.
+- App Group handoff across cold/warm main-app activation.
+- Transfer interruption during foreground/background/sleep transitions.
+- TestFlight/App Store package embedding of the extension.
 
 ## macOS / Mac Catalyst
 
@@ -63,76 +70,85 @@ Implemented in source:
 
 - Local-network usage description.
 - Bonjour service declaration.
-- `swiftdrop://pair` URL handling.
-- Standard MAUI file selection/direct local transfer.
-- Document/open-file declaration for `public.data`.
-- Incoming file URLs use the same bounded security-scoped staging path as iOS.
-- Explicit Mac Catalyst app-sandbox entitlements with network client and network server capabilities.
-
-Conservative current boundary:
-
-- A first-class native Mac Catalyst file/folder/text drag-and-drop surface is still not implemented.
-- A dedicated inbound Apple Share Extension target is not included.
-- Security-scoped access is intentionally held only for staging; SwiftDrop does not retain broad file-provider access.
+- `swiftdrop://pair` activation.
+- MAUI file selection/document URL intake.
+- App sandbox entitlement.
+- Network client/server entitlements for local LAN transport.
+- Same App Group entitlement as the Apple Share Extension.
+- Dedicated Share Extension target for bounded file/text/URL handoff.
+- Native `UIDropInteraction` on the main MAUI surface.
+- Finder files/folders, text, and pairing-link drop support.
+- Temporary security-scoped access during native staging.
+- Symlink/reparse rejection for dropped files/folders.
+- Per-file/count/aggregate bounds and storage preflight.
+- Portable name sanitation plus collision deconfliction for staged files/directories.
+- Common review-inbox handoff; no automatic transfer.
 
 Validation still required:
 
-- macOS firewall prompts/inbound server behavior.
+- Signed sandbox/App Group entitlement acceptance.
+- Mac firewall prompts and inbound server behavior.
 - Bonjour discovery across supported macOS versions.
-- Signed sandbox behavior using the committed entitlements.
-- Document/file URL activation and security-scoped staging under release signing/notarization.
-- File-provider behavior and large-file staging.
+- Share Extension embedding/activation under release signing.
+- Finder file/folder drops under release sandbox.
+- Security-scoped URL behavior for external volumes/providers.
+- App notarization/store packaging.
 
 ## Windows
 
 Implemented in source:
 
-- `privateNetworkClientServer` package capability.
-- No general `internetClient` capability in the current package manifest; protocol v1 rejects public/DNS peer destinations.
+- Private-network client/server capability.
+- No general Internet-client capability for protocol-v1 local-only transfer.
 - `swiftdrop` protocol registration and activation routing.
-- Native system FolderPicker integration for choosing a receive/folder-transfer location.
-- WinUI desktop drag-and-drop for files, folders, text, and SwiftDrop pairing links through the bounded `ExternalInputInbox` pipeline.
-- Direct local transfer over the same pinned mutual-TLS protocol as other platforms.
+- Native system FolderPicker for receive/folder-transfer location.
+- Native files/folders/text/pair-link drag-and-drop.
+- Atomic external-input handoff for dropped content.
+- Direct local TLS transfer using the same Core protocol as other platforms.
 
 Validation still required:
 
-- Packaged/unpackaged activation behavior.
-- Windows Firewall prompts/rules and private/public network profiles.
-- FolderPicker access persistence after packaging/signing/update.
-- Packaged native drag-and-drop.
+- Signed/package install and update behavior.
+- Windows Firewall prompts/rules.
+- FolderPicker persistence after packaging/signing.
+- Protocol registration across install/update.
+- Drag/drop under packaged release runtime.
 - IPv4/IPv6 LAN combinations.
-- Signed MSIX clean install/update/uninstall.
 
-## Cross-platform behavior
+## Cross-platform shared behavior
 
-Implemented consistently in shared/source code:
+Implemented consistently in shared code/services:
 
-- Account-free local-first transfer path with no SwiftDrop-operated cloud relay.
-- Receiver certificate pinning and sender client-certificate presentation.
-- Strict pairing invitation validation including strict decoded JSON duplicate-property rejection.
-- Bounded exact-precision one-time pairing authorization with atomic consume/replay rejection.
-- Trusted-device metadata stored locally with canonical SHA-256 fingerprint enforcement at the storage boundary.
-- Single/multi-file transfer, selective receive, collision handling, resumable partial files, SHA-256 verification, and resource limits.
-- Shared request/response protocol validation policies for request envelope/identity/transfer IDs/batch order and sender acknowledgement lengths/offsets.
-- Text transfer and explicit clipboard access only.
-- Local history/settings/diagnostics metadata only.
-- Privacy mode hides peer/file history labels and structurally redacts sensitive diagnostic identifiers.
-- Restart-safe queue metadata does not persist source paths, text contents, pairing authorization, peer addresses, credentials, or free-form exception messages.
-- English/Hindi resource catalogs cover primary/secondary XAML plus runtime dialog/status/consent/history/platform surfaces, with key and format-placeholder parity checked in CI.
-- Main, History, Queue, Devices, Trusted Devices, Diagnostics, Settings, and About presentation state use dedicated view models where appropriate; platform pickers/dialogs/navigation remain page-owned.
+- Account-free local-first path.
+- Receiver certificate pinning and sender client certificate.
+- Strict typed protocol requests/acks.
+- Case-insensitive duplicate JSON member rejection.
+- Unknown JSON member rejection.
+- Type-specific request shape validation.
+- One-time transfer authorization after authenticated client-certificate presence.
+- Certificate-bound trusted-device metadata.
+- Single/multi/folder/text transfer.
+- Selective receive.
+- Collision handling and non-overwrite final promotion.
+- Receive-root path confinement including portable rooted/traversal syntax and existing reparse/symlink component rejection.
+- `.swiftdrop.part` resume.
+- Stable batch IDs across pause/failure/retry.
+- Schema-v3 verified completed-file reuse for idempotent interrupted-batch resume.
+- SHA-256 integrity verification.
+- Queue/history/diagnostics/resume metadata only; transfer contents excluded from SQLite.
+- UTF-8-byte-bounded external text intake.
 
-## External platform gates
+## Source-complete vs release-validated
 
-The following remain external release requirements, not source-edit tasks:
+The current master-prompt source scope includes the previously missing Apple Share Extension and Mac Catalyst native drop implementations. That means those items are **implemented in source**, not yet **release-validated**.
 
-- Green platform compile/test workflows for the exact release candidate.
-- Physical Android/iOS/macOS/Windows directional transfer matrix.
-- Real firewall/guest-Wi-Fi/client-isolation/multicast-blocked behavior.
-- Sleep/lock/background/storage/network-change behavior.
-- Accessibility testing with TalkBack, VoiceOver, Narrator, keyboard-only navigation, large text, high contrast, and reduced motion.
-- Production signing/provisioning/notarization/store packaging.
-- Store privacy declarations/screenshots/metadata against final signed binaries.
+A platform is release-validated only after:
 
-## Release rule
+1. the exact candidate commit passes configured automated jobs;
+2. release workloads compile the app and any extension;
+3. real signing/provisioning/package identity succeeds;
+4. signed package install/upgrade works;
+5. physical-device/network/transfer/resume/accessibility validation passes;
+6. privacy/store declarations match the shipped binary.
 
-A platform is not release-validated merely because source exists or shared Core tests are configured. A production release must pass the relevant platform build workflow plus the physical/manual matrix in `docs/testing/manual-test-matrix.md` and `docs/release/release-checklist.md`.
+See `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, and `docs/release/release-checklist.md`.
