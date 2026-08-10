@@ -11,6 +11,7 @@ namespace SwiftDrop.ShareExtension;
 public sealed class ShareViewController : UIViewController
 {
     private const int CopyBufferSize = 128 * 1024;
+    private readonly CancellationTokenSource _lifetimeCts = new();
     private UILabel? _statusLabel;
     private int _started;
 
@@ -34,10 +35,26 @@ public sealed class ShareViewController : UIViewController
     {
         base.ViewDidAppear(animated);
         if (Interlocked.Exchange(ref _started, 1) != 0) return;
-        _ = ProcessShareAsync();
+        _ = ProcessShareAsync(_lifetimeCts.Token);
     }
 
-    private async Task ProcessShareAsync()
+    public override void ViewDidDisappear(bool animated)
+    {
+        _lifetimeCts.Cancel();
+        base.ViewDidDisappear(animated);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _lifetimeCts.Cancel();
+            _lifetimeCts.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+
+    private async Task ProcessShareAsync(CancellationToken ct)
     {
         var temporaryRoots = new HashSet<string>(StringComparer.Ordinal);
         try
@@ -45,17 +62,22 @@ public sealed class ShareViewController : UIViewController
             var context = ExtensionContext ?? throw new InvalidOperationException("Share extension context is unavailable.");
             var sources = new List<AppleSharedFileSource>();
             var texts = new List<string>();
+            var providerCount = 0;
 
-            foreach (var input in context.InputItems.OfType<NSExtensionItem>())
+            foreach (var input in context.InputItems.OfType<NSExtensionItem>().Take(ExternalSharePackageConstants.MaximumItems))
             {
-                if (!string.IsNullOrWhiteSpace(input.AttributedContentText?.Value))
-                    texts.Add(input.AttributedContentText!.Value);
+                ct.ThrowIfCancellationRequested();
+                var attributedText = input.AttributedContentText?.Value;
+                if (!string.IsNullOrWhiteSpace(attributedText)) texts.Add(attributedText);
 
                 foreach (var provider in input.Attachments ?? Array.Empty<NSItemProvider>())
                 {
+                    ct.ThrowIfCancellationRequested();
+                    if (++providerCount > ExternalSharePackageConstants.MaximumItems * 2) break;
                     if (sources.Count >= ExternalSharePackageConstants.MaximumItems) break;
 
                     var sharedFile = await TryLoadProviderFileAsync(provider, temporaryRoots);
+                    ct.ThrowIfCancellationRequested();
                     if (sharedFile is not null)
                     {
                         sources.Add(sharedFile);
@@ -63,6 +85,7 @@ public sealed class ShareViewController : UIViewController
                     }
 
                     var text = await TryLoadProviderTextAsync(provider);
+                    ct.ThrowIfCancellationRequested();
                     if (!string.IsNullOrWhiteSpace(text)) texts.Add(text);
                 }
             }
@@ -71,8 +94,12 @@ public sealed class ShareViewController : UIViewController
             if (sources.Count == 0 && string.IsNullOrWhiteSpace(combinedText))
                 throw new InvalidDataException("The selected share contains no supported file or text content.");
 
-            await AppleSharePackageWriter.WriteAsync(sources, combinedText);
+            await AppleSharePackageWriter.WriteAsync(sources, combinedText, ct);
             SetStatus("Added to SwiftDrop. Open SwiftDrop to review and send.");
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            SetStatus("SwiftDrop share cancelled.");
         }
         catch
         {
@@ -81,7 +108,7 @@ public sealed class ShareViewController : UIViewController
         finally
         {
             foreach (var root in temporaryRoots) DeleteBestEffort(root);
-            await Task.Delay(450);
+            try { await Task.Delay(450, CancellationToken.None); } catch { }
             BeginInvokeOnMainThread(() =>
                 ExtensionContext?.CompleteRequest(Array.Empty<NSExtensionItem>(), _ => { }));
         }
