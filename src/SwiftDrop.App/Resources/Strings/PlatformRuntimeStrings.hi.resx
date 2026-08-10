@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="SharedPairingLinkRejected" xml:space="preserve"><value>साझा पेयरिंग लिंक अस्वीकार किया गया</value></data>
+  <data name="ExternalTextReviewStatus" xml:space="preserve"><value>टेक्स्ट प्लेटफ़ॉर्म share/drop सतह से मिला है। भेजने से पहले इसकी समीक्षा करें।</value></data>
+  <data name="SharedSourcesUnavailable" xml:space="preserve"><value>साझा फ़ाइलें या फ़ोल्डर उपलब्ध नहीं हैं</value></data>
+  <data name="SharedFolderFormat" xml:space="preserve"><value>साझा फ़ोल्डर: {0}</value></data>
+  <data name="SharedFileFormat" xml:space="preserve"><value>साझा फ़ाइल: {0}</value></data>
+  <data name="SharedSourcesReadyFormat" xml:space="preserve"><value>{0:N0} साझा फ़ाइलें और {1:N0} फ़ोल्डर भेजने के लिए तैयार हैं</value></data>
+  <data name="ExternalSourcesReviewStatus" xml:space="preserve"><value>साझा/ड्रॉप किए गए स्रोत स्थानीय रूप से चुने गए हैं। भेजने से पहले चयन की समीक्षा करें और प्राप्त करने वाले डिवाइस को सत्यापित करें।</value></data>
+  <data name="FolderPickerUnavailableDetailed" xml:space="preserve"><value>यह प्लेटफ़ॉर्म व्यापक स्टोरेज एकीकरण के बिना SwiftDrop फ़ोल्डर पिकर उपलब्ध नहीं कराता। आप कई फ़ाइलें चुन सकते हैं या जहाँ समर्थित हो वहाँ share सतह का उपयोग कर सकते हैं।</value></data>
+  <data name="FolderSelectedFormat" xml:space="preserve"><value>फ़ोल्डर: {0}</value></data>
+  <data name="FolderRecursiveStatus" xml:space="preserve"><value>भेजते समय फ़ोल्डर को पुनरावर्ती रूप से पढ़ा जाएगा। खाली फ़ोल्डर ट्रांसफ़र नहीं होते क्योंकि SwiftDrop फ़ाइल सामग्री और relative paths ट्रांसफ़र करता है।</value></data>
+  <data name="DeviceIdentityRefreshed" xml:space="preserve"><value>डिवाइस पहचान ताज़ा की गई</value></data>
+  <data name="DeviceIdentityRefreshedFormat" xml:space="preserve"><value>SwiftDrop ने नया स्थानीय device ID और certificate बनाया क्योंकि पिछला certificate सुरक्षित रूप से पुनः उपयोग नहीं किया जा सका ({0})। जिन अन्य डिवाइसों ने पुराने certificate पर भरोसा किया था, उन्हें फिर से पेयर करना होगा। प्राप्त फ़ाइलें, ट्रांसफ़र इतिहास और आपकी स्थानीय trusted-device सूची नहीं हटाई गई।</value></data>
+</root>
