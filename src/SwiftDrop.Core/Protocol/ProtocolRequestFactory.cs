@@ -71,8 +71,7 @@ public static class ProtocolRequestFactory
     {
         IncomingRequestPolicy.ValidateEnvelope(ProtocolConstants.CurrentVersion, "pair-request");
         IncomingRequestPolicy.ValidateSenderIdentity(senderDeviceId, senderDeviceName);
-        if (pairingCode is not null && (pairingCode.Length != 8 || pairingCode.Any(ch => ch is < '0' or > '9')))
-            throw new InvalidDataException("Pairing code must contain exactly 8 digits.");
+        IncomingRequestPolicy.ValidatePairingCode(pairingCode, required: false);
         return new ProtocolRequest(
             "pair-request",
             ProtocolConstants.CurrentVersion,
@@ -90,14 +89,6 @@ public static class ProtocolRequestFactory
     {
         IncomingRequestPolicy.ValidateEnvelope(ProtocolConstants.CurrentVersion, type);
         IncomingRequestPolicy.ValidateSenderIdentity(senderDeviceId, senderDeviceName);
-        ValidatePairingNonce(pairingNonce);
-    }
-
-    private static void ValidatePairingNonce(string value)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value);
-        if (value.Length is < 16 or > 128 ||
-            value.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch is not '-' and not '_'))
-            throw new InvalidDataException("Pairing authorization nonce is invalid.");
+        IncomingRequestPolicy.ValidatePairingNonce(pairingNonce);
     }
 }
