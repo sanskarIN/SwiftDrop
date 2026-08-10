@@ -1,4 +1,5 @@
 using SwiftDrop.Core.Security;
+using SwiftDrop.Core.Storage;
 
 namespace SwiftDrop.Core.Transfer;
 
@@ -23,6 +24,8 @@ public static class ExternalFileStager
 
         var root = Path.GetFullPath(destinationRoot);
         Directory.CreateDirectory(root);
+        StorageCapacityGuard.EnsureCapacity(root, source.Length);
+
         var safeName = FileNameSanitizer.SanitizeSegment(source.Name);
         var destination = Path.Combine(root, $"{Guid.NewGuid():N}-{safeName}");
         var expectedLength = source.Length;
