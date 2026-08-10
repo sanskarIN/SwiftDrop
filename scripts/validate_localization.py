@@ -17,6 +17,10 @@ PAIRS = [
         ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.resx",
         ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.hi.resx",
     ),
+    (
+        ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.resx",
+        ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.hi.resx",
+    ),
 ]
 
 
