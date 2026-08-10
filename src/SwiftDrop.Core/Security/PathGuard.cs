@@ -21,6 +21,37 @@ public static class PathGuard
         return full;
     }
 
+    public static string EnsureNoReparsePointsUnderRoot(string root, string relativePath)
+    {
+        var full = ResolveUnderRoot(root, relativePath);
+        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var relative = Path.GetRelativePath(normalizedRoot, full);
+        var current = normalizedRoot;
+
+        foreach (var segment in relative.Split(
+                     [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, segment);
+            try
+            {
+                var attributes = File.GetAttributes(current);
+                if ((attributes & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException("Receive paths cannot traverse symbolic links or reparse points.");
+            }
+            catch (FileNotFoundException)
+            {
+                // A not-yet-created child is safe at this instant; callers recheck after creating parents.
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // Remaining descendants cannot exist before the missing parent is created.
+            }
+        }
+
+        return full;
+    }
+
     public static string GetCollisionFreePath(string path)
     {
         if (!File.Exists(path) && !Directory.Exists(path)) return path;
