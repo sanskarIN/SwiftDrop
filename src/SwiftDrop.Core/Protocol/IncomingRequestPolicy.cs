@@ -26,6 +26,27 @@ public static class IncomingRequestPolicy
             throw new InvalidDataException("Invalid sender device name.");
     }
 
+    public static string ValidatePairingNonce(string? pairingNonce)
+    {
+        if (string.IsNullOrWhiteSpace(pairingNonce) ||
+            pairingNonce.Length is < 16 or > 128 ||
+            pairingNonce.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch is not '-' and not '_'))
+            throw new InvalidDataException("Pairing authorization nonce is invalid.");
+        return pairingNonce;
+    }
+
+    public static string ValidatePairingCode(string? pairingCode, bool required)
+    {
+        if (string.IsNullOrWhiteSpace(pairingCode))
+        {
+            if (required) throw new InvalidDataException("An eight-digit pairing code is required.");
+            return string.Empty;
+        }
+        if (pairingCode.Length != 8 || pairingCode.Any(ch => ch is < '0' or > '9'))
+            throw new InvalidDataException("Pairing code must contain exactly eight digits.");
+        return pairingCode;
+    }
+
     public static string ValidateTransferId(string? transferId)
     {
         if (string.IsNullOrWhiteSpace(transferId) || transferId.Length > 128 || transferId.Any(char.IsControl))
