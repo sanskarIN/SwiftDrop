@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
@@ -129,6 +131,38 @@ public sealed class PairingCodecTests
     }
 
     [Fact]
+    public void Decode_RejectsDuplicateJsonProperty()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var json = SerializePayload(CreateValid(now)).TrimEnd('}');
+        var link = BuildRawPayloadLink(json + ",\"version\":\"999\"}");
+
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(link, now));
+    }
+
+    [Fact]
+    public void Decode_RejectsCaseVariantDuplicateJsonProperty()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var json = SerializePayload(CreateValid(now)).TrimEnd('}');
+        var link = BuildRawPayloadLink(json + ",\"Version\":\"999\"}");
+
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(link, now));
+    }
+
+    [Fact]
+    public void Decode_RejectsJsonCommentsAndTrailingCommas()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var json = SerializePayload(CreateValid(now));
+        var commented = BuildRawPayloadLink("/*comment*/" + json);
+        var trailing = BuildRawPayloadLink(json.TrimEnd('}') + ",}");
+
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(commented, now));
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(trailing, now));
+    }
+
+    [Fact]
     public void CreateNonce_ProducesBoundedBase64UrlEntropy()
     {
         var values = Enumerable.Range(0, 128).Select(_ => PairingCodec.CreateNonce()).ToArray();
@@ -138,6 +172,16 @@ public sealed class PairingCodecTests
             Assert.InRange(value.Length, 16, 128);
             Assert.All(value, ch => Assert.True(char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_'));
         });
+    }
+
+    private static string SerializePayload(PairingPayload payload)
+        => JsonSerializer.Serialize(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+    private static string BuildRawPayloadLink(string json)
+    {
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var encoded = Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        return $"swiftdrop://pair?p={encoded}";
     }
 
     private static PairingPayload CreateValid(DateTimeOffset now)
