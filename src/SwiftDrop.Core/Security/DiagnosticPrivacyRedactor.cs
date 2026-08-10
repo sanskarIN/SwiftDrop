@@ -31,7 +31,7 @@ public static class DiagnosticPrivacyRedactor
         var plain = value.Trim('[', ']');
         if (IPAddress.TryParse(plain, out _)) return true;
 
-        if (value.StartsWith('[', StringComparison.Ordinal))
+        if (value.Length > 0 && value[0] == '[')
         {
             var close = value.IndexOf(']');
             if (close > 1 && IPAddress.TryParse(value[1..close], out _))
