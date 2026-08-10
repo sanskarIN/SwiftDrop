@@ -15,9 +15,9 @@ public static class DiagnosticPrivacyRedactor
     {
         var candidate = token.Trim('(', ')', '[', ']', '{', '}', ',', ';', '.', '"', '\'');
         if (candidate.Length == 0) return token;
-        if (candidate.Contains('@', StringComparison.Ordinal) ||
-            candidate.Contains('\\', StringComparison.Ordinal) ||
-            candidate.Contains('/', StringComparison.Ordinal) ||
+        if (candidate.Contains('@') ||
+            candidate.Contains('\\') ||
+            candidate.Contains('/') ||
             candidate.StartsWith("swiftdrop:", StringComparison.OrdinalIgnoreCase) ||
             Guid.TryParse(candidate, out _) ||
             IPAddress.TryParse(TrimIpv6Brackets(candidate), out _) ||
