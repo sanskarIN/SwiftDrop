@@ -16,6 +16,7 @@ public static class AppleExternalFileStager
         if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath)) return false;
 
         var accessGranted = false;
+        string? destination = null;
         try
         {
             accessGranted = url.StartAccessingSecurityScopedResource();
@@ -26,7 +27,7 @@ public static class AppleExternalFileStager
             var safeName = FileNameSanitizer.SanitizeSegment(source.Name);
             var stagingRoot = Path.Combine(FileSystem.CacheDirectory, "shared-input");
             Directory.CreateDirectory(stagingRoot);
-            var destination = Path.Combine(stagingRoot, $"{Guid.NewGuid():N}-{safeName}");
+            destination = Path.Combine(stagingRoot, $"{Guid.NewGuid():N}-{safeName}");
 
             await using var input = new FileStream(
                 source.FullName,
@@ -65,10 +66,12 @@ public static class AppleExternalFileStager
             }
 
             ExternalInputInbox.AddSharedFile(destination);
+            destination = null;
             return true;
         }
         catch
         {
+            if (!string.IsNullOrWhiteSpace(destination)) TryDelete(destination);
             return false;
         }
         finally
