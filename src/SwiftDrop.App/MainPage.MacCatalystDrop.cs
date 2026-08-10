@@ -73,7 +73,9 @@ public partial class MainPage
                 if (!string.IsNullOrWhiteSpace(text)) texts.Add(text);
             }
 
-            var combinedText = string.Join(Environment.NewLine, texts).Trim();
+            var combinedText = Utf8TextLimiter.Truncate(
+                string.Join(Environment.NewLine, texts).Trim(),
+                ProtocolConstants.MaxTextSnippetBytes);
             string? pairingLink = null;
             if (combinedText.StartsWith("swiftdrop://pair", StringComparison.OrdinalIgnoreCase) && combinedText.Length <= 16_384)
             {
@@ -222,14 +224,15 @@ public partial class MainPage
 
                 if (entry is DirectoryInfo directory)
                 {
-                    var child = Path.Combine(current.Destination, FileNameSanitizer.SanitizeSegment(directory.Name));
+                    var child = PathGuard.GetCollisionFreePath(
+                        Path.Combine(current.Destination, FileNameSanitizer.SanitizeSegment(directory.Name)));
                     Directory.CreateDirectory(child);
                     stack.Push((directory, child));
                 }
                 else if (entry is FileInfo file)
                 {
-                    var child = Path.Combine(current.Destination, FileNameSanitizer.SanitizeSegment(file.Name));
-                    child = PathGuard.GetCollisionFreePath(child);
+                    var child = PathGuard.GetCollisionFreePath(
+                        Path.Combine(current.Destination, FileNameSanitizer.SanitizeSegment(file.Name)));
                     CopyDroppedFile(file.FullName, child, budget);
                 }
             }
