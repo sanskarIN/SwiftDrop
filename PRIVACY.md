@@ -1,88 +1,137 @@
 # SwiftDrop Privacy
 
-Updated: 2026-08-10
-
 SwiftDrop is designed as a local-network, account-free transfer application.
 
-## Current release behavior
+## Current local-transfer model
 
 - No SwiftDrop account is required.
-- SwiftDrop does not upload transferred file/text contents to a SwiftDrop-operated cloud or relay service.
+- SwiftDrop does not upload transferred file/text contents to a SwiftDrop-operated cloud service.
 - File and text content is sent directly to the selected nearby device over the local network.
-- Device identity material is generated locally.
-- The device certificate/private-key material is stored using platform secure storage.
-- Transfer payload bytes are streamed to the filesystem and are not stored in SQLite.
-- Transfer history is local metadata only and does not contain transferred file bytes or text-snippet contents.
-- Privacy mode redacts both peer display names and file/description names from newly stored history metadata and also hides those fields when older history is displayed.
-- Privacy mode also applies structured redaction to diagnostic messages for IP addresses/endpoints, GUID-like identifiers, SHA-256 fingerprints, paths, email-like tokens, and SwiftDrop pairing URIs.
-- Queue persistence is privacy-minimal and never persists source filenames/paths, transferred text, peer IP addresses, pairing invitations/nonces, credentials, private keys, or free-form exception messages.
-- SwiftDrop does not continuously monitor the clipboard. Clipboard text is read only after an explicit user action.
+- Device identity is generated locally.
+- The device certificate private key is stored through platform secure storage.
+- SwiftDrop does not continuously monitor the clipboard.
 - SwiftDrop does not automatically open or execute received files.
-- SwiftDrop does not intentionally collect contacts, microphone data, background location, advertising identifiers, or analytics in the current source baseline.
-- Optional completion/failure notification text is designed to remain generic and not expose filenames.
+- SwiftDrop does not intentionally collect contacts, microphone data, background location, advertising identifiers, or analytics in the current source.
 
 ## Data stored on the device
 
-SwiftDrop may store:
+SwiftDrop may store locally:
 
 - a random local device ID;
-- the user-visible local device name;
-- a local certificate/private key in secure storage;
+- user-visible device name;
+- a local certificate/private key through platform secure storage;
 - app settings;
-- explicitly trusted-device metadata containing device ID/name, canonical SHA-256 certificate fingerprint, and trust/last-seen timestamps;
-- transfer history metadata containing direction, peer label, file/description label, size, timestamp, status, and integrity result;
+- explicitly trusted-device metadata;
+- transfer-history metadata;
 - bounded diagnostic metadata;
-- privacy-minimal restart-safe queue metadata;
+- privacy-minimal transfer-queue status metadata;
+- verified completed-batch resume metadata;
 - incomplete `.swiftdrop.part` files required for resumable transfer;
-- temporary app-cache copies of files explicitly handed to SwiftDrop by a supported platform share/open surface;
-- completed received files in the selected/application receive location.
+- temporary external-input cache staging;
+- completed received files in the approved receive location.
 
-Privacy mode uses a language-neutral private marker in persisted history rather than storing localized placeholder text. The UI translates that marker when displaying history.
+Transferred file bytes and transferred text contents are not stored in SQLite.
 
-## Platform backup behavior
+## Transfer history and privacy mode
 
-- Android application backup is explicitly disabled (`android:allowBackup="false"`) so SwiftDrop does not opt its local app metadata into Android app backup/restore.
-- Windows package capability is restricted to `privateNetworkClientServer`; the current protocol does not request a general internet-client capability.
-- Mac Catalyst uses app-sandbox network client/server entitlements for the local peer transport.
-- Platform secure-storage/keychain/keystore behavior remains controlled by the operating system. Real uninstall/reinstall, device restore, migration, and locked-device behavior must be validated on target hardware.
+Transfer history contains metadata such as direction, peer display name, filename/description, size, timestamp, status, and integrity result.
 
-## Pairing invitations and one-time authorization
+When privacy mode is enabled:
 
-A pairing invitation contains temporary connection metadata, including the receiver LAN address, certificate fingerprint, expiration time, and cryptographically random one-time nonce. It does not contain the receiver private key.
+- new history rows store a language-neutral redaction marker instead of peer/file names;
+- older rows are also redacted at read time without being silently rewritten;
+- diagnostic read/export paths redact common identifying tokens including paths, email addresses, IP addresses/endpoints, GUIDs, certificate fingerprints, and SwiftDrop pairing URIs;
+- queue persistence remains generic and never stores filenames/source paths or transferred text.
 
-Decoded pairing JSON is strictly validated for depth, malformed UTF-8/JSON behavior, comments/trailing commas, and duplicate property names before deserialization. The invitation is also validated for local/private numeric address policy, version, identity metadata, fingerprint, nonce, and expiry/lifetime. Active pairing nonces are held only in memory, are bounded, preserve exact expiration precision, and are removed atomically on first consumption.
+History retention can be configured; zero-day retention clears retained history.
 
-Short numeric pairing codes are also temporary and are not treated as long-term passwords. Pairing invitations/codes should still be treated as temporary sensitive capabilities and should not be published.
+## Verified batch-resume metadata
 
-## Discovery and network visibility
+SQLite schema version 3 contains metadata that allows an interrupted batch to avoid resending a file that was already fully verified/finalized before the interruption.
 
-Local discovery traffic may reveal that a device is running SwiftDrop to other devices on the same LAN when discovery is enabled. Discovery uses mDNS/Bonjour with a bounded UDP fallback. Discovery metadata is parsed defensively and duplicate TXT keys are rejected.
+A completed-batch metadata row can contain:
 
-Local network administrators, access points, firewalls, and operating systems can observe network metadata such as source/destination addresses and traffic volume even though TLS protects transfer contents in transit. SwiftDrop does not attempt to bypass guest-Wi-Fi isolation, firewall policy, MDM/enterprise controls, or operating-system local-network restrictions.
+- stable random transfer ID;
+- sender source relative path;
+- SHA-256 key derived from the normalized receive root;
+- effective destination relative path;
+- length and SHA-256;
+- completion timestamp.
 
-## Shared/opened files
+The absolute receive-root path is **not** stored in this table.
 
-On supported platforms SwiftDrop can receive files from an explicit platform share/open surface. External files are staged into SwiftDrop cache using bounded exact-length copying, sanitized names, cancellation support, and cleanup on failure before appearing in the normal review/send workflow. On Apple platforms, file-URL staging uses temporary security-scoped access where supplied by the OS. Shared/dropped/opened content is never sent automatically.
+This metadata is not authorization. Before SwiftDrop treats a retry item as already complete it verifies the same transfer/root/source/length/hash, confirms the destination remains beneath the receive root without symlink/reparse traversal, checks the file still exists at the expected length, and recomputes SHA-256. Pairing authorization must still be fresh.
 
-The current Apple integration includes document/open-file URL handling. A dedicated first-class Apple Share Extension target remains separate future source/release work and is not claimed as implemented.
+Completion metadata is bounded/pruned and is a best-effort resume optimization; persistence failure does not change the success of a verified transfer.
 
-## Trusted devices
+## Pairing invitations
 
-Trusted-device records are local metadata. Trust is bound to the exact canonical SHA-256 certificate fingerprint for a device ID. Malformed persisted fingerprint rows are ignored rather than silently treated as valid trust. Resetting local identity changes the identity/certificate and clears local trust decisions through the app workflow.
+A pairing invitation contains temporary local connection metadata such as receiver LAN address, certificate fingerprint, expiration, and a random one-time nonce. It does not contain the receiver private key.
+
+Pairing invitations should still be treated as temporary sensitive capabilities and should not be published. A transfer invitation is consumed for one transfer attempt; pause/retry/resume requires fresh pairing authorization.
+
+## External share/drop staging
+
+SwiftDrop never automatically sends externally shared or dropped content. External content is staged only so the user can review it inside SwiftDrop before sending.
+
+### Android
+
+Android share-sheet content URIs may be copied into SwiftDrop app cache. Staging is bounded by protocol file/count limits, uses portable filename sanitation, performs storage-capacity checks, validates provider-declared length where available, enforces a runtime byte cap when length is unknown, and removes failed partial staging. Stale cache content is pruned.
+
+Android application backup is disabled for SwiftDrop app-local metadata.
+
+### iOS / Mac Catalyst Share Extension
+
+SwiftDrop includes a Share Extension using App Group:
+
+`group.in.sanskar.swiftdrop`
+
+The extension may stage selected file/text/URL content into an App Group inbox using a strict versioned manifest and atomic package publication. The containing app validates package age, schema, filenames, item sizes, aggregate size, symlink/reparse status, and exact file length before copying accepted items into regular app cache for review.
+
+Malformed/stale packages are discarded; temporary extension staging is pruned. The extension does not receive or store SwiftDrop private keys, trusted-peer credentials, or reusable pairing authorization.
+
+### Mac Catalyst native drop
+
+Mac native drag/drop may temporarily access user-dropped Finder items through security-scoped URLs and copy them into bounded cache staging while access is valid. Symlinks/reparse inputs are rejected, item/file/aggregate limits are enforced, and dropped text is UTF-8-byte bounded. Nothing is automatically transferred.
+
+### Windows native drop
+
+Windows drag/drop supplies explicit user-selected filesystem paths/text to the review inbox. Those paths still pass through normal source preflight, manifests, path validation, and transfer authorization before bytes are sent.
 
 ## Diagnostics
 
-Diagnostics are intentionally bounded and metadata-only. Safe exports do not include transfer contents, private keys, one-time pairing nonces, or complete pairing invitations. When privacy mode is enabled, both newly recorded and previously stored messages are passed through structured identifier redaction at read/export time.
+Diagnostic messages are bounded and single-line. Safe export is designed to exclude:
+
+- transferred file/text contents;
+- certificate private keys;
+- pairing nonces;
+- complete pairing invitations;
+- reusable authorization.
+
+Privacy mode adds identifier redaction at record/read/export time.
+
+## Network visibility
+
+Local discovery may reveal that a device is running SwiftDrop to other devices on the same LAN. Local network administrators and operating systems can observe network metadata such as source/destination addresses and traffic volume even though TLS protects transfer contents in transit.
+
+SwiftDrop does not attempt to bypass guest-Wi-Fi isolation, firewall policy, multicast filtering, local-network permission denial, package sandbox restrictions, or mobile OS background policy.
+
+## Platform capability minimization
+
+- Android uses local-network/share/foreground-service capabilities required by the implemented workflow and disables application backup.
+- Apple targets use local-network/Bonjour declarations plus the App Group required for Share Extension handoff; Mac Catalyst uses sandbox/network entitlements needed for direct LAN transfer.
+- Windows requests private-network client/server capability rather than a general Internet-client capability for the local-only protocol.
+- Broad legacy storage permissions, contacts, microphone, background-location, advertising, and analytics permissions are not part of the current baseline.
 
 ## Deleting data
 
-Users can delete individual transfer-history records or clear all history through the app. Users can clear diagnostic events and revoke/clear trusted devices. Received files remain normal files in their receive location and must be deleted there when no longer wanted. App-private staged/share files are temporary cache material subject to cleanup behavior.
+Users can clear transfer history and local diagnostic history through the app. Trusted peers can be revoked/cleared. Queue metadata is bounded and finished entries can be cleared. Temporary external-input staging is pruned and may also disappear when app cache is cleared by the OS/user.
 
-Resetting app storage through the operating system can remove app-local metadata and identity material, subject to platform behavior. Identity reset in SwiftDrop creates a new local identity/certificate and invalidates active pairing authorization without deleting received files or transfer history.
+Received files remain normal files in the selected/application receive location and must be deleted there when no longer wanted. Resetting app storage can remove local settings/history/trust/resume metadata and identity material subject to platform secure-storage behavior.
 
-## Future features
+## Future privacy changes
 
-If a future version adds accounts, internet relay transfer, cloud synchronization, crash reporting, analytics, or another remote service, that feature must be documented separately before release and must not silently change the privacy behavior described for the current local-only mode.
+If a future version adds accounts, relay transfer, cloud synchronization, crash reporting, analytics, remote push services, or another network service, that feature must be documented before release and must not silently change the privacy behavior described for the current local-only mode.
 
 ## Contact
 
