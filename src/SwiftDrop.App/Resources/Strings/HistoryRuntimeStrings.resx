@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="HistoryError" xml:space="preserve"><value>History error</value></data>
+  <data name="DeleteHistoryItem" xml:space="preserve"><value>Delete history item</value></data>
+  <data name="DeleteHistoryItemMessage" xml:space="preserve"><value>Delete this local history record? This does not delete transferred or received content.</value></data>
+  <data name="ClearHistoryQuestion" xml:space="preserve"><value>Clear history</value></data>
+  <data name="ClearHistoryMessage" xml:space="preserve"><value>Delete all local transfer history? This does not delete received files.</value></data>
+  <data name="HistoryCountOne" xml:space="preserve"><value>1 local history record</value></data>
+  <data name="HistoryCountFormat" xml:space="preserve"><value>{0:N0} local history records</value></data>
+  <data name="NoHistoryRecords" xml:space="preserve"><value>No local history records</value></data>
+</root>
