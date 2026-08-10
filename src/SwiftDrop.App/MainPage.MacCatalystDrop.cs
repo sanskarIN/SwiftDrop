@@ -33,6 +33,8 @@ public partial class MainPage
         hostView.AddInteraction(_macDropInteraction);
     }
 
+    partial void DisposePlatformIntegrations() => DetachMacDropInteraction();
+
     private void DetachMacDropInteraction()
     {
         if (_macDropHostView is not null && _macDropInteraction is not null)
