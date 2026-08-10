@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="BatchSenderFormat" xml:space="preserve"><value>{0} से&#10;सर्टिफिकेट: {1}</value></data>
+  <data name="BatchSummaryFormat" xml:space="preserve"><value>{0:N0} फ़ाइलें • कुल {1}</value></data>
+  <data name="BatchHighRiskWarning" xml:space="preserve"><value>चेतावनी: चयनित वस्तुओं में कम-से-कम एक कोड चला सकती है या सॉफ़्टवेयर इंस्टॉल कर सकती है। सूची की सावधानी से समीक्षा करें।</value></data>
+  <data name="BatchCautionWarning" xml:space="preserve"><value>सावधानी: चयनित वस्तुओं में कम-से-कम एक archive, disk image या active-content फ़ाइल है।</value></data>
+  <data name="BatchNormalWarning" xml:space="preserve"><value>कोई high-risk extension नहीं मिला। Extension जाँच केवल चेतावनी है, malware scanning नहीं।</value></data>
+  <data name="NothingSelected" xml:space="preserve"><value>कुछ भी चयनित नहीं</value></data>
+  <data name="NothingSelectedMessage" xml:space="preserve"><value>कम-से-कम एक फ़ाइल चुनें या ट्रांसफ़र अस्वीकार करें।</value></data>
+  <data name="HighRiskExtension" xml:space="preserve"><value>High-risk extension</value></data>
+  <data name="CautionExtension" xml:space="preserve"><value>सावधानी वाला extension</value></data>
+  <data name="NormalExtension" xml:space="preserve"><value>सामान्य extension</value></data>
+</root>
