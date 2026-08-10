@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SwiftDrop.Core.Protocol;
 
 namespace SwiftDrop.Core.Transfer;
@@ -9,7 +10,8 @@ public static class FrameProtocol
     private const int MaxJsonDepth = 32;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        MaxDepth = MaxJsonDepth
+        MaxDepth = MaxJsonDepth,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
 
     public static async Task WriteJsonAsync<T>(Stream stream, T value, CancellationToken ct)
