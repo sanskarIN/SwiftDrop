@@ -1,113 +1,183 @@
 # Architecture
 
-SwiftDrop separates platform/UI interaction from reusable transfer, protocol, security, and metadata logic. Platform APIs remain in the MAUI application project; reusable protocol and storage policy lives in `SwiftDrop.Core`.
+Updated: 2026-08-10
+
+SwiftDrop separates platform interaction/presentation from local transfer, protocol, security, storage, and discovery logic. The repository favors reusable Core policies for security-sensitive validation and keeps platform-specific code as thin adapters where possible.
 
 ## Projects
 
-- `src/SwiftDrop.App` — .NET MAUI UI, platform manifests, secure device identity integration, QR pairing presentation, receive-server lifecycle, system picker/share/drag-drop integration, application services, and view models.
-- `src/SwiftDrop.Core` — protocol models, pairing codec, certificate/fingerprint policy, TLS client/server, discovery primitives, strict framed JSON, chunked transfer engine, hashing, path/collision safety, SQLite schema/storage, and portable security rules.
-- `tests/SwiftDrop.Core.Tests` — portable protocol, storage, security, transfer, TLS-loopback, migration, and boundary tests.
-- `benchmarks/SwiftDrop.Benchmarks` — bounded synthetic benchmark harness. It generates temporary data and does not inspect user files or contact peers.
+- `src/SwiftDrop.App` — .NET MAUI application, pages/view models, platform manifests/entitlements, secure device identity service, QR/picker/share/document activation, receive-server lifecycle, Android foreground integration, Windows drag/drop, and Apple security-scoped file-URL staging adapter.
+- `src/SwiftDrop.Core` — protocol models/policies, pairing codec, strict JSON validation, certificate fingerprinting, TLS client/server, discovery, transfer framing/engine, manifests, path/file safety, one-time authorization, portable external-file staging, and metadata stores.
+- `tests/SwiftDrop.Core.Tests` — portable protocol/security/storage/discovery/transfer tests.
+- `benchmarks/SwiftDrop.Benchmarks` — synthetic hashing/manifest/path benchmark harness using generated temporary data only.
 
-The canonical repository solution is `SwiftDrop.slnx`.
+The canonical solution file is `SwiftDrop.slnx`.
 
-## UI/MVVM boundary
+## Presentation and MVVM boundary
 
-The following surfaces use dedicated view models for state:
+Dedicated view models currently back:
 
-- History → `HistoryViewModel`.
-- Queue → `QueueViewModel`.
-- Nearby Devices → `DevicesViewModel`.
-- Trusted Devices → `TrustedDevicesViewModel`.
-- Diagnostics → `DiagnosticsViewModel`.
-- Settings → `SettingsViewModel`.
-- About → `AboutViewModel`.
+- Main transfer presentation state;
+- History;
+- Transfer Queue;
+- Nearby Devices;
+- Trusted Devices;
+- Diagnostics;
+- Settings;
+- About.
 
-Pages retain interaction that belongs to the UI/platform boundary, such as confirmation dialogs, navigation, system share sheets, file/folder pickers, and link launching. View models call application services rather than implementing TLS, storage, or cryptography themselves.
+`MainViewModel` owns only presentation state such as:
 
-`MainPage` remains an incremental migration target because it coordinates several short-lived UI concerns at once: current pairing invitation, selected local sources, pause/resume/cancel controls, modal receiver consent, and receive-server lifecycle. Its transfer/network work is already delegated to services, but its presentation state is still largely named-control/code-behind state. That distinction is intentional and documented rather than calling the MVVM migration complete prematurely.
+- local device name/ID/fingerprint text;
+- active receive-folder text;
+- selected peer display;
+- selected file/batch display;
+- transfer/batch/text status;
+- single/batch progress;
+- send/pause/resume/cancel enabled state.
+
+The following deliberately remain outside view models:
+
+- file/folder pickers;
+- QR image generation/rendering;
+- clipboard/share APIs;
+- modal consent/confirmation dialogs;
+- navigation;
+- receive-server lifetime;
+- TLS/socket operations;
+- filesystem transfer operations;
+- certificate/private-key operations.
+
+This keeps MAUI/platform UI concerns out of Core while avoiding view models that directly own cryptography/networking/filesystem code.
 
 ## Application services
 
-Important app-layer services include:
+Key app services include:
 
-- `DeviceIdentityService` — platform preferences/SecureStorage integration for local identity.
-- `TransferCoordinator` — outgoing application-protocol orchestration using Core TLS/transfer primitives.
-- `ReceiveServerService` — incoming application-protocol orchestration and user-consent callbacks.
-- `NearbyDiscoveryService` — app lifecycle/composition around mDNS/DNS-SD and UDP discovery.
-- `NearbyPairingService` — nearby/manual pairing flow using Core TLS/pairing validation.
-- `TrustedDevicesService` — app access to certificate-bound trust metadata.
-- `TransferHistoryService` — app access to local retention-aware history.
-- `TransferQueueService` — bounded concurrency plus privacy-minimal restart status persistence.
-- `DiagnosticLogService` — bounded privacy-aware diagnostic metadata.
-- `ReceiveLocationService` — platform-aware receive-root selection.
-- `TransferNotificationService` — optional privacy-safe completion/failure notification behavior where implemented.
+- `DeviceIdentityService` — local device ID/name and secure-storage certificate lifecycle; uses the Core one-time authorization store for active pairing nonces.
+- `TransferCoordinator` — outgoing file/batch/text orchestration over pinned TLS; delegates request/response validation to Core policies.
+- `ReceiveServerService` — listener/session orchestration, authenticated sender extraction, consent callbacks, destination reservation, storage preflight, and transfer dispatch; delegates envelope/identity/transfer-ID/batch-order validation to Core.
+- `TransferQueueService` — concurrency gating plus privacy-minimal restart metadata.
+- `TransferHistoryService` — retention/privacy-aware history facade.
+- `DiagnosticLogService` — bounded privacy-aware diagnostic persistence/export.
+- `TrustedDevicesService` — app facade for exact device-ID + canonical certificate-fingerprint trust.
+- `NearbyDiscoveryService` / `NearbyPairingService` — discovery and pairing orchestration.
+- `ReceiveLocationService` — active receive-root selection/validation.
+- `ExternalInputInbox` — bounded handoff point for platform share/drop/open activation.
+- `AppleExternalFileStager` — thin Apple security-scoped adapter that delegates actual copying/sanitation/cleanup to Core `ExternalFileStager`.
 
-Services are registered through MAUI dependency injection. Networking/storage/cryptography are not created ad hoc in view models.
+## Core security/protocol policies
 
-## Pairing and transfer flow
+Reusable Core validation avoids parallel ad-hoc checks:
 
-1. Receiver creates a short-lived pairing payload containing numeric LAN address, port, certificate SHA-256 fingerprint, expiration, and random one-time nonce.
-2. Sender validates the payload and connects through TLS 1.2/1.3 using the platform/.NET stack.
-3. Sender pins the receiver certificate fingerprint from the pairing payload and presents its own local certificate.
-4. Sender presents one-time authorization in the first bounded application request.
-5. Receiver consumes authorization atomically and evaluates sender certificate identity plus explicit/trusted-device consent policy.
-6. File/batch/text metadata is validated before payload bytes are accepted.
-7. For files, receiver negotiates a bounded resume offset for compatible `.swiftdrop.part` staging.
-8. File bytes stream in bounded chunks directly to disk.
-9. Receiver computes SHA-256 over the complete staged file.
-10. Only after successful integrity verification is the staged file finalized under the approved receive root.
+- `StrictJsonGuard` — rejects malformed/ambiguous JSON including duplicate property names before protocol deserialization.
+- `PairingCodec` — strict local-only invitation decode/validate with strict decoded JSON guard.
+- `IncomingRequestPolicy` — protocol version/type, sender identity, transfer ID and negotiated batch item ordering.
+- `TransferResponsePolicy` — sender-side resume/completion/text acknowledgement contracts.
+- `BatchManifestValidator` — incoming batch count/per-file/aggregate/path metadata rules.
+- `BatchTransferPlanValidator` — sender-side validation of receiver selection/resume plans.
+- `ManifestValidator` — per-file metadata bounds/hash/timestamp validation.
+- `OneTimeAuthorizationStore` — bounded exact-expiry atomic consume/replay rejection.
+- `AttemptRateLimiter` — bounded attempt windows/cardinality.
+- `FileNameSanitizer` / `PathGuard` / `DestinationReservationSet` — portable filename sanitation, receive-root confinement and concurrent destination collision reservation.
+- `DiagnosticPrivacyRedactor` — privacy-mode redaction of identifiers in diagnostic text.
 
-Batch paths additionally pass portable normalization/collision checks, aggregate limits, and free-space preflight.
+## Transfer flow
 
-## Strict protocol metadata
+### Pairing/authorization
 
-Application protocol frames are length-prefixed and parsed under a shared strict JSON policy:
+1. Receiver creates a short-lived pairing payload containing LAN address, port, certificate SHA-256 fingerprint, expiration and cryptographically random nonce.
+2. The nonce is registered in a bounded in-memory one-time authorization store with exact expiration precision.
+3. Sender decodes/validates the invitation, including strict JSON duplicate-property protection and local/private numeric address policy.
+4. Sender visually confirms/pins the receiver certificate fingerprint.
+5. Sender connects through TLS and presents its local client certificate.
+6. Receiver derives sender fingerprint from the authenticated TLS channel, not application JSON.
+7. File/batch/text authorization atomically consumes the one-time nonce. Reuse is rejected.
 
-- bounded frame length before allocation;
-- bounded JSON depth;
-- invalid UTF-8/JSON rejection;
-- comments/trailing commas rejected;
-- duplicate object property names rejected case-insensitively, including nested values;
-- truncated frames fail;
-- idle timeouts and caller cancellation are enforced.
+### Single-file transfer
 
-Pairing URI/payload validation is separately bounded. Reusing the shared duplicate-property guard inside the encoded pairing JSON remains a tracked defensive hardening item because that specific source replacement was blocked by the repository connector during the current implementation session; existing pairing field/URI validation remains active.
+1. Sender validates the source and constructs a sanitized manifest with size/hash/timestamp.
+2. Sender revalidates the pairing payload at the actual send boundary.
+3. Sender opens pinned mutual TLS and submits the file request.
+4. Receiver validates request envelope/sender identity/file metadata and authorization.
+5. Receiver requests explicit consent unless conservative trusted-device policy applies.
+6. Receiver reserves a collision-safe destination, validates capacity, and returns a bounded resume offset.
+7. Sender validates that response through `TransferResponsePolicy` and streams exactly the manifest length from the negotiated offset.
+8. Receiver writes `.swiftdrop.part`, validates exact length and SHA-256, then atomically promotes the completed file.
+9. Receiver returns exact completion length; sender validates it.
+10. Local history stores metadata only.
 
-## Filesystem safety
+### Batch transfer
 
-Core owns portable filename/path policy:
+1. Sender performs complete source/count/size/path preflight before hashing.
+2. Sender sends the bounded batch manifest.
+3. Receiver sanitizes/validates manifest and presents accept-all/selective/reject consent.
+4. Receiver reserves all selected destinations and performs aggregate remaining-capacity preflight.
+5. Receiver returns one plan item for each source.
+6. Sender validates the complete plan through `BatchTransferPlanValidator`.
+7. Sender transmits accepted files in the negotiated order; receiver validates each item-start path.
+8. Every item is staged/verified independently.
+9. Final aggregate completion length is validated by the sender.
 
-- Unicode Form-C normalization;
-- invalid/control-character removal;
-- Windows reserved-device name neutralization;
-- rooted/traversal path rejection;
-- receive-root confinement;
-- platform-aware case comparison;
-- batch collision rejection after sanitation/normalization/case folding;
-- active destination reservations for concurrent receives;
-- collision-safe final names;
-- bounded resume staging.
+### Text transfer
 
-Platform intake paths such as pickers, Android share-sheet staging, and Windows drag/drop are routed into shared validation rather than bypassing it.
+1. Sender validates UTF-8 byte size and short expiration.
+2. Sender uses the same pinned TLS + one-time authorization path.
+3. Receiver shows explicit consent and optionally copies only after user choice.
+4. Sender requires an accepted acknowledgement with zero offset.
+5. Text content is never persisted in transfer history/SQLite.
 
-## Local data storage
+## Data storage
 
-SwiftDrop does not store transferred file/text contents in SQLite. Transfer bytes stream directly between network and filesystem. Current schema version 2 stores metadata-only tables for:
+SwiftDrop does not store user file/text payload contents in SQLite.
 
-- trusted peers;
-- transfer history;
-- bounded diagnostics;
-- privacy-minimal queue status.
+SQLite metadata currently includes:
 
-Queue persistence stores generic state/timestamps and bounded machine-oriented error codes only. It does not persist filenames/source paths, text, peer IP addresses, pairing invitations/nonces, credentials, or reusable authorization. Stale queued/running rows become `Interrupted` after restart and are not silently retried.
+- trusted peer metadata;
+- transfer history metadata;
+- bounded diagnostic events;
+- restart-safe privacy-minimal queue metadata;
+- schema version metadata.
 
-Device certificate/private-key material is kept through platform secure storage rather than SQLite.
+Security/privacy properties:
 
-## Localization
+- trusted fingerprints are canonicalized/validated at the Core storage boundary;
+- malformed persisted trust/history/diagnostic rows are ignored rather than becoming implicit trust or crashing complete lists;
+- privacy mode writes a language-neutral private marker for peer/file history labels and redacts older rows when read;
+- diagnostic privacy mode structurally redacts IPs/endpoints, GUIDs, fingerprints, paths, emails and pairing URIs;
+- queue persistence never stores source paths, text contents, peer addresses, pairing nonces/codes, credentials/private keys or free-form exception messages.
 
-English and Hindi resources use shared `.resx` catalogs. XAML resolves resource keys through `AppText`/`LocalizeExtension`. CI validates XML well-formedness, non-empty values, duplicate keys, and exact English/Hindi key parity. Saved culture is applied before `MainPage` is resolved at startup.
+Device certificate/private-key material remains in MAUI platform secure storage, not SQLite.
 
-## Verification boundary
+## External platform input
 
-Portable tests and CI are source-level evidence, not a production certification. Release readiness additionally requires target-platform compilation, signed-package installation/upgrades, physical-device peer transfers, restricted-network/low-storage cases, accessibility validation, platform secure-storage lifecycle testing, and store-policy review.
+All platform input should converge on normal review/authorization rather than direct-send shortcuts:
+
+- Android share intents → bounded app cache → `ExternalInputInbox`;
+- Windows native drag/drop → `ExternalInputInbox`;
+- iOS/Mac Catalyst document/open-file URL → temporary security-scoped access → Core `ExternalFileStager` → `ExternalInputInbox`;
+- `swiftdrop://pair` activation → `ExternalInputInbox` pairing link.
+
+Shared/opened/dropped content is presented for review and is never automatically transmitted.
+
+A dedicated Apple Share Extension and a first-class native Mac Catalyst drop surface are not currently part of the source and must not be conflated with document/open-file URL handling.
+
+## Platform lifecycle
+
+- Android may keep an active user-initiated transfer in a foreground data-sync service according to Android policy.
+- iOS/Mac Catalyst do not claim unrestricted indefinite background socket continuation.
+- Windows/macOS firewall/sandbox lifecycle is respected rather than bypassed.
+- `Application.CreateWindow` owns app window creation; window destruction triggers active transfer/receiver cleanup.
+
+## Validation boundary
+
+Portable Core tests and configured GitHub Actions are not equivalent to production validation. The exact release candidate still requires:
+
+- successful Actions/build/test evidence;
+- physical cross-device transfer matrix;
+- restricted-network/firewall/local-network-permission cases;
+- low-storage/network-change/sleep-lock cases;
+- accessibility validation;
+- signed platform packaging/install/update;
+- Apple security-scoped/sandbox document-provider validation;
+- store policy/privacy review.
