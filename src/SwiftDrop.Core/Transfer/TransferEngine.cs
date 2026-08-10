@@ -65,9 +65,11 @@ public sealed class TransferEngine
     {
         ArgumentNullException.ThrowIfNull(network);
         ManifestValidator.ValidateEntry(entry);
-        var finalPath = PathGuard.ResolveUnderRoot(destinationRoot, entry.RelativePath);
+        var finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
-        var partial = finalPath + ".swiftdrop.part";
+        finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
+        var partialRelativePath = entry.RelativePath + ".swiftdrop.part";
+        var partial = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, partialRelativePath);
         var mode = offset == 0 ? FileMode.Create : FileMode.OpenOrCreate;
         await using (var file = new FileStream(partial, mode, FileAccess.Write, FileShare.None, ProtocolConstants.ChunkSize, FileOptions.Asynchronous | FileOptions.SequentialScan))
         {
@@ -94,6 +96,7 @@ public sealed class TransferEngine
             await file.FlushAsync(ct);
         }
 
+        partial = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, partialRelativePath);
         var actual = await Hashing.Sha256FileAsync(partial, ct);
         var actualBytes = Convert.FromHexString(actual);
         var expectedBytes = Convert.FromHexString(entry.Sha256);
@@ -111,6 +114,8 @@ public sealed class TransferEngine
             CryptographicOperations.ZeroMemory(expectedBytes);
         }
 
+        finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
+        partial = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, partialRelativePath);
         File.Move(partial, finalPath, overwrite: false);
         File.SetLastWriteTimeUtc(finalPath, entry.LastWriteUtc.UtcDateTime);
     }
