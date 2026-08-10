@@ -1,3 +1,5 @@
+using System.Text;
+using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.App.Services;
@@ -23,9 +25,7 @@ public static class ExternalInputInbox
     public static void SetSharedText(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        if (text.Length > 262_144) text = text[..262_144];
-        lock (Gate) _sharedText = text;
-        RaiseChanged();
+        AddSharedBatch(text, Array.Empty<string>());
     }
 
     public static void AddSharedFile(string localPath) => AddSharedPath(localPath);
@@ -33,23 +33,51 @@ public static class ExternalInputInbox
     public static void AddSharedPath(string localPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(localPath);
-        string full;
-        try
+        AddSharedBatch(null, [localPath]);
+    }
+
+    public static void AddSharedBatch(string? text, IEnumerable<string> localPaths)
+    {
+        ArgumentNullException.ThrowIfNull(localPaths);
+        var validated = new List<string>();
+        foreach (var localPath in localPaths)
         {
-            full = Path.GetFullPath(localPath);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            return;
+            if (validated.Count >= ProtocolConstants.MaxBatchFiles) break;
+            if (string.IsNullOrWhiteSpace(localPath)) continue;
+
+            string full;
+            try
+            {
+                full = Path.GetFullPath(localPath);
+            }
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+            {
+                continue;
+            }
+
+            if (!File.Exists(full) && !Directory.Exists(full)) continue;
+            if (!validated.Contains(full, PathComparisonPolicy.Comparer)) validated.Add(full);
         }
 
-        if (!File.Exists(full) && !Directory.Exists(full)) return;
+        var changed = false;
         lock (Gate)
         {
-            if (SharedPaths.Count >= 2048) return;
-            if (!SharedPaths.Contains(full, PathComparisonPolicy.Comparer)) SharedPaths.Add(full);
+            if (text is not null)
+            {
+                _sharedText = TruncateUtf8(text, ProtocolConstants.MaxTextSnippetBytes);
+                changed = true;
+            }
+
+            foreach (var full in validated)
+            {
+                if (SharedPaths.Count >= ProtocolConstants.MaxBatchFiles) break;
+                if (SharedPaths.Contains(full, PathComparisonPolicy.Comparer)) continue;
+                SharedPaths.Add(full);
+                changed = true;
+            }
         }
-        RaiseChanged();
+
+        if (changed) RaiseChanged();
     }
 
     public static ExternalInputBatch Drain()
@@ -70,16 +98,51 @@ public static class ExternalInputInbox
         var directory = Path.Combine(FileSystem.CacheDirectory, "shared-input");
         if (!Directory.Exists(directory)) return;
         var cutoff = DateTimeOffset.UtcNow - maximumAge;
-        foreach (var path in Directory.EnumerateFiles(directory))
+
+        foreach (var path in Directory.EnumerateFileSystemEntries(directory, "*", SearchOption.TopDirectoryOnly))
         {
             try
             {
-                if (File.GetLastWriteTimeUtc(path) < cutoff.UtcDateTime) File.Delete(path);
+                if (File.Exists(path))
+                {
+                    if (File.GetLastWriteTimeUtc(path) < cutoff.UtcDateTime) File.Delete(path);
+                    continue;
+                }
+
+                if (!Directory.Exists(path)) continue;
+                var newestUtc = Directory.GetLastWriteTimeUtc(path);
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                {
+                    var lastWrite = File.GetLastWriteTimeUtc(file);
+                    if (lastWrite > newestUtc) newestUtc = lastWrite;
+                }
+                if (newestUtc < cutoff.UtcDateTime) Directory.Delete(path, recursive: true);
             }
             catch
             {
             }
         }
+    }
+
+    private static string TruncateUtf8(string value, int maximumBytes)
+    {
+        if (Encoding.UTF8.GetByteCount(value) <= maximumBytes) return value;
+
+        var low = 0;
+        var high = value.Length;
+        while (low < high)
+        {
+            var mid = low + (high - low + 1) / 2;
+            var end = mid;
+            if (end > 0 && end < value.Length && char.IsHighSurrogate(value[end - 1]) && char.IsLowSurrogate(value[end]))
+                end--;
+            if (Encoding.UTF8.GetByteCount(value.AsSpan(0, end)) <= maximumBytes) low = end;
+            else high = mid - 1;
+        }
+
+        if (low > 0 && low < value.Length && char.IsHighSurrogate(value[low - 1]) && char.IsLowSurrogate(value[low]))
+            low--;
+        return value[..low];
     }
 
     private static void RaiseChanged()
