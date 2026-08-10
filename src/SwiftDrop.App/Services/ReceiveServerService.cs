@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using SwiftDrop.Core.Models;
@@ -25,10 +24,9 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly Func<string?, bool>? _consumePairingCode;
     private readonly AttemptRateLimiter _pairingAttemptLimiter = new(8, TimeSpan.FromMinutes(1));
     private readonly DestinationReservationSet _destinationReservations = new();
-    private readonly ConcurrentDictionary<long, Task> _activeHandlers = new();
+    private readonly AsyncSessionTracker _activeSessions = new();
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
-    private long _nextHandlerId;
     private int _started;
     private int _disposed;
 
@@ -84,10 +82,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try
             {
                 var ssl = await _server.AcceptAsync(ct);
-                var id = Interlocked.Increment(ref _nextHandlerId);
-                var handler = HandleAsync(ssl, ct);
-                _activeHandlers[id] = handler;
-                _ = ObserveHandlerAsync(id, handler);
+                _activeSessions.Track(HandleAsync(ssl, ct));
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -100,21 +95,6 @@ public sealed class ReceiveServerService : IAsyncDisposable
         }
     }
 
-    private async Task ObserveHandlerAsync(long id, Task handler)
-    {
-        try
-        {
-            await handler;
-        }
-        catch
-        {
-        }
-        finally
-        {
-            _activeHandlers.TryRemove(id, out _);
-        }
-    }
-
     private async Task HandleAsync(SslStream connection, CancellationToken ct)
     {
         await using (connection)
@@ -124,16 +104,14 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try
             {
                 var request = await FrameProtocol.ReadJsonAsync<ProtocolRequest>(connection, ct);
+                var validationTime = DateTimeOffset.UtcNow;
                 try
                 {
-                    ProtocolSessionAuthorizer.ValidateAndAuthorize(
-                        request,
-                        DateTimeOffset.UtcNow,
-                        _consumePairingNonce);
+                    ProtocolRequestValidator.Validate(request, validationTime);
                 }
-                catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or UnauthorizedAccessException or ArgumentException or OverflowException)
+                catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or ArgumentException or OverflowException)
                 {
-                    await RejectAsync(connection, "Unsupported, invalid, or unauthorized transfer request.", ct);
+                    await RejectAsync(connection, "Unsupported or invalid transfer request.", ct);
                     return;
                 }
 
@@ -148,12 +126,22 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
                 if (request.Type == "pair-request")
                 {
-                    if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, DateTimeOffset.UtcNow))
+                    if (!_pairingAttemptLimiter.TryAcquire(senderFingerprint, validationTime))
                     {
                         await RejectAsync(connection, "Too many pairing attempts. Try again shortly.", ct);
                         return;
                     }
                     await HandlePairingRequestAsync(connection, request, senderFingerprint, ct);
+                    return;
+                }
+
+                try
+                {
+                    ProtocolSessionAuthorizer.ValidateAndAuthorize(request, validationTime, _consumePairingNonce);
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    await RejectAsync(connection, "Pairing authorization failed.", ct);
                     return;
                 }
 
@@ -495,13 +483,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try { await _loop; } catch (OperationCanceledException) { }
         }
 
-        var active = _activeHandlers.Values.ToArray();
-        if (active.Length > 0)
-        {
-            try { await Task.WhenAll(active); } catch { }
-        }
-
-        _activeHandlers.Clear();
+        await _activeSessions.DrainAsync();
         _cts.Dispose();
     }
 
