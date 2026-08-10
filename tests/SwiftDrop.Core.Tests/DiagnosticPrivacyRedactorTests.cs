@@ -6,7 +6,9 @@ public sealed class DiagnosticPrivacyRedactorTests
 {
     [Theory]
     [InlineData("peer 192.168.1.10 connected", "peer [redacted] connected")]
+    [InlineData("peer 192.168.1.10:47821 connected", "peer [redacted] connected")]
     [InlineData("peer fd00::20 connected", "peer [redacted] connected")]
+    [InlineData("peer [fd00::20]:47821 connected", "peer [redacted] connected")]
     [InlineData("device 9c0d1129-56b0-4fa3-b815-60a1ef508df8 changed", "device [redacted] changed")]
     [InlineData("contact sanskarin@outlook.in", "contact [redacted]")]
     [InlineData("path C:\\Users\\Name\\file.txt", "path [redacted]")]
