@@ -5,36 +5,21 @@ namespace SwiftDrop.App.Services;
 
 public static class AppText
 {
-    private static readonly ResourceManager Resources = new(
-        "SwiftDrop.App.Resources.Strings.AppStrings",
-        typeof(AppText).Assembly);
-    private static readonly ResourceManager MainResources = new(
-        "SwiftDrop.App.Resources.Strings.MainStrings",
-        typeof(AppText).Assembly);
-    private static readonly ResourceManager DialogResources = new(
-        "SwiftDrop.App.Resources.Strings.DialogStrings",
-        typeof(AppText).Assembly);
-    private static readonly ResourceManager MainRuntimeResources = new(
-        "SwiftDrop.App.Resources.Strings.MainRuntimeStrings",
-        typeof(AppText).Assembly);
-    private static readonly ResourceManager PlatformRuntimeResources = new(
-        "SwiftDrop.App.Resources.Strings.PlatformRuntimeStrings",
-        typeof(AppText).Assembly);
-    private static readonly ResourceManager BatchRuntimeResources = new(
-        "SwiftDrop.App.Resources.Strings.BatchRuntimeStrings",
-        typeof(AppText).Assembly);
+    private static readonly ResourceManager Resources = new("SwiftDrop.App.Resources.Strings.AppStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager MainResources = new("SwiftDrop.App.Resources.Strings.MainStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager DialogResources = new("SwiftDrop.App.Resources.Strings.DialogStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager MainRuntimeResources = new("SwiftDrop.App.Resources.Strings.MainRuntimeStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager PlatformRuntimeResources = new("SwiftDrop.App.Resources.Strings.PlatformRuntimeStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager BatchRuntimeResources = new("SwiftDrop.App.Resources.Strings.BatchRuntimeStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager HistoryRuntimeResources = new("SwiftDrop.App.Resources.Strings.HistoryRuntimeStrings", typeof(AppText).Assembly);
 
     public static string Get(string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         var culture = CultureInfo.CurrentUICulture;
-        return Resources.GetString(key, culture) ??
-               MainResources.GetString(key, culture) ??
-               DialogResources.GetString(key, culture) ??
-               MainRuntimeResources.GetString(key, culture) ??
-               PlatformRuntimeResources.GetString(key, culture) ??
-               BatchRuntimeResources.GetString(key, culture) ??
-               key;
+        return Resources.GetString(key, culture) ?? MainResources.GetString(key, culture) ?? DialogResources.GetString(key, culture) ??
+               MainRuntimeResources.GetString(key, culture) ?? PlatformRuntimeResources.GetString(key, culture) ??
+               BatchRuntimeResources.GetString(key, culture) ?? HistoryRuntimeResources.GetString(key, culture) ?? key;
     }
 
     public static string Format(string key, params object?[] args)
