@@ -17,6 +17,9 @@ public static class AppText
     private static readonly ResourceManager MainRuntimeResources = new(
         "SwiftDrop.App.Resources.Strings.MainRuntimeStrings",
         typeof(AppText).Assembly);
+    private static readonly ResourceManager PlatformRuntimeResources = new(
+        "SwiftDrop.App.Resources.Strings.PlatformRuntimeStrings",
+        typeof(AppText).Assembly);
 
     public static string Get(string key)
     {
@@ -26,6 +29,7 @@ public static class AppText
                MainResources.GetString(key, culture) ??
                DialogResources.GetString(key, culture) ??
                MainRuntimeResources.GetString(key, culture) ??
+               PlatformRuntimeResources.GetString(key, culture) ??
                key;
     }
 
