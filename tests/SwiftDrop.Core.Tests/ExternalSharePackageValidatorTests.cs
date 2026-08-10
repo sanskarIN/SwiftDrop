@@ -25,13 +25,11 @@ public sealed class ExternalSharePackageValidatorTests
     [Fact]
     public void Validate_AcceptsExactAgeAndFutureClockBoundaries()
     {
-        Assert.Same(
-            ExternalSharePackageValidator.Validate(
-                Create(created: Now - ExternalSharePackageConstants.MaximumPackageAge), Now),
-            ExternalSharePackageValidator.Validate(
-                Create(created: Now - ExternalSharePackageConstants.MaximumPackageAge), Now));
-        _ = ExternalSharePackageValidator.Validate(
-            Create(created: Now + ExternalSharePackageConstants.MaximumFutureClockSkew), Now);
+        var oldest = Create(created: Now - ExternalSharePackageConstants.MaximumPackageAge);
+        var newest = Create(created: Now + ExternalSharePackageConstants.MaximumFutureClockSkew);
+
+        Assert.Same(oldest, ExternalSharePackageValidator.Validate(oldest, Now));
+        Assert.Same(newest, ExternalSharePackageValidator.Validate(newest, Now));
     }
 
     [Fact]
