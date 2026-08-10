@@ -5,7 +5,7 @@ namespace SwiftDrop.App.Services;
 
 public sealed class TransferHistoryService
 {
-    private const string PrivacyRedaction = "Hidden by privacy mode";
+    public const string PrivacyRedactionMarker = "[private]";
     private readonly TransferHistoryStore _store;
     private readonly AppSettingsService _settings;
     private readonly SemaphoreSlim _initializationGate = new(1, 1);
@@ -62,8 +62,8 @@ public sealed class TransferHistoryService
         await InitializeAsync(ct);
         var settings = _settings.Load();
         if (settings.HistoryRetentionDays == 0) return;
-        var storedPeer = settings.PrivacyMode ? PrivacyRedaction : peerDeviceName;
-        var storedName = settings.PrivacyMode ? PrivacyRedaction : fileName;
+        var storedPeer = settings.PrivacyMode ? PrivacyRedactionMarker : peerDeviceName;
+        var storedName = settings.PrivacyMode ? PrivacyRedactionMarker : fileName;
         var entry = new TransferHistoryEntry(
             Guid.NewGuid().ToString("N"),
             direction,
@@ -84,8 +84,8 @@ public sealed class TransferHistoryService
         return items
             .Select(item => item with
             {
-                PeerDeviceName = PrivacyRedaction,
-                FileName = PrivacyRedaction
+                PeerDeviceName = PrivacyRedactionMarker,
+                FileName = PrivacyRedactionMarker
             })
             .ToArray();
     }
