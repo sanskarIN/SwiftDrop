@@ -1,5 +1,6 @@
 using System.Text;
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Security;
 using SwiftDrop.Core.Storage;
 
 namespace SwiftDrop.App.Services;
@@ -42,7 +43,7 @@ public sealed class DiagnosticLogService
     {
         await InitializeAsync(ct);
         var settings = _settings.Load();
-        var message = settings.PrivacyMode ? RedactPotentialIdentifiers(safeMessage) : safeMessage;
+        var message = settings.PrivacyMode ? DiagnosticPrivacyRedactor.Redact(safeMessage) : safeMessage;
         var entry = new DiagnosticEvent(
             Guid.NewGuid().ToString("N"),
             DateTimeOffset.UtcNow,
@@ -55,7 +56,11 @@ public sealed class DiagnosticLogService
     public async Task<IReadOnlyList<DiagnosticEvent>> GetRecentAsync(int limit = 200, CancellationToken ct = default)
     {
         await InitializeAsync(ct);
-        return await _store.GetRecentAsync(limit, ct);
+        var events = await _store.GetRecentAsync(limit, ct);
+        if (!_settings.Load().PrivacyMode) return events;
+        return events
+            .Select(item => item with { Message = DiagnosticPrivacyRedactor.Redact(item.Message) })
+            .ToArray();
     }
 
     public async Task ClearAsync(CancellationToken ct = default)
@@ -97,14 +102,5 @@ public sealed class DiagnosticLogService
     {
         var singleLine = value.Replace('\r', ' ').Replace('\n', ' ').Trim();
         return singleLine.Length <= 512 ? singleLine : singleLine[..512];
-    }
-
-    private static string RedactPotentialIdentifiers(string value)
-    {
-        var words = value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return string.Join(' ', words.Select(word =>
-            word.Contains('@') || word.Contains('\\') || word.Contains('/')
-                ? "[redacted]"
-                : word));
     }
 }
