@@ -39,7 +39,12 @@ public sealed class HistoryViewModel : ObservableObject
             var items = await _history.GetRecentAsync(200, ct);
             Items.Clear();
             foreach (var item in items) Items.Add(item);
-            Status = Items.Count == 1 ? "1 local history record" : $"{Items.Count:N0} local history records";
+            Status = Items.Count switch
+            {
+                0 => AppText.Get("NoHistoryRecords"),
+                1 => AppText.Get("HistoryCountOne"),
+                _ => AppText.Format("HistoryCountFormat", Items.Count)
+            };
         }
         finally
         {
@@ -58,6 +63,6 @@ public sealed class HistoryViewModel : ObservableObject
     {
         await _history.ClearAsync(ct);
         Items.Clear();
-        Status = "No local history records";
+        Status = AppText.Get("NoHistoryRecords");
     }
 }
