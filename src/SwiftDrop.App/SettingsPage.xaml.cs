@@ -26,7 +26,7 @@ public partial class SettingsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Settings error", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("SettingsError"), ex.Message, AppText.Get("Ok"));
         }
     }
 
@@ -43,14 +43,14 @@ public partial class SettingsPage : ContentPage
             return;
 #else
             await DisplayAlertAsync(
-                "Folder picker unavailable",
-                "SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.",
-                "OK");
+                AppText.Get("FolderPickerUnavailable"),
+                AppText.Get("FolderPickerUnavailableMessage"),
+                AppText.Get("Ok"));
 #endif
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Folder selection failed", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("FolderSelectionFailed"), ex.Message, AppText.Get("Ok"));
         }
     }
 
@@ -74,41 +74,44 @@ public partial class SettingsPage : ContentPage
             if (result.NotificationPermissionDenied)
             {
                 await DisplayAlertAsync(
-                    "Notification permission not granted",
-                    "SwiftDrop will continue transferring normally without optional completion/failure notifications. The required foreground transfer status is controlled by Android platform rules.",
-                    "OK");
+                    AppText.Get("NotificationPermissionNotGranted"),
+                    AppText.Get("NotificationPermissionNotGrantedMessage"),
+                    AppText.Get("Ok"));
             }
 
             var message = result.LanguageChanged
-                ? "Settings and device name were saved. Newly opened screens use the selected language; restart SwiftDrop to refresh screens that were already open."
-                : "Settings and device name were saved on this device.";
-            await DisplayAlertAsync("Saved", message, "OK");
+                ? AppText.Get("SavedLanguageChangedMessage")
+                : AppText.Get("SavedSettingsMessage");
+            await DisplayAlertAsync(AppText.Get("Saved"), message, AppText.Get("Ok"));
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Settings error", ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("SettingsError"), ex.Message, AppText.Get("Ok"));
         }
     }
 
     private async void ResetIdentityClicked(object? sender, EventArgs e)
     {
         var confirm = await DisplayAlertAsync(
-            "Reset device identity?",
-            "This creates a new device ID and certificate, invalidates current pairing invitations, and removes every locally trusted device. Other devices will no longer recognize this identity. Received files and transfer history are not deleted.",
-            "Reset identity",
+            AppText.Get("ResetDeviceIdentityQuestion"),
+            AppText.Get("ResetDeviceIdentityQuestionMessage"),
+            AppText.Get("ResetIdentityAction"),
             AppText.Get("Cancel"));
         if (!confirm) return;
 
         await _viewModel.ResetIdentityAsync();
-        await DisplayAlertAsync("Identity reset", "A new local identity and certificate were created.", "OK");
+        await DisplayAlertAsync(
+            AppText.Get("IdentityReset"),
+            AppText.Get("IdentityResetMessage"),
+            AppText.Get("Ok"));
     }
 
     private async void ResetClicked(object? sender, EventArgs e)
     {
         var confirm = await DisplayAlertAsync(
-            "Reset settings",
-            "Restore SwiftDrop settings to their defaults? Device identity and trusted devices are not changed.",
-            "Reset",
+            AppText.Get("ResetSettings"),
+            AppText.Get("ResetSettingsQuestionMessage"),
+            AppText.Get("Reset"),
             AppText.Get("Cancel"));
         if (!confirm) return;
         await _viewModel.ResetSettingsAsync();
