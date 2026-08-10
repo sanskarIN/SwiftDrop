@@ -12,4 +12,17 @@
   <data name="HistoryCountOne" xml:space="preserve"><value>1 local history record</value></data>
   <data name="HistoryCountFormat" xml:space="preserve"><value>{0:N0} local history records</value></data>
   <data name="NoHistoryRecords" xml:space="preserve"><value>No local history records</value></data>
+  <data name="PrivacyHidden" xml:space="preserve"><value>Hidden by privacy mode</value></data>
+  <data name="HistorySent" xml:space="preserve"><value>Sent</value></data>
+  <data name="HistoryReceived" xml:space="preserve"><value>Received</value></data>
+  <data name="HistoryCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="HistoryFailed" xml:space="preserve"><value>Failed</value></data>
+  <data name="HistoryCancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="HistoryPaused" xml:space="preserve"><value>Paused</value></data>
+  <data name="HistoryRejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="HistoryNotSelected" xml:space="preserve"><value>Not selected</value></data>
+  <data name="HistoryAccepted" xml:space="preserve"><value>Accepted</value></data>
+  <data name="HistoryCopied" xml:space="preserve"><value>Copied</value></data>
+  <data name="HistoryBytesFormat" xml:space="preserve"><value>{0:N0} bytes</value></data>
+  <data name="HistoryTimeFormat" xml:space="preserve"><value>{0:g}</value></data>
 </root>
