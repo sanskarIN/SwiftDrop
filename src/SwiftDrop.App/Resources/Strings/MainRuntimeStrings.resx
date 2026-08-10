@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="CertificateFormat" xml:space="preserve"><value>Certificate: {0}</value></data>
+  <data name="StartupError" xml:space="preserve"><value>Startup error</value></data>
+  <data name="IncomingTransfer" xml:space="preserve"><value>Incoming transfer</value></data>
+  <data name="IncomingTransferFormat" xml:space="preserve"><value>Sender: {0}&#10;File: {1}&#10;Size: {2:N0} bytes&#10;Certificate: {3}{4}&#10;&#10;SwiftDrop never opens received files automatically.</value></data>
+  <data name="HighRiskWarning" xml:space="preserve"><value>&#10;&#10;WARNING: this extension can execute code or install software.</value></data>
+  <data name="CautionRiskWarning" xml:space="preserve"><value>&#10;&#10;Caution: this extension can contain archives or active content.</value></data>
+  <data name="TrustThisDeviceQuestion" xml:space="preserve"><value>Trust this device?</value></data>
+  <data name="TrustThisDeviceMessage" xml:space="preserve"><value>Trust stores this exact device ID and certificate fingerprint locally. You can revoke it from Settings.</value></data>
+  <data name="TrustDevice" xml:space="preserve"><value>Trust device</value></data>
+  <data name="NotNow" xml:space="preserve"><value>Not now</value></data>
+  <data name="NearbyPairingRequest" xml:space="preserve"><value>Nearby pairing request</value></data>
+  <data name="NearbyPairingRequestFormat" xml:space="preserve"><value>{0} wants to pair.&#10;&#10;Sender certificate:&#10;{1}&#10;&#10;This device certificate:&#10;{2}&#10;&#10;Approve only if you initiated this pairing.</value></data>
+  <data name="Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="TextFromFormat" xml:space="preserve"><value>Text from {0}&#10;Certificate: {1}&#10;{2:N0} characters&#10;&#10;{3}</value></data>
+  <data name="AcceptAndCopy" xml:space="preserve"><value>Accept and copy</value></data>
+  <data name="TextSnippetHistoryLabel" xml:space="preserve"><value>Text snippet</value></data>
+  <data name="ApplyingReceiveFolder" xml:space="preserve"><value>Applying the new receive folder… active incoming transfers may be interrupted.</value></data>
+  <data name="ReceiveFolderError" xml:space="preserve"><value>Receive folder error</value></data>
+  <data name="ReceiveFolderFormat" xml:space="preserve"><value>Receive folder: {0}</value></data>
+  <data name="ReadyToReceiveFormat" xml:space="preserve"><value>Ready to receive into {0}</value></data>
+  <data name="PairingCodeExpiryFormat" xml:space="preserve"><value>Expires at {0:T}. One-time only.</value></data>
+  <data name="PairingLinkShareTitle" xml:space="preserve"><value>SwiftDrop pairing link</value></data>
+  <data name="ConfirmDeviceFingerprint" xml:space="preserve"><value>Confirm device fingerprint</value></data>
+  <data name="VerifyFingerprintFormat" xml:space="preserve"><value>Verify this fingerprint on the receiving device:&#10;&#10;{0}</value></data>
+  <data name="IVerifiedIt" xml:space="preserve"><value>I verified it</value></data>
+  <data name="RemotePeerFormat" xml:space="preserve"><value>{0} • {1}:{2}&#10;Fingerprint: {3}</value></data>
+  <data name="VerifiedInvitationStatus" xml:space="preserve"><value>Verified for this one-time invitation.</value></data>
+  <data name="PairingCancelledStatus" xml:space="preserve"><value>Pairing cancelled. Generate a fresh invitation when ready.</value></data>
+  <data name="ChooseFileToSend" xml:space="preserve"><value>Choose a file to send</value></data>
+  <data name="NoFileSelected" xml:space="preserve"><value>No file selected</value></data>
+  <data name="ChooseFilesToSend" xml:space="preserve"><value>Choose files to send</value></data>
+  <data name="NoBatchSelected" xml:space="preserve"><value>No batch selected</value></data>
+  <data name="FilesSelectedFormat" xml:space="preserve"><value>{0:N0} files selected</value></data>
+  <data name="FileSelectionFailed" xml:space="preserve"><value>File selection failed</value></data>
+  <data name="FileRequired" xml:space="preserve"><value>File required</value></data>
+  <data name="ChooseFileFirst" xml:space="preserve"><value>Choose a file first.</value></data>
+  <data name="FilesRequired" xml:space="preserve"><value>Files required</value></data>
+  <data name="ChooseFilesFirst" xml:space="preserve"><value>Choose one or more files first.</value></data>
+  <data name="DeviceRequired" xml:space="preserve"><value>Device required</value></data>
+  <data name="FreshPairingInvitationFirst" xml:space="preserve"><value>Validate a fresh pairing invitation first.</value></data>
+  <data name="ResumeUnavailable" xml:space="preserve"><value>Resume unavailable</value></data>
+  <data name="SourceFileUnavailable" xml:space="preserve"><value>The original source file is no longer available.</value></data>
+  <data name="BatchFilesUnavailable" xml:space="preserve"><value>The original batch files are no longer available.</value></data>
+  <data name="FreshPairingRequired" xml:space="preserve"><value>Fresh pairing required</value></data>
+  <data name="FreshPairingResumeMessage" xml:space="preserve"><value>Pair with the same receiver again, verify its fingerprint, then press Resume.</value></data>
+  <data name="SendingStatus" xml:space="preserve"><value>Sending…</value></data>
+  <data name="ResumingStatus" xml:space="preserve"><value>Resuming…</value></data>
+  <data name="CompletedVerifiedStatus" xml:space="preserve"><value>Completed and verified. Pair again for another transfer.</value></data>
+  <data name="PausedResumeStatus" xml:space="preserve"><value>Paused. Pair with the same receiver again, then press Resume.</value></data>
+  <data name="CancelledStatus" xml:space="preserve"><value>Cancelled.</value></data>
+  <data name="FailedStatus" xml:space="preserve"><value>Failed.</value></data>
+  <data name="FailedSafeResumeStatus" xml:space="preserve"><value>Failed safely. Pair again and press Resume to reuse any partial offset.</value></data>
+  <data name="TransferFailed" xml:space="preserve"><value>Transfer failed</value></data>
+  <data name="PreparingChecksums" xml:space="preserve"><value>Preparing checksums…</value></data>
+  <data name="PreparingResumeChecksums" xml:space="preserve"><value>Preparing resume checksums…</value></data>
+  <data name="Calculating" xml:space="preserve"><value>calculating</value></data>
+  <data name="BatchProgressFormat" xml:space="preserve"><value>{0}/{1} files • {2}/{3} • {4}/s • ETA {5}&#10;{6}</value></data>
+  <data name="BatchCompletedFormat" xml:space="preserve"><value>Completed {0:N0} file(s); receiver skipped {1:N0}. Pair again for another transfer.</value></data>
+  <data name="BatchCancelledStatus" xml:space="preserve"><value>Batch cancelled.</value></data>
+  <data name="BatchFailedStatus" xml:space="preserve"><value>Batch failed.</value></data>
+  <data name="BatchFailedSafeResumeStatus" xml:space="preserve"><value>Batch failed safely. Pair again and press Resume.</value></data>
+  <data name="BatchTransferFailed" xml:space="preserve"><value>Batch transfer failed</value></data>
+  <data name="ClipboardReadOnce" xml:space="preserve"><value>Clipboard read once by your explicit action.</value></data>
+  <data name="ClipboardUnavailable" xml:space="preserve"><value>Clipboard unavailable</value></data>
+  <data name="TextRequired" xml:space="preserve"><value>Text required</value></data>
+  <data name="TextRequiredMessage" xml:space="preserve"><value>Type or explicitly paste a text snippet first.</value></data>
+  <data name="SendingEncryptedText" xml:space="preserve"><value>Sending encrypted text…</value></data>
+  <data name="TextDelivered" xml:space="preserve"><value>Text delivered. Pair again for another transfer.</value></data>
+  <data name="TextTransferFailed" xml:space="preserve"><value>Text transfer failed</value></data>
+  <data name="TextTransferFailedStatus" xml:space="preserve"><value>Text transfer failed.</value></data>
+  <data name="InvitationInUseFormat" xml:space="preserve"><value>{0} invitation in use. Pair again for another transfer or resume.</value></data>
+</root>
