@@ -1,4 +1,3 @@
-using System.Text;
 using Foundation;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
@@ -276,21 +275,7 @@ public sealed class ShareViewController : UIViewController
     private static string? BuildBoundedText(IEnumerable<string> values, int maximumUtf8Bytes)
     {
         var combined = string.Join(Environment.NewLine, values.Where(value => !string.IsNullOrWhiteSpace(value))).Trim();
-        if (combined.Length == 0) return null;
-        if (Encoding.UTF8.GetByteCount(combined) <= maximumUtf8Bytes) return combined;
-
-        var low = 0;
-        var high = combined.Length;
-        while (low < high)
-        {
-            var mid = low + (high - low + 1) / 2;
-            var end = mid;
-            if (end > 0 && end < combined.Length && char.IsHighSurrogate(combined[end - 1]) && char.IsLowSurrogate(combined[end]))
-                end--;
-            if (Encoding.UTF8.GetByteCount(combined.AsSpan(0, end)) <= maximumUtf8Bytes) low = end;
-            else high = mid - 1;
-        }
-        return combined[..low];
+        return combined.Length == 0 ? null : Utf8TextLimiter.Truncate(combined, maximumUtf8Bytes);
     }
 
     private static bool IsTextOrUrlType(string identifier)
