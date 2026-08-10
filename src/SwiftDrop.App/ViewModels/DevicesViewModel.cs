@@ -41,7 +41,9 @@ public sealed class DevicesViewModel : ObservableObject, IDisposable
         var peers = _discovery.Snapshot().Select(DeviceRow.FromPeer).ToArray();
         Items.Clear();
         foreach (var peer in peers) Items.Add(peer);
-        Status = peers.Length == 1 ? "1 device" : $"{peers.Length} devices";
+        Status = peers.Length == 1
+            ? AppText.Get("NearbyDeviceCountOne")
+            : AppText.Format("NearbyDeviceCountFormat", peers.Length);
     }
 
     private void Subscribe()
@@ -70,8 +72,8 @@ public sealed class DevicesViewModel : ObservableObject, IDisposable
         public static DeviceRow FromPeer(PeerDevice peer)
         {
             var lastSeen = peer.LastSeenUtc is null
-                ? "Last seen: unknown"
-                : $"Last seen: {peer.LastSeenUtc.Value.LocalDateTime:T}";
+                ? AppText.Get("LastSeenUnknown")
+                : AppText.Format("LastSeenAtFormat", peer.LastSeenUtc.Value.LocalDateTime);
             return new DeviceRow(
                 peer.Id,
                 peer.Name,
