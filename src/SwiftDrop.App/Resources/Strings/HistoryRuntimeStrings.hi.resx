@@ -12,4 +12,17 @@
   <data name="HistoryCountOne" xml:space="preserve"><value>1 स्थानीय इतिहास रिकॉर्ड</value></data>
   <data name="HistoryCountFormat" xml:space="preserve"><value>{0:N0} स्थानीय इतिहास रिकॉर्ड</value></data>
   <data name="NoHistoryRecords" xml:space="preserve"><value>कोई स्थानीय इतिहास रिकॉर्ड नहीं</value></data>
+  <data name="PrivacyHidden" xml:space="preserve"><value>Privacy mode द्वारा छिपाया गया</value></data>
+  <data name="HistorySent" xml:space="preserve"><value>भेजा गया</value></data>
+  <data name="HistoryReceived" xml:space="preserve"><value>प्राप्त</value></data>
+  <data name="HistoryCompleted" xml:space="preserve"><value>पूरा</value></data>
+  <data name="HistoryFailed" xml:space="preserve"><value>विफल</value></data>
+  <data name="HistoryCancelled" xml:space="preserve"><value>रद्द</value></data>
+  <data name="HistoryPaused" xml:space="preserve"><value>रुका हुआ</value></data>
+  <data name="HistoryRejected" xml:space="preserve"><value>अस्वीकृत</value></data>
+  <data name="HistoryNotSelected" xml:space="preserve"><value>चयनित नहीं</value></data>
+  <data name="HistoryAccepted" xml:space="preserve"><value>स्वीकृत</value></data>
+  <data name="HistoryCopied" xml:space="preserve"><value>कॉपी किया गया</value></data>
+  <data name="HistoryBytesFormat" xml:space="preserve"><value>{0:N0} बाइट</value></data>
+  <data name="HistoryTimeFormat" xml:space="preserve"><value>{0:g}</value></data>
 </root>
