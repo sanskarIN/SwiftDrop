@@ -25,9 +25,9 @@ public static class BatchCompletionVerifier
         string destination;
         try
         {
-            destination = PathGuard.ResolveUnderRoot(receiveRoot, completion.DestinationRelativePath);
+            destination = PathGuard.EnsureNoReparsePointsUnderRoot(receiveRoot, completion.DestinationRelativePath);
         }
-        catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException)
+        catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException or IOException)
         {
             return null;
         }
