@@ -13,6 +13,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
 {
     private readonly TlsPeerServer _server;
     private readonly string _receiveRoot;
+    private readonly BatchResumeStateService _batchResumeState;
     private readonly Func<string, bool> _consumePairingNonce;
     private readonly Func<IncomingTransferPreview, CancellationToken, Task<bool>> _approveTransfer;
     private readonly Func<IncomingTransferPreview, string, bool, CancellationToken, Task>? _recordTransfer;
@@ -45,7 +46,8 @@ public sealed class ReceiveServerService : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(certificate);
         ArgumentException.ThrowIfNullOrWhiteSpace(receiveRoot);
-        _receiveRoot = receiveRoot;
+        _receiveRoot = Path.GetFullPath(receiveRoot);
+        _batchResumeState = new BatchResumeStateService(_receiveRoot);
         _consumePairingNonce = consumePairingNonce ?? throw new ArgumentNullException(nameof(consumePairingNonce));
         _approveTransfer = approveTransfer ?? throw new ArgumentNullException(nameof(approveTransfer));
         _recordTransfer = recordTransfer;
@@ -292,6 +294,15 @@ public sealed class ReceiveServerService : IAsyncDisposable
                     continue;
                 }
 
+                var completed = await _batchResumeState.TryGetVerifiedAsync(transferId, file, ct);
+                if (completed is not null)
+                {
+                    var effectiveCompletedEntry = file with { RelativePath = completed.DestinationRelativePath };
+                    plans.Add(new BatchItemPlan(file.RelativePath, file.Length, true));
+                    receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveCompletedEntry, file.Length, true));
+                    continue;
+                }
+
                 var requestedFinal = PathGuard.ResolveUnderRoot(_receiveRoot, file.RelativePath);
                 var destination = _destinationReservations.Reserve(requestedFinal);
                 reservations.Add(destination);
@@ -301,7 +312,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 var partial = final + ".swiftdrop.part";
                 var offset = File.Exists(partial) ? Math.Min(new FileInfo(partial).Length, effectiveEntry.Length) : 0;
                 plans.Add(new BatchItemPlan(file.RelativePath, offset, true));
-                receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveEntry, offset));
+                receiveItems.Add(new BatchReceiveItem(file.RelativePath, effectiveEntry, offset, false));
             }
 
             if (receiveItems.Count == 0)
@@ -324,6 +335,15 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 var start = await FrameProtocol.ReadJsonAsync<BatchItemStart>(connection, ct);
                 IncomingRequestPolicy.ValidateBatchItemStart(item.SourceRelativePath, start.RelativePath);
 
+                if (item.AlreadyCompleted)
+                {
+                    await FrameProtocol.WriteJsonAsync(
+                        connection,
+                        new TransferAcknowledgement(true, item.EffectiveEntry.Length),
+                        ct);
+                    continue;
+                }
+
                 var itemPreview = new IncomingTransferPreview(
                     request.SenderDeviceId!,
                     request.SenderDeviceName!,
@@ -339,7 +359,15 @@ public sealed class ReceiveServerService : IAsyncDisposable
                         item.ResumeOffset,
                         null,
                         ct);
-                    await FrameProtocol.WriteJsonAsync(connection, new TransferAcknowledgement(true, item.EffectiveEntry.Length), ct);
+                    await _batchResumeState.RecordCompletedAsync(
+                        transferId,
+                        item.SourceRelativePath,
+                        item.EffectiveEntry,
+                        ct);
+                    await FrameProtocol.WriteJsonAsync(
+                        connection,
+                        new TransferAcknowledgement(true, item.EffectiveEntry.Length),
+                        ct);
                     await RecordAsync(itemPreview, "completed", true, ct);
                 }
                 catch
@@ -487,5 +515,9 @@ public sealed class ReceiveServerService : IAsyncDisposable
         _cts.Dispose();
     }
 
-    private sealed record BatchReceiveItem(string SourceRelativePath, FileManifestEntry EffectiveEntry, long ResumeOffset);
+    private sealed record BatchReceiveItem(
+        string SourceRelativePath,
+        FileManifestEntry EffectiveEntry,
+        long ResumeOffset,
+        bool AlreadyCompleted);
 }
