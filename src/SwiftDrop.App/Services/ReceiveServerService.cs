@@ -124,17 +124,17 @@ public sealed class ReceiveServerService : IAsyncDisposable
             try
             {
                 var request = await FrameProtocol.ReadJsonAsync<IncomingRequest>(connection, ct);
-                if (request.ProtocolVersion != ProtocolConstants.CurrentVersion ||
-                    request.Type is not ("file" or "batch" or "text" or "pair-request"))
+                try
                 {
-                    await RejectAsync(connection, "Unsupported transfer request.", ct);
+                    IncomingRequestPolicy.ValidateEnvelope(request.ProtocolVersion, request.Type);
+                    IncomingRequestPolicy.ValidateSenderIdentity(request.SenderDeviceId, request.SenderDeviceName);
+                }
+                catch (Exception ex) when (ex is InvalidDataException or NotSupportedException)
+                {
+                    await RejectAsync(connection, "Unsupported or invalid transfer request.", ct);
                     return;
                 }
-                if (!IsValidSenderIdentity(request.SenderDeviceId, request.SenderDeviceName))
-                {
-                    await RejectAsync(connection, "Invalid sender identity metadata.", ct);
-                    return;
-                }
+
                 if (connection.RemoteCertificate is null)
                 {
                     await RejectAsync(connection, "Sender certificate is required.", ct);
@@ -275,8 +275,12 @@ public sealed class ReceiveServerService : IAsyncDisposable
         IReadOnlyList<FileManifestEntry> safeFiles,
         CancellationToken ct)
     {
-        var transferId = request.TransferId;
-        if (string.IsNullOrWhiteSpace(transferId) || transferId.Length > 128 || transferId.Any(char.IsControl))
+        string transferId;
+        try
+        {
+            transferId = IncomingRequestPolicy.ValidateTransferId(request.TransferId);
+        }
+        catch (InvalidDataException)
         {
             await FrameProtocol.WriteJsonAsync(
                 connection,
@@ -361,8 +365,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
             foreach (var item in receiveItems)
             {
                 var start = await FrameProtocol.ReadJsonAsync<BatchItemStart>(connection, ct);
-                if (!string.Equals(start.RelativePath, item.SourceRelativePath, StringComparison.Ordinal))
-                    throw new InvalidDataException("Batch item order or path did not match the negotiated plan.");
+                IncomingRequestPolicy.ValidateBatchItemStart(item.SourceRelativePath, start.RelativePath);
 
                 var itemPreview = new IncomingTransferPreview(
                     request.SenderDeviceId!,
@@ -476,11 +479,6 @@ public sealed class ReceiveServerService : IAsyncDisposable
         await RecordTextAsync(preview, decision == IncomingTextDecision.AcceptAndCopy ? "copied" : "accepted", ct);
         return preview;
     }
-
-    private static bool IsValidSenderIdentity(string? deviceId, string? deviceName)
-        => !string.IsNullOrWhiteSpace(deviceId) && deviceId.Length <= 128 &&
-           !string.IsNullOrWhiteSpace(deviceName) && deviceName.Length <= 128 &&
-           !deviceName.Any(char.IsControl);
 
     private static Task RejectAsync(Stream connection, string message, CancellationToken ct)
         => FrameProtocol.WriteJsonAsync(connection, new TransferResponse(false, 0, message), ct);
