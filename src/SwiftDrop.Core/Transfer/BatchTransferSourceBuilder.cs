@@ -8,11 +8,18 @@ public static class BatchTransferSourceBuilder
 {
     public const int MaxFilesPerBatch = ProtocolConstants.MaxBatchFiles;
 
+    public static Task<BatchTransferSource> BuildAsync(
+        IEnumerable<string> paths,
+        CancellationToken ct = default)
+        => BuildAsync(paths, Guid.NewGuid().ToString("N"), ct);
+
     public static async Task<BatchTransferSource> BuildAsync(
         IEnumerable<string> paths,
+        string transferId,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(paths);
+        transferId = IncomingRequestPolicy.ValidateTransferId(transferId);
         var pending = new List<PendingFile>();
         var usedRelativePaths = new HashSet<string>(StringComparer.Ordinal);
         long totalBytes = 0;
@@ -59,7 +66,7 @@ public static class BatchTransferSourceBuilder
             items.Add(new FileTransferSource(source.LocalPath, entry));
         }
 
-        return new BatchTransferSource(Guid.NewGuid().ToString("N"), items, totalBytes);
+        return new BatchTransferSource(transferId, items, totalBytes);
     }
 
     private static void AddPendingFile(
