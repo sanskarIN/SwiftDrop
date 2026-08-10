@@ -34,6 +34,45 @@ public sealed class BatchTransferSourceBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_PreservesCallerTransferIdForResume()
+    {
+        var root = CreateTempDirectory("stable-id");
+        try
+        {
+            var path = Path.Combine(root, "payload.bin");
+            await File.WriteAllBytesAsync(path, [1, 2, 3]);
+
+            var first = await BatchTransferSourceBuilder.BuildAsync([path], "stable-batch-id");
+            var retry = await BatchTransferSourceBuilder.BuildAsync([path], "stable-batch-id");
+
+            Assert.Equal("stable-batch-id", first.TransferId);
+            Assert.Equal(first.TransferId, retry.TransferId);
+            Assert.Equal(first.Items[0].Entry, retry.Items[0].Entry);
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
+    public async Task BuildAsync_RejectsInvalidCallerTransferIdBeforeHashing()
+    {
+        var root = CreateTempDirectory("bad-id");
+        try
+        {
+            var path = Path.Combine(root, "payload.bin");
+            await File.WriteAllBytesAsync(path, [1, 2, 3]);
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                BatchTransferSourceBuilder.BuildAsync([path], "bad\nid"));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
     public async Task BuildAsync_DeconflictsDuplicateTopLevelFileNames()
     {
         var root = CreateTempDirectory("duplicates");
