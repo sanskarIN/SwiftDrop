@@ -68,23 +68,27 @@ public sealed class TransferCoordinator
             entry
         }, ct);
         var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
-        if (!response.Accepted) throw new IOException(response.Message ?? "Receiver rejected the transfer.");
-        if (response.ResumeOffset < 0 || response.ResumeOffset > entry.Length)
-            throw new InvalidDataException("Receiver returned an invalid resume offset.");
+        var resumeOffset = TransferResponsePolicy.ValidateResumeOffset(
+            response.Accepted,
+            response.ResumeOffset,
+            entry.Length,
+            response.Message);
 
-        progress?.Report(entry.Length == 0 ? 1 : (double)response.ResumeOffset / entry.Length);
+        progress?.Report(entry.Length == 0 ? 1 : (double)resumeOffset / entry.Length);
         var bytesProgress = new Progress<long>(sent => progress?.Report(entry.Length == 0 ? 1 : (double)sent / entry.Length));
         await new TransferEngine().SendFileAsync(
             ssl,
             path,
-            response.ResumeOffset,
+            resumeOffset,
             entry.Length,
             bytesProgress,
             ct);
         var completed = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
-        if (!completed.Accepted) throw new IOException(completed.Message ?? "Receiver reported failure.");
-        if (completed.ResumeOffset != entry.Length)
-            throw new InvalidDataException("Receiver completion length did not match the manifest.");
+        TransferResponsePolicy.ValidateCompletion(
+            completed.Accepted,
+            completed.ResumeOffset,
+            entry.Length,
+            completed.Message);
         progress?.Report(1);
     }
 
@@ -162,10 +166,11 @@ public sealed class TransferCoordinator
                 itemProgress,
                 ct);
             var itemResponse = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
-            if (!itemResponse.Accepted)
-                throw new IOException(itemResponse.Message ?? $"Receiver failed while saving {source.Entry.RelativePath}.");
-            if (itemResponse.ResumeOffset != source.Entry.Length)
-                throw new InvalidDataException("Receiver item completion length did not match the manifest.");
+            TransferResponsePolicy.ValidateCompletion(
+                itemResponse.Accepted,
+                itemResponse.ResumeOffset,
+                source.Entry.Length,
+                itemResponse.Message);
 
             completedBefore += source.Entry.Length;
             completedItems++;
@@ -179,9 +184,11 @@ public sealed class TransferCoordinator
         }
 
         var final = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
-        if (!final.Accepted) throw new IOException(final.Message ?? "Receiver reported batch failure.");
-        if (final.ResumeOffset != batch.TotalBytes)
-            throw new InvalidDataException("Receiver batch completion total did not match the manifest.");
+        TransferResponsePolicy.ValidateCompletion(
+            final.Accepted,
+            final.ResumeOffset,
+            batch.TotalBytes,
+            final.Message);
 
         var skipped = batch.Items
             .Where(x => !acceptedPlans.ContainsKey(x.Entry.RelativePath))
@@ -209,9 +216,10 @@ public sealed class TransferCoordinator
             expiresUnixSeconds = expires.ToUnixTimeSeconds()
         }, ct);
         var response = await FrameProtocol.ReadJsonAsync<TransferResponse>(ssl, ct);
-        if (!response.Accepted) throw new IOException(response.Message ?? "Receiver rejected the text snippet.");
-        if (response.ResumeOffset != 0)
-            throw new InvalidDataException("Receiver returned an invalid text acknowledgement offset.");
+        TransferResponsePolicy.ValidateTextAcknowledgement(
+            response.Accepted,
+            response.ResumeOffset,
+            response.Message);
     }
 
     private async Task<PairingPayload> PrepareRemoteAsync(PairingPayload remote, CancellationToken ct)
