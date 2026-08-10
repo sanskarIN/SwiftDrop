@@ -23,7 +23,7 @@ public partial class TrustedDevicesPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync(AppText.Get("TrustedDevices"), ex.Message, "OK");
+            await DisplayAlertAsync(AppText.Get("TrustedDevices"), ex.Message, AppText.Get("Ok"));
         }
     }
 
@@ -33,8 +33,8 @@ public partial class TrustedDevicesPage : ContentPage
     {
         if (sender is not Button button || button.CommandParameter is not string deviceId) return;
         var confirmed = await DisplayAlertAsync(
-            "Revoke trusted device?",
-            "Future transfers from this device will require explicit confirmation again.",
+            AppText.Get("RevokeTrustedDeviceQuestion"),
+            AppText.Get("RevokeTrustedDeviceMessage"),
             AppText.Get("Revoke"),
             AppText.Get("Cancel"));
         if (!confirmed) return;
@@ -44,8 +44,8 @@ public partial class TrustedDevicesPage : ContentPage
     private async void ClearAllClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlertAsync(
-            "Clear all trusted devices?",
-            "This removes all locally stored trust decisions.",
+            AppText.Get("ClearTrustedDevicesQuestion"),
+            AppText.Get("ClearTrustedDevicesMessage"),
             AppText.Get("ClearAll"),
             AppText.Get("Cancel"));
         if (!confirmed) return;
