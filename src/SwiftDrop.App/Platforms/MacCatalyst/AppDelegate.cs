@@ -17,6 +17,13 @@ public class AppDelegate : MauiUIApplicationDelegate
             ExternalInputInbox.SetPairingLink(link);
             return true;
         }
+
+        if (url.IsFileUrl)
+        {
+            _ = AppleExternalFileStager.TryStageAsync(url);
+            return true;
+        }
+
         return base.OpenUrl(application, url, options);
     }
 }
