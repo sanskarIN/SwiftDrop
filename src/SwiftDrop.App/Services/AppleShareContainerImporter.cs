@@ -30,6 +30,7 @@ public static class AppleShareContainerImporter
             var inboxRoot = Path.Combine(containerPath, ExternalSharePackageConstants.InboxDirectoryName);
             if (!Directory.Exists(inboxRoot)) return 0;
 
+            PruneAbandonedStaging(inboxRoot, DateTimeOffset.UtcNow - ExternalSharePackageConstants.MaximumPackageAge);
             foreach (var packagePath in Directory.EnumerateDirectories(inboxRoot, "pending-*", SearchOption.TopDirectoryOnly)
                          .OrderBy(path => path, StringComparer.Ordinal))
             {
@@ -58,6 +59,8 @@ public static class AppleShareContainerImporter
             var expectedPrefix = Path.GetFullPath(inboxRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             if (!safePackagePath.StartsWith(expectedPrefix, PathComparisonPolicy.Comparison))
                 throw new InvalidDataException("External share package escaped the App Group inbox.");
+            if ((new DirectoryInfo(safePackagePath).Attributes & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException("External share package cannot be a symbolic link.");
 
             var directoryName = Path.GetFileName(safePackagePath);
             if (!directoryName.StartsWith("pending-", StringComparison.Ordinal))
@@ -70,6 +73,8 @@ public static class AppleShareContainerImporter
             var manifestInfo = new FileInfo(manifestPath);
             if (!manifestInfo.Exists || manifestInfo.Length is <= 0 or > ProtocolConstants.HeaderLimitBytes)
                 throw new InvalidDataException("External share package manifest is missing or oversized.");
+            if ((manifestInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException("External share manifest cannot be a symbolic link.");
 
             var manifestBytes = await File.ReadAllBytesAsync(manifestPath, ct);
             StrictJsonGuard.Validate(manifestBytes, maxDepth: 16);
@@ -80,6 +85,10 @@ public static class AppleShareContainerImporter
                 throw new InvalidDataException("External share package directory and manifest identifiers differ.");
 
             var sourceFilesRoot = Path.Combine(safePackagePath, "files");
+            if (Directory.Exists(sourceFilesRoot) &&
+                (new DirectoryInfo(sourceFilesRoot).Attributes & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException("External share files directory cannot be a symbolic link.");
+
             var validatedSources = new List<(ExternalSharePackageFile Item, string SourcePath)>(manifest.Files.Count);
             foreach (var item in manifest.Files)
             {
@@ -87,6 +96,8 @@ public static class AppleShareContainerImporter
                 var source = new FileInfo(sourcePath);
                 if (!source.Exists || source.Length != item.Length)
                     throw new InvalidDataException("Shared package file does not match its manifest.");
+                if ((source.Attributes & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException("Shared package files cannot be symbolic links.");
                 validatedSources.Add((item, source.FullName));
             }
 
@@ -127,6 +138,20 @@ public static class AppleShareContainerImporter
         {
             if (!string.IsNullOrWhiteSpace(stagingRoot)) DeleteBestEffort(stagingRoot);
             return ImportOutcome.RetryLater;
+        }
+    }
+
+    private static void PruneAbandonedStaging(string inboxRoot, DateTimeOffset cutoffUtc)
+    {
+        foreach (var path in Directory.EnumerateDirectories(inboxRoot, ".staging-*", SearchOption.TopDirectoryOnly))
+        {
+            try
+            {
+                if (Directory.GetLastWriteTimeUtc(path) < cutoffUtc.UtcDateTime) Directory.Delete(path, recursive: true);
+            }
+            catch
+            {
+            }
         }
     }
 
