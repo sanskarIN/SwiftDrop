@@ -18,6 +18,8 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Validate localization catalogs
         run: python3 scripts/validate_localization.py
+      - name: Validate Apple integration metadata
+        run: python3 scripts/validate_apple_integration.py
       - run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
       - run: dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release --no-restore
       - run: dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
