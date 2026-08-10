@@ -68,12 +68,8 @@ public sealed class DiagnosticEventStore
         await using var reader = await command.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            entries.Add(new DiagnosticEvent(
-                reader.GetString(0),
-                DateTimeOffset.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind),
-                reader.GetString(2),
-                reader.GetString(3),
-                reader.GetString(4)));
+            var entry = TryRead(reader);
+            if (entry is not null) entries.Add(entry);
         }
         return entries;
     }
@@ -105,11 +101,32 @@ public sealed class DiagnosticEventStore
         await command.ExecuteNonQueryAsync(ct);
     }
 
+    private static DiagnosticEvent? TryRead(SqliteDataReader reader)
+    {
+        try
+        {
+            var entry = new DiagnosticEvent(
+                reader.GetString(0),
+                DateTimeOffset.Parse(reader.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                reader.GetString(2),
+                reader.GetString(3),
+                reader.GetString(4));
+            Validate(entry);
+            return entry;
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidCastException or ArgumentException or OverflowException)
+        {
+            return null;
+        }
+    }
+
     private static void Validate(DiagnosticEvent entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        if (string.IsNullOrWhiteSpace(entry.Id) || entry.Id.Length > 64)
+        if (string.IsNullOrWhiteSpace(entry.Id) || entry.Id.Length > 64 || entry.Id.Any(char.IsControl))
             throw new ArgumentException("Invalid diagnostic event id.", nameof(entry));
+        if (entry.TimestampUtc < DateTimeOffset.UnixEpoch || entry.TimestampUtc > DateTimeOffset.UtcNow.AddDays(2))
+            throw new ArgumentException("Invalid diagnostic timestamp.", nameof(entry));
         if (string.IsNullOrWhiteSpace(entry.Level) || entry.Level.Length > 16 || entry.Level.Any(char.IsControl))
             throw new ArgumentException("Invalid diagnostic level.", nameof(entry));
         if (string.IsNullOrWhiteSpace(entry.Code) || entry.Code.Length > 96 || entry.Code.Any(char.IsControl))
