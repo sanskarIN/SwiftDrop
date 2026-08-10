@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Ok" xml:space="preserve"><value>ठीक है</value></data>
+  <data name="Continue" xml:space="preserve"><value>जारी रखें</value></data>
+  <data name="Clear" xml:space="preserve"><value>साफ़ करें</value></data>
+  <data name="Reset" xml:space="preserve"><value>रीसेट करें</value></data>
+  <data name="Request" xml:space="preserve"><value>अनुरोध भेजें</value></data>
+  <data name="UseEightDigitCode" xml:space="preserve"><value>8-अंकों का कोड उपयोग करें</value></data>
+  <data name="DiscoveryUnavailable" xml:space="preserve"><value>डिवाइस खोज उपलब्ध नहीं है</value></data>
+  <data name="DeviceUnavailable" xml:space="preserve"><value>डिवाइस उपलब्ध नहीं है</value></data>
+  <data name="DeviceUnavailableMessage" xml:space="preserve"><value>यह डिवाइस अब नेटवर्क पर दिखाई नहीं दे रहा है। रीफ़्रेश करके फिर प्रयास करें।</value></data>
+  <data name="PairingUnavailable" xml:space="preserve"><value>पेयरिंग उपलब्ध नहीं है</value></data>
+  <data name="PairingFingerprintMissingMessage" xml:space="preserve"><value>इस खोज रिकॉर्ड में सर्टिफिकेट फिंगरप्रिंट नहीं है। इसके बजाय QR पेयरिंग का उपयोग करें।</value></data>
+  <data name="PairWithFormat" xml:space="preserve"><value>{0} के साथ पेयर करें</value></data>
+  <data name="OneTimePairingCode" xml:space="preserve"><value>एक-बार उपयोग वाला पेयरिंग कोड</value></data>
+  <data name="OneTimePairingCodePrompt" xml:space="preserve"><value>प्राप्त करने वाले डिवाइस पर दिख रहा 8-अंकों का कोड दर्ज करें। यह कोड जल्दी समाप्त होता है और TLS सर्टिफिकेट सत्यापन तथा प्राप्तकर्ता की स्वीकृति के साथ ही उपयोग होता है।</value></data>
+  <data name="InvalidCode" xml:space="preserve"><value>अमान्य कोड</value></data>
+  <data name="InvalidCodeMessage" xml:space="preserve"><value>ठीक आठ अंक दर्ज करें।</value></data>
+  <data name="RequestPairingQuestion" xml:space="preserve"><value>पेयरिंग अनुरोध भेजें?</value></data>
+  <data name="RequestPairingDetailsFormat" xml:space="preserve"><value>डिवाइस: {0}\nपता: {1}:{2}\nसर्टिफिकेट: {3}\n\nदूसरे डिवाइस को इस अनुरोध की स्वीकृति देनी होगी।</value></data>
+  <data name="WaitingForApproval" xml:space="preserve"><value>स्वीकृति की प्रतीक्षा…</value></data>
+  <data name="PairingTimedOut" xml:space="preserve"><value>पेयरिंग समय-सीमा समाप्त</value></data>
+  <data name="PairingTimedOutMessage" xml:space="preserve"><value>स्वीकृति मिलने से पहले पेयरिंग अनुरोध की समय-सीमा समाप्त हो गई।</value></data>
+  <data name="PairingFailed" xml:space="preserve"><value>पेयरिंग विफल</value></data>
+  <data name="InvalidPort" xml:space="preserve"><value>अमान्य पोर्ट</value></data>
+  <data name="InvalidPortMessage" xml:space="preserve"><value>1 से 65535 तक का संख्यात्मक पोर्ट दर्ज करें।</value></data>
+  <data name="FreshCodeMessage" xml:space="preserve"><value>प्राप्त करने वाले डिवाइस पर दिख रहा नया 8-अंकों का कोड दर्ज करें।</value></data>
+  <data name="ManualPairingBootstrap" xml:space="preserve"><value>मैनुअल पेयरिंग प्रारंभ</value></data>
+  <data name="ManualPairingBootstrapMessage" xml:space="preserve"><value>मैनुअल IP पेयरिंग शुरुआत में रिसीवर सर्टिफिकेट फिंगरप्रिंट ज्ञात होने से पहले जुड़ती है। 8-अंकों का कोड और रिसीवर की स्वीकृति इस प्रारंभिक कनेक्शन को अधिकृत करते हैं। SwiftDrop फिर लौटे निमंत्रण को उसी TLS सर्टिफिकेट से बाँधता है जिसे उसने देखा था और भेजने से पहले आपसे उस फिंगरप्रिंट की दृश्य पुष्टि करवाता है। केवल अपेक्षित नेटवर्क और डिवाइस पर ही जारी रखें।</value></data>
+  <data name="ManualPairingTimedOutMessage" xml:space="preserve"><value>मैनुअल पेयरिंग पूरी होने से पहले समय-सीमा समाप्त हो गई।</value></data>
+  <data name="ManualPairingFailed" xml:space="preserve"><value>मैनुअल पेयरिंग विफल</value></data>
+  <data name="SettingsError" xml:space="preserve"><value>सेटिंग्स त्रुटि</value></data>
+  <data name="FolderPickerUnavailable" xml:space="preserve"><value>फ़ोल्डर चयन उपलब्ध नहीं है</value></data>
+  <data name="FolderPickerUnavailableMessage" xml:space="preserve"><value>इस प्लेटफ़ॉर्म पर SwiftDrop व्यापक स्टोरेज अनुमति माँगने के बजाय प्राप्त फ़ाइलों को अपने निजी Received फ़ोल्डर में रखता है।</value></data>
+  <data name="FolderSelectionFailed" xml:space="preserve"><value>फ़ोल्डर चयन विफल</value></data>
+  <data name="NotificationPermissionNotGranted" xml:space="preserve"><value>नोटिफिकेशन अनुमति नहीं मिली</value></data>
+  <data name="NotificationPermissionNotGrantedMessage" xml:space="preserve"><value>SwiftDrop वैकल्पिक पूर्ण/विफल नोटिफिकेशन के बिना भी सामान्य रूप से ट्रांसफ़र करेगा। आवश्यक foreground transfer status Android के प्लेटफ़ॉर्म नियमों द्वारा नियंत्रित होता है।</value></data>
+  <data name="Saved" xml:space="preserve"><value>सहेजा गया</value></data>
+  <data name="SavedSettingsMessage" xml:space="preserve"><value>सेटिंग्स और डिवाइस नाम इस डिवाइस पर सहेज दिए गए हैं।</value></data>
+  <data name="SavedLanguageChangedMessage" xml:space="preserve"><value>सेटिंग्स और डिवाइस नाम सहेज दिए गए हैं। नई खुलने वाली स्क्रीन चुनी हुई भाषा उपयोग करेंगी; पहले से खुली स्क्रीन को ताज़ा करने के लिए SwiftDrop पुनः प्रारंभ करें।</value></data>
+  <data name="ResetDeviceIdentityQuestion" xml:space="preserve"><value>डिवाइस पहचान रीसेट करें?</value></data>
+  <data name="ResetDeviceIdentityQuestionMessage" xml:space="preserve"><value>यह नया डिवाइस ID और सर्टिफिकेट बनाता है, मौजूदा पेयरिंग निमंत्रण अमान्य करता है और सभी स्थानीय trusted devices हटाता है। दूसरे डिवाइस इस पहचान को नहीं पहचानेंगे। प्राप्त फ़ाइलें और ट्रांसफ़र इतिहास नहीं हटेंगे।</value></data>
+  <data name="ResetIdentityAction" xml:space="preserve"><value>पहचान रीसेट करें</value></data>
+  <data name="IdentityReset" xml:space="preserve"><value>पहचान रीसेट हुई</value></data>
+  <data name="IdentityResetMessage" xml:space="preserve"><value>नई स्थानीय पहचान और सर्टिफिकेट बनाए गए हैं।</value></data>
+  <data name="ResetSettings" xml:space="preserve"><value>सेटिंग्स रीसेट करें</value></data>
+  <data name="ResetSettingsQuestionMessage" xml:space="preserve"><value>SwiftDrop की सेटिंग्स को डिफ़ॉल्ट पर लौटाएँ? डिवाइस पहचान और trusted devices नहीं बदलेंगे।</value></data>
+  <data name="RevokeTrustedDeviceQuestion" xml:space="preserve"><value>Trusted device हटाएँ?</value></data>
+  <data name="RevokeTrustedDeviceMessage" xml:space="preserve"><value>इस डिवाइस से भविष्य के ट्रांसफ़र के लिए फिर से स्पष्ट पुष्टि आवश्यक होगी।</value></data>
+  <data name="ClearTrustedDevicesQuestion" xml:space="preserve"><value>सभी trusted devices साफ़ करें?</value></data>
+  <data name="ClearTrustedDevicesMessage" xml:space="preserve"><value>यह सभी स्थानीय trust decisions हटा देगा।</value></data>
+  <data name="SwiftDropSafeDiagnostics" xml:space="preserve"><value>SwiftDrop सुरक्षित डायग्नोस्टिक्स</value></data>
+  <data name="DiagnosticsRefreshFailedFormat" xml:space="preserve"><value>डायग्नोस्टिक्स रीफ़्रेश {0} के साथ विफल हुआ।</value></data>
+  <data name="ExportFailed" xml:space="preserve"><value>एक्सपोर्ट विफल</value></data>
+  <data name="ExportFailedFormat" xml:space="preserve"><value>डायग्नोस्टिक्स एक्सपोर्ट {0} के साथ विफल हुआ।</value></data>
+  <data name="ClearDiagnosticLogQuestion" xml:space="preserve"><value>डायग्नोस्टिक लॉग साफ़ करें?</value></data>
+  <data name="ClearDiagnosticLogMessage" xml:space="preserve"><value>यह स्थानीय डायग्नोस्टिक इवेंट हटाता है। ट्रांसफ़र इतिहास और प्राप्त फ़ाइलें नहीं बदलतीं।</value></data>
+  <data name="DeveloperOptionsDisabled" xml:space="preserve"><value>डेवलपर विकल्प बंद हैं</value></data>
+  <data name="DeveloperOptionsDisabledMessage" xml:space="preserve"><value>पहले Settings में सुरक्षित developer diagnostics सक्षम करें।</value></data>
+  <data name="UnableToOpenLink" xml:space="preserve"><value>लिंक नहीं खुल सका</value></data>
+  <data name="UnableToOpenLinkFormat" xml:space="preserve"><value>SwiftDrop इस डिवाइस पर {0} नहीं खोल सका।</value></data>
+  <data name="OpeningLinkUnsupportedFormat" xml:space="preserve"><value>इस डिवाइस पर {0} खोलना समर्थित नहीं है।</value></data>
+  <data name="RepositoryLinkLabel" xml:space="preserve"><value>रिपॉज़िटरी</value></data>
+  <data name="CreatorProfileLinkLabel" xml:space="preserve"><value>निर्माता प्रोफ़ाइल</value></data>
+  <data name="BuyMeACoffeeLinkLabel" xml:space="preserve"><value>Buy Me a Coffee पेज</value></data>
+  <data name="RunningCountFormat" xml:space="preserve"><value>{0:N0} चल रहे • {1:N0} कतार में • {2:N0} बाधित</value></data>
+  <data name="QueuedAtFormat" xml:space="preserve"><value>कतार में {0:T}</value></data>
+  <data name="StartedAtFormat" xml:space="preserve"><value>शुरू {0:T}</value></data>
+  <data name="InterruptedAtFormat" xml:space="preserve"><value>बाधित {0:T}</value></data>
+  <data name="FinishedAtFormat" xml:space="preserve"><value>पूरा {0:T}</value></data>
+  <data name="TrustedDeviceCountOne" xml:space="preserve"><value>1 trusted device</value></data>
+  <data name="TrustedDeviceCountFormat" xml:space="preserve"><value>{0:N0} trusted devices</value></data>
+  <data name="TrustedAtFormat" xml:space="preserve"><value>Trusted {0:g} • अंतिम बार देखा {1:g}</value></data>
+  <data name="NearbyDeviceCountOne" xml:space="preserve"><value>1 डिवाइस</value></data>
+  <data name="NearbyDeviceCountFormat" xml:space="preserve"><value>{0:N0} डिवाइस</value></data>
+  <data name="LastSeenUnknown" xml:space="preserve"><value>अंतिम बार देखा: अज्ञात</value></data>
+  <data name="LastSeenAtFormat" xml:space="preserve"><value>अंतिम बार देखा: {0:T}</value></data>
+</root>
