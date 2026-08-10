@@ -23,7 +23,10 @@ public partial class DiagnosticsPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync(AppText.Get("Diagnostics"), $"Diagnostics refresh failed with {ex.GetType().Name}.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("Diagnostics"),
+                AppText.Format("DiagnosticsRefreshFailedFormat", ex.GetType().Name),
+                AppText.Get("Ok"));
         }
     }
 
@@ -36,22 +39,25 @@ public partial class DiagnosticsPage : ContentPage
             var path = await _viewModel.ExportAsync();
             await Share.Default.RequestAsync(new ShareFileRequest
             {
-                Title = "SwiftDrop safe diagnostics",
+                Title = AppText.Get("SwiftDropSafeDiagnostics"),
                 File = new ShareFile(path)
             });
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Export failed", $"Diagnostics export failed with {ex.GetType().Name}.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("ExportFailed"),
+                AppText.Format("ExportFailedFormat", ex.GetType().Name),
+                AppText.Get("Ok"));
         }
     }
 
     private async void ClearLogClicked(object? sender, EventArgs e)
     {
         var confirmed = await DisplayAlertAsync(
-            "Clear diagnostic log?",
-            "This removes locally stored diagnostic events. Transfer history and received files are not changed.",
-            "Clear",
+            AppText.Get("ClearDiagnosticLogQuestion"),
+            AppText.Get("ClearDiagnosticLogMessage"),
+            AppText.Get("Clear"),
             AppText.Get("Cancel"));
         if (!confirmed) return;
         await _viewModel.ClearEventsAsync();
@@ -74,7 +80,10 @@ public partial class DiagnosticsPage : ContentPage
         }
         catch (InvalidOperationException)
         {
-            await DisplayAlertAsync("Developer options disabled", "Enable safe developer diagnostics in Settings first.", "OK");
+            await DisplayAlertAsync(
+                AppText.Get("DeveloperOptionsDisabled"),
+                AppText.Get("DeveloperOptionsDisabledMessage"),
+                AppText.Get("Ok"));
         }
         catch (OperationCanceledException)
         {
