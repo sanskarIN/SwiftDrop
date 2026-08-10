@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import re
 import sys
 import xml.etree.ElementTree as ET
 
@@ -13,6 +14,7 @@ PAIRS = [
     (ROOT / "src/SwiftDrop.App/Resources/Strings/BatchRuntimeStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/BatchRuntimeStrings.hi.resx"),
     (ROOT / "src/SwiftDrop.App/Resources/Strings/HistoryRuntimeStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/HistoryRuntimeStrings.hi.resx"),
 ]
+FORMAT_TOKEN = re.compile(r"\{(\d+)(?:,[^}:]+)?(?::[^}]+)?\}")
 
 
 def read_catalog(path: Path) -> dict[str, str]:
@@ -36,6 +38,10 @@ def read_catalog(path: Path) -> dict[str, str]:
     return values
 
 
+def placeholders(value: str) -> tuple[str, ...]:
+    return tuple(sorted(FORMAT_TOKEN.findall(value)))
+
+
 def main() -> int:
     errors: list[str] = []
     for english_path, hindi_path in PAIRS:
@@ -53,12 +59,20 @@ def main() -> int:
         if extra_hindi:
             errors.append(f"{hindi_path.relative_to(ROOT)} has unmatched keys: {', '.join(extra_hindi)}")
 
+        for key in sorted(set(english) & set(hindi)):
+            english_tokens = placeholders(english[key])
+            hindi_tokens = placeholders(hindi[key])
+            if english_tokens != hindi_tokens:
+                errors.append(
+                    f"Format placeholders differ for {key!r}: English={english_tokens}, Hindi={hindi_tokens}"
+                )
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    print("Localization catalogs are well-formed and English/Hindi key sets match.")
+    print("Localization catalogs are well-formed; English/Hindi keys and format placeholders match.")
     return 0
 
 
