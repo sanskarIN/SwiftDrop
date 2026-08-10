@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.Core.Storage;
 
@@ -38,7 +39,7 @@ public sealed class TrustStore
 
     public async Task UpsertAsync(TrustedPeer peer, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(peer);
+        var normalized = NormalizePeer(peer);
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
         var cmd = db.CreateCommand();
@@ -50,30 +51,25 @@ public sealed class TrustStore
               fingerprint=excluded.fingerprint,
               last_seen_utc=excluded.last_seen_utc;
             """;
-        cmd.Parameters.AddWithValue("$id", peer.DeviceId);
-        cmd.Parameters.AddWithValue("$name", peer.DeviceName);
-        cmd.Parameters.AddWithValue("$fp", peer.CertificateFingerprint);
-        cmd.Parameters.AddWithValue("$trusted", peer.TrustedAtUtc.ToString("O"));
-        cmd.Parameters.AddWithValue("$seen", peer.LastSeenUtc.ToString("O"));
+        cmd.Parameters.AddWithValue("$id", normalized.DeviceId);
+        cmd.Parameters.AddWithValue("$name", normalized.DeviceName);
+        cmd.Parameters.AddWithValue("$fp", normalized.CertificateFingerprint);
+        cmd.Parameters.AddWithValue("$trusted", normalized.TrustedAtUtc.ToString("O"));
+        cmd.Parameters.AddWithValue("$seen", normalized.LastSeenUtc.ToString("O"));
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
     public async Task<TrustedPeer?> GetAsync(string deviceId, CancellationToken ct = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
+        ValidateDeviceId(deviceId);
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
         var cmd = db.CreateCommand();
         cmd.CommandText = "SELECT device_name,fingerprint,trusted_utc,last_seen_utc FROM trusted_peers WHERE device_id=$id";
-        cmd.Parameters.AddWithValue("$id", deviceId);
+        cmd.Parameters.AddWithValue("$id", deviceId.Trim());
         await using var r = await cmd.ExecuteReaderAsync(ct);
         if (!await r.ReadAsync(ct)) return null;
-        return new TrustedPeer(
-            deviceId,
-            r.GetString(0),
-            r.GetString(1),
-            DateTimeOffset.Parse(r.GetString(2), null, System.Globalization.DateTimeStyles.RoundtripKind),
-            DateTimeOffset.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind));
+        return TryReadPeer(deviceId.Trim(), r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3));
     }
 
     public async Task<IReadOnlyList<TrustedPeer>> GetAllAsync(CancellationToken ct = default)
@@ -86,24 +82,20 @@ public sealed class TrustStore
         await using var r = await cmd.ExecuteReaderAsync(ct);
         while (await r.ReadAsync(ct))
         {
-            peers.Add(new TrustedPeer(
-                r.GetString(0),
-                r.GetString(1),
-                r.GetString(2),
-                DateTimeOffset.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind),
-                DateTimeOffset.Parse(r.GetString(4), null, System.Globalization.DateTimeStyles.RoundtripKind)));
+            var peer = TryReadPeer(r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4));
+            if (peer is not null) peers.Add(peer);
         }
         return peers;
     }
 
     public async Task RemoveAsync(string deviceId, CancellationToken ct = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
+        ValidateDeviceId(deviceId);
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
         var cmd = db.CreateCommand();
         cmd.CommandText = "DELETE FROM trusted_peers WHERE device_id=$id";
-        cmd.Parameters.AddWithValue("$id", deviceId);
+        cmd.Parameters.AddWithValue("$id", deviceId.Trim());
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
@@ -114,5 +106,50 @@ public sealed class TrustStore
         var cmd = db.CreateCommand();
         cmd.CommandText = "DELETE FROM trusted_peers";
         await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    private static TrustedPeer NormalizePeer(TrustedPeer peer)
+    {
+        ArgumentNullException.ThrowIfNull(peer);
+        ValidateDeviceId(peer.DeviceId);
+        var name = peer.DeviceName?.Trim() ?? string.Empty;
+        if (name.Length is 0 or > 128 || name.Any(char.IsControl))
+            throw new ArgumentException("Trusted device name is invalid.", nameof(peer));
+        var fingerprint = Fingerprint.NormalizeSha256(peer.CertificateFingerprint);
+        return peer with
+        {
+            DeviceId = peer.DeviceId.Trim(),
+            DeviceName = name,
+            CertificateFingerprint = fingerprint
+        };
+    }
+
+    private static TrustedPeer? TryReadPeer(
+        string deviceId,
+        string deviceName,
+        string fingerprint,
+        string trustedUtc,
+        string lastSeenUtc)
+    {
+        try
+        {
+            var peer = new TrustedPeer(
+                deviceId,
+                deviceName,
+                fingerprint,
+                DateTimeOffset.Parse(trustedUtc, null, System.Globalization.DateTimeStyles.RoundtripKind),
+                DateTimeOffset.Parse(lastSeenUtc, null, System.Globalization.DateTimeStyles.RoundtripKind));
+            return NormalizePeer(peer);
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException or OverflowException)
+        {
+            return null;
+        }
+    }
+
+    private static void ValidateDeviceId(string? deviceId)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId) || deviceId.Length > 128 || deviceId.Any(char.IsControl))
+            throw new ArgumentException("Trusted device ID is invalid.", nameof(deviceId));
     }
 }
