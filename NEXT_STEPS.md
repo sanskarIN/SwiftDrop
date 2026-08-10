@@ -1,361 +1,322 @@
 # SwiftDrop Next Steps
 
-Updated: 2026-08-09
+Updated: 2026-08-10
 
-This roadmap is intentionally strict. It separates remaining **source work** from validation that requires target operating systems, physical devices, signing identities, stores, and real networks. Source implementation is not described as production-verified merely because the code exists.
+This roadmap is intentionally strict. It separates remaining repository work from validation that requires real target operating systems, physical devices, signing identities, stores, and networks. Source implementation is not production verification.
 
 ## Recently completed in source
 
-The following items were earlier roadmap work and are now implemented in the repository, subject to CI/target-device validation where applicable:
+The following earlier roadmap items are now implemented in the repository, subject to automated/platform/device validation where relevant:
 
-- Optional project support link at `https://buymeacoffee.com/sanskarIN` in README, `SUPPORT.md`, GitHub funding metadata, and the in-app About page.
-- Shared receiver batch manifest validation and aggregate batch-byte limits.
-- Aggregate free-space preflight for the accepted batch remainder.
-- Complete sender batch source/count/per-file/aggregate preflight before hashing.
-- Manifest-bound outgoing source length and receiver completion-length checks.
-- Strict Core validation for receiver batch plans: unknown, duplicate, missing, contradictory, and out-of-range plans are rejected.
-- Defense-in-depth revalidation of the pairing payload at the actual send boundary.
-- Resume staging validation/truncation and immediate resumed-progress reporting.
-- Atomic destination reservations across concurrent incoming sessions.
-- Portable Unicode/filename sanitation, Windows reserved-device-name handling, and post-sanitation batch collision rejection.
-- Shared platform path-comparison policy for Core receive confinement/reservations and external input de-duplication.
-- 64-way concurrent destination reservation regression coverage.
-- Live receive-listener restart when receive location changes plus active session tracking/drain.
-- Native Windows drag/drop for files, folders, text, and SwiftDrop pairing links through the bounded external-input pipeline.
-- Reference-counted Android Wi-Fi multicast lock for mDNS discovery.
-- MAUI `Application.CreateWindow` startup and window-lifetime transfer/receiver cleanup.
-- Current MAUI async dialog APIs on secondary screens plus MainPage async dialog compatibility wrappers.
-- Explicit P-256 ECDSA identity certificate policy, TLS client/server EKUs, renewal/recovery, and user-visible re-pair notice.
-- Canonical SHA-256 fingerprint normalization and certificate-bound trusted-device matching.
-- Strict pairing invitation validation for local/private numeric addresses, metadata, fingerprint, nonce, lifetime, duplicate/unexpected query data, and unexpected outer URI fields.
-- Strict framed application JSON with bounded length/depth, invalid UTF-8 rejection, no comments/trailing commas, and case-insensitive duplicate-property rejection.
-- Every truncated prefix of a valid framed JSON message covered by boundary tests.
-- Mutual-TLS loopback coverage for pin success/failure, bootstrap fingerprint observation, real encrypted file transfer, integrity verification, and staged resume.
-- Manifest timestamp/path/size boundary tests.
-- Restart-safe privacy-minimal queue metadata with schema version 2; stale active rows become `Interrupted` without replaying authorization.
-- Transfer-history retention API mismatch fixed and history initialization serialized.
-- English/Hindi resource catalogs expanded across primary and secondary XAML surfaces.
-- XAML localization extension plus CI key-parity/well-formedness validation.
-- Saved culture/theme applied before MainPage construction at startup.
-- MVVM-backed History, Queue, Nearby Devices, Trusted Devices, Diagnostics, Settings, and About surfaces.
-- Synthetic benchmark harness for hashing, batch-manifest validation, and portable path sanitation using generated temporary data only.
-- Canonical `SwiftDrop.slnx` solution including app/core/tests/benchmarks; misleading XML `.sln` bootstrap removed.
-- Portable verification scripts aligned with CI.
-- Platform compile workflow configured for Android, Windows, Mac Catalyst, and unsigned iOS Simulator on `main` pushes/PRs.
-- Release-readiness workflow expanded with localization, benchmark compile, dependency inventory, Android/Windows/Mac Catalyst/iOS Simulator compile gates, and aggregate result enforcement.
-- Repository security-hygiene workflow strengthened against private keys/signing material/local databases/production `.env` artifacts.
-- Security, protocol, storage, architecture, build, README, status, and changelog documentation synchronized with current source behavior.
+- Decoded pairing JSON now passes `StrictJsonGuard` before deserialization, including duplicate/case-variant property, comment, trailing-comma, UTF-8, and depth protections.
+- Pairing nonces now use a reusable bounded `OneTimeAuthorizationStore` with atomic first-use consume, replay rejection, exact tick-level expiration, pruning, capacity control, and identity-reset clearing.
+- Pairing invitation clock-boundary/replay/concurrency tests were expanded.
+- Incoming request envelope/version/type, sender identity, transfer ID, and batch-item ordering validation were moved into reusable Core policy and are used by the receive host.
+- Sender acknowledgement validation for resume offsets, file/item/batch completion lengths, and text acknowledgement offsets was moved into reusable Core policy.
+- Receiver batch plan validation rejects unknown, duplicate, missing, contradictory, and out-of-range items.
+- Main transfer presentation state now has a dedicated `MainViewModel` for identity/receive-root/peer/selection/status/progress/control-enabled state.
+- Main XAML is bound to that view model; platform pickers, modal consent, navigation, QR rendering, clipboard/share calls, TLS, filesystem and cryptography remain outside the view model.
+- Main partial files were updated to use the new view-model state without retaining references to removed XAML controls.
+- English/Hindi localization now covers XAML plus runtime pairing, transfer, queue, device, trust, diagnostics, settings, history, platform/share, identity-recovery, and batch-consent text.
+- Localization CI now validates XML well-formedness, non-empty values, duplicate keys, exact English/Hindi key parity, and formatted placeholder-index parity.
+- History uses language-neutral private markers at rest and localized presentation rows for direction/status/size/time/private values.
+- Privacy mode redacts peer and filename/description metadata for new history entries and redacts older history at read time.
+- Diagnostic privacy redaction covers IPs/endpoints, GUIDs, SHA-256 fingerprints, file paths, email-like tokens, and SwiftDrop pairing URIs at record/read/export time.
+- Trusted-device storage enforces canonical SHA-256 fingerprints at the Core storage boundary and ignores malformed persisted trust rows.
+- History and diagnostic stores validate new metadata and skip malformed/corrupted persisted rows rather than failing the complete list.
+- mDNS parsing rejects duplicate TXT metadata keys, compression-pointer loops, malformed/truncated input, and deterministic random packet fuzz input.
+- Portable external-file staging implements bounded exact-length copying, sanitized destination names, cancellation, and failure cleanup.
+- iOS and Mac Catalyst document/open-file URL handling stages external files through temporary security-scoped access into the existing bounded `ExternalInputInbox` workflow.
+- iOS/Mac Catalyst Info.plist files declare `public.data` document opening and opening documents in place.
+- Mac Catalyst has explicit app-sandbox plus network client/server entitlements wired to the target.
+- Android application backup is disabled for local SwiftDrop metadata.
+- Windows package networking now requests only `privateNetworkClientServer`, not general `internetClient`.
+- Root compiler policy uses latest stable C# mode instead of preview mode.
+- External-file staging tests are portable across Windows/Linux/macOS runners.
+- Existing mutual-TLS/file/resume, strict JSON, batch/path/collision, database migration, queue, discovery, certificate and settings tests remain in place.
 
 ## P0 — Release blockers
 
-### 1. Get every automated gate green and retain evidence
+### 1. Obtain successful automated build/test evidence for the release candidate
 
 Required automated evidence:
 
-- localization parity validation;
-- `SwiftDrop.Core` restore/build;
+- localization validation;
+- `SwiftDrop.Core` restore/build with warnings treated as errors;
 - full portable xUnit suite;
 - synthetic benchmark project compile;
-- dependency vulnerability audit/inventory;
+- dependency inventory/vulnerability audit;
 - CodeQL C# analysis;
-- repository security-hygiene checks;
+- repository security-hygiene workflow;
 - Android MAUI Release compile;
 - Windows MAUI Release compile;
-- Mac Catalyst MAUI Release compile;
+- Mac Catalyst MAUI Release compile using the committed entitlements;
 - unsigned iOS Simulator Release compile;
 - release-readiness aggregate gate.
 
-The workflows are configured, but the GitHub combined-status endpoint available in this session has repeatedly returned **no status contexts**. That is unknown/unreported state, not a pass. Do not tag a release until the actual Actions UI/logs show the required jobs completed successfully for the release candidate.
+The GitHub connector available in this implementation session has returned no usable direct-main workflow runs/status contexts for queried commits. That is unknown/unreported state, not a pass.
 
-Pay special attention to newer compile-sensitive areas:
+When Actions evidence is available, pay special attention to the newest compile-sensitive source:
 
-- XAML localization markup extension/resource lookup;
-- Settings/Devices/Diagnostics/Trusted/Queue/About DI view-model constructors;
-- Android notification permission/foreground-service code;
-- Windows WinUI drag/drop;
-- Mac Catalyst/iOS URL activation;
-- SecureStorage certificate load/regeneration;
-- iOS Simulator runtime selection in Actions;
-- SQLite schema v1→v2 queue migration.
+- `MainViewModel`/MainPage DI constructor and XAML bindings;
+- `AppText` resource-manager additions;
+- runtime resource catalogs and placeholder parity script;
+- `AppleExternalFileStager` conditional compilation;
+- iOS/Mac Catalyst AppDelegate file-URL activation;
+- Apple Info.plist document declarations;
+- Mac Catalyst `CodesignEntitlements` configuration;
+- Core `IncomingRequestPolicy`/`TransferResponsePolicy` integration;
+- storage corruption-tolerance code;
+- latest stable C# language mode.
+
+Do not tag or describe a release candidate as automated-green until the Actions UI/logs for that exact commit confirm it.
 
 ### 2. Run the physical cross-device transfer matrix
 
-At minimum validate these peer directions on a normal LAN/Wi-Fi:
+Minimum peer directions:
 
-- Windows → Android.
-- Android → Windows.
-- Android → Android.
-- Windows → Windows.
-- macOS → Android.
-- Android → macOS.
-- iOS → Windows.
-- Windows → iOS.
-- iOS → macOS.
+- Windows → Android;
+- Android → Windows;
+- Android → Android;
+- Windows → Windows;
+- macOS → Android;
+- Android → macOS;
+- iOS → Windows;
+- Windows → iOS;
+- iOS → macOS;
 - macOS → iOS.
 
-For each supported direction exercise:
+For each supported direction exercise as applicable:
 
 - mDNS discovery;
-- UDP fallback with multicast discovery unavailable;
+- UDP fallback when multicast discovery is unavailable;
 - QR/deep-link pairing;
 - nearby pairing request;
 - one-time 8-digit pairing code;
 - manual numeric local-IP fallback;
 - stale/expired pairing invitation rejection;
-- public-IP/DNS pairing target rejection;
-- fingerprint mismatch rejection;
+- duplicate/conflicting pairing JSON rejection;
+- public-IP/DNS pairing-target rejection;
+- certificate fingerprint mismatch rejection;
+- one-time nonce replay rejection;
 - single small file;
 - zero-byte file;
 - large file;
-- duplicate completed filename collision;
-- many concurrent incoming transfers targeting the same name;
-- Windows reserved-device filenames received from another OS;
-- Unicode composed/decomposed filename collision;
-- high-risk extension warning;
+- duplicate destination collision;
+- many concurrent incoming transfers targeting the same filename;
+- portable Unicode composed/decomposed filename collision;
+- Windows reserved-device filename received from another OS;
+- high-risk-extension warning;
 - multi-file batch;
-- recursive folder transfer where source folder selection exists;
+- recursive folder transfer where folder selection exists;
 - receiver accept-all/selective/reject;
+- malformed/unknown receiver plan rejection;
 - aggregate batch free-space rejection;
 - cancellation;
 - pause then fresh-pair resume;
 - interrupted network then fresh-pair resume;
-- source-file mutation after manifest creation;
-- checksum mismatch self-test path;
+- source mutation after manifest generation;
 - text snippet transfer;
 - explicit clipboard paste;
-- trusted-device normal-risk behavior;
+- trusted-device behavior;
 - high-risk content from a trusted device still requiring consent;
 - trust revocation;
-- identity reset then re-pair;
-- automatic identity regeneration/renewal then re-pair;
-- privacy mode;
+- local identity reset/re-pair;
+- automatic identity regeneration/re-pair;
+- privacy mode history/diagnostic behavior;
 - history retention/delete/clear;
-- queue restart showing stale active metadata as `Interrupted` without auto-retry;
+- queue restart showing stale active metadata as `Interrupted` with no automatic replay;
 - receive-folder change while listener is active;
-- Android optional notification enable/deny/allow behavior;
-- Windows desktop file/folder/text/pairing-link drag/drop.
+- Android optional notification enable/deny/allow;
+- Windows file/folder/text/pairing-link drag/drop;
+- Apple document/open-file URL staging where supported.
 
-### 3. Validate hostile/restricted network and device conditions
+### 3. Validate hostile/restricted local environments
 
-Run manual cases on:
+Required manual environments/cases:
 
 - guest Wi-Fi/client isolation;
 - multicast-blocked Wi-Fi;
-- Windows firewall blocked then allowed;
-- Android background restrictions;
+- Windows Firewall blocked/allowed/private/public profile changes;
+- Android background restrictions and vendor battery controls;
 - iOS local-network permission denied then allowed;
 - IPv4-only LAN;
 - IPv6-capable LAN;
 - network switch/change during transfer;
 - sleep/lock during transfer;
-- low-storage destination;
+- destination low-storage condition;
 - very slow LAN;
 - repeated wrong pairing codes;
 - rapid inbound connection attempts;
 - app restart during queued/running transfer;
-- SecureStorage unavailable/locked/error conditions where reproducible.
+- SecureStorage/keychain/keystore unavailable/locked/error conditions where reproducible;
+- Apple security-scoped document-provider files;
+- stale/corrupted SQLite metadata created by prior/broken builds.
 
-Expected behavior is bounded/graceful failure with privacy-safe diagnostics. SwiftDrop must never attempt to bypass firewall, Wi-Fi isolation, MDM, enterprise, or operating-system policy.
+Expected behavior is bounded/graceful failure with privacy-safe diagnostics. SwiftDrop must not bypass firewall, guest-network isolation, MDM, sandbox, or OS lifecycle policy.
 
 ### 4. Complete signed package validation
 
 Android:
 
-- create/store production keystore outside the repository;
-- configure secrets only in trusted release infrastructure;
+- create/store the production keystore outside the repository;
+- configure release secrets only in trusted release infrastructure;
 - generate signed AAB/APK;
 - verify package ID/version/signature;
 - clean-install and upgrade-test;
 - validate foreground data-sync declarations against current Play policy;
-- validate notification permission copy/behavior on supported Android versions;
-- complete Play Data Safety declarations from the shipped binary.
+- validate notification behavior/permission UX;
+- verify Data Safety declarations from the final binary;
+- verify backup-disabled behavior is appropriate for release expectations.
 
 Windows:
 
 - configure production signing certificate outside the repository;
-- generate signed MSIX/package;
-- verify private-network capability and `swiftdrop://` registration;
-- install/uninstall/upgrade-test;
-- validate firewall behavior and packaged WinUI drag/drop.
+- generate signed package/MSIX;
+- verify `privateNetworkClientServer` behavior and no unnecessary internet capability;
+- verify `swiftdrop://` registration;
+- clean-install/update/uninstall-test;
+- validate packaged native drag/drop;
+- validate firewall prompts/private-network behavior.
 
 Apple:
 
 - configure Apple Developer signing/provisioning outside the repository;
-- verify bundle identifiers, local-network permission text, Bonjour service declarations, URL scheme, sandbox/entitlements;
-- build signed iOS and Mac Catalyst artifacts on macOS/Xcode;
+- verify bundle identifiers, local-network copy, Bonjour service, URL scheme, document declarations, and Mac entitlements;
+- produce signed iOS and Mac Catalyst builds on a current macOS/Xcode environment;
+- verify document/open-file activation and security-scoped staging;
 - physical-device install/test;
-- TestFlight/notarization/store submission as applicable.
+- complete TestFlight/notarization/store flow as applicable.
 
-Never commit signing private keys, passwords, provisioning secrets, store credentials, or private certificates.
+Never commit signing private keys, passwords, store credentials, provisioning secrets, or private certificates.
 
-## P1 — Remaining source work
+## P1 — Remaining repository/source work
 
-### 5. MainPage presentation-state MVVM migration
+### 5. First-class Apple Share Extension, if the product requires it
 
-Most secondary screens now have dedicated view models. `MainPage` remains the primary architecture gap because it coordinates several interactive states in one place.
+Current source supports Apple document/open-file URL intake. It does **not** contain a dedicated Share Extension target and must not claim one.
 
-Migrate incrementally rather than with a single high-risk rewrite:
+If a first-class Share Extension is required, implement it deliberately with:
 
-- device identity display state;
-- active receive-root display;
-- current pairing link/code/fingerprint state;
-- selected remote peer state;
-- selected single-file state;
-- selected batch state;
-- text draft/status state;
-- single/batch progress/status state;
-- send/pause/resume/cancel enabled state;
-- external-input presentation state.
-
-Keep these in page/platform interaction or services rather than the view model:
-
-- file/folder/system pickers;
-- clipboard invocation;
-- share sheets;
-- modal consent/confirmation dialogs;
-- navigation;
-- TLS/networking;
-- filesystem transfer operations;
-- certificate/private-key operations;
-- receive-server lifecycle/service implementation.
-
-Do not destabilize current pause/resume/cancel/consent behavior just to claim a complete MVVM conversion.
-
-### 6. Finish runtime-generated localization
-
-Broad XAML coverage is now resource-backed and English/Hindi catalog parity is enforced in CI. Remaining localization work is mainly code-generated dialog/status text:
-
-- MainPage pairing/send/receive status strings;
-- MainPage consent/fingerprint dialogs;
-- Nearby Devices pairing prompts/status details;
-- Settings save/reset/permission dialogs;
-- Trusted Devices revoke/clear dialogs;
-- Diagnostics export/clear/self-test errors;
-- dynamic queue/history status labels;
-- identity-recovery notice;
-- receive-location/platform capability messages;
-- drag/drop/share-input status text.
-
-Then validate on actual target UI:
-
-- Hindi clipping/wrapping;
-- large text/font scaling;
-- fingerprint/technical values remaining readable;
-- culture fallback;
-- relaunch after language change;
-- pluralization/dynamic count wording;
-- future RTL readiness even though current Hindi/English are LTR.
-
-### 7. Pairing JSON duplicate-property hardening
-
-`StrictJsonGuard` now protects framed application JSON. A defensive change to invoke the same guard on the decoded JSON bytes inside `PairingCodec` was attempted during this implementation session, but the repository connector blocked that source replacement. Existing pairing protections remain active:
-
-- URI structure/length;
-- exactly one payload query parameter;
-- local numeric address;
-- protocol version;
-- device metadata bounds;
-- fingerprint format;
-- nonce format;
-- expiry/lifetime bounds.
-
-When repository tooling permits a normal reviewed source update, apply `StrictJsonGuard.Validate(decoded, 16)` before `JsonSerializer.Deserialize<PairingPayload>` and retain the existing exception normalization/tests. Do not bypass repository safety controls to make this change.
-
-### 8. Apple Share Extension
-
-Current Apple code handles SwiftDrop pairing URL activation, but inbound arbitrary file/text sharing requires a first-class extension target and Apple lifecycle validation.
-
-Design/implementation requirements:
-
-- iOS/macOS share extension target where appropriate;
-- App Group/shared container only if required;
-- bounded item count/size before staging where APIs permit;
+- a real iOS/Mac-compatible extension target;
+- correct bundle IDs/signing/provisioning;
+- App Group/shared-container use only if required;
+- bounded item count/size before staging where platform APIs permit;
+- explicit text handoff;
 - safe filename normalization;
-- explicit text handoff only;
-- no clipboard monitoring;
-- no cloud upload;
-- clear handoff to main SwiftDrop UI;
+- no background clipboard monitoring;
+- no cloud upload/relay;
 - independent extension cancellation/error handling;
-- cleanup of staged extension data after handoff/failure;
-- minimal security-scoped/resource access lifetime;
+- cleanup of staged extension files;
+- short security-scoped/resource-access lifetime;
+- handoff into the same bounded `ExternalInputInbox` review path;
 - App Store entitlement/privacy review.
 
-Do not add a placeholder extension target that compiles but cannot safely hand off data.
+Do not add a placeholder extension that compiles but cannot safely hand off content.
 
-### 9. Mac Catalyst desktop drag/drop
+### 6. Native Mac Catalyst drag-and-drop, if required
 
-Windows drag/drop is implemented. Remaining Mac Catalyst source work should accept, where sandbox APIs allow:
+Windows native drag/drop is implemented. Mac Catalyst currently has document/open-file URL staging, not a first-class native drop surface.
+
+A Mac drop implementation should support only what sandbox APIs safely expose:
 
 - files;
-- folders;
+- folders when security-scoped access can be handled correctly;
 - text snippets;
 - SwiftDrop pairing links/URLs.
 
-The path must feed `ExternalInputInbox`/existing source validation rather than creating a weaker direct-send path. Security-scoped access must be acquired/released for the shortest necessary lifetime and validated in a signed/notarized sandboxed build.
+Requirements:
 
-### 10. Full application-protocol loopback tests
+- feed the existing `ExternalInputInbox`/bounded staging path;
+- never direct-send dropped input;
+- acquire/release security-scoped access for the shortest necessary period;
+- enforce file count/size/source existence before expensive copy/hashing;
+- clean staged files on cancellation/failure;
+- validate in a signed sandboxed build.
 
-The Core transport foundation already uses real TLS loopback streams. Expand into a UI-independent hostable application-protocol layer covering:
+### 7. Complete application-protocol loopback integration coverage
 
-- one-time authorization consume/replay rejection;
-- file request accept/reject;
+Core policy/transport tests are strong, but the complete application flow should eventually be hostable without MAUI UI types so it can be tested end to end.
+
+Target scenarios:
+
+- one-time authorization consume/replay rejection across a full request;
+- file offer/accept/reject handshake;
 - resume-offset negotiation;
-- receiver completion-length reply;
-- batch offer/plan/item/final flow;
+- exact completion response;
+- batch offer/plan/item/final sequence;
 - selective batch acceptance;
-- unknown/duplicate/missing receiver plan items;
+- unknown/duplicate/missing plan items;
+- reordered/unknown batch item-start frame;
 - text offer/accept/reject;
+- invalid text acknowledgement;
 - cancellation;
 - idle timeout;
-- concurrent destination reservation;
-- batch capacity rejection;
-- metadata-history/diagnostic privacy guarantees.
+- connection close at each protocol transition;
+- concurrent destination collision;
+- aggregate capacity rejection;
+- history/diagnostic metadata remains content-free.
 
-Prefer extracting pure/request-host logic from `ReceiveServerService` into reusable application services instead of making portable tests depend on MAUI UI types.
+Prefer extracting UI-independent request-host orchestration rather than making portable tests depend on MAUI dialogs/pages.
 
-### 11. Receive lifecycle integration tests
+### 8. Receive lifecycle integration tests
 
-Once receive-host orchestration is UI-independent, automate:
+Once receive-host lifecycle is independently hostable, automate:
 
 - rapid receive-root changes;
 - active session cancellation/drain semantics;
-- no port-bind race during restart;
-- staged partial remains in original accepted root;
-- fresh authorization resumes only against current root;
-- server dispose with multiple active clients;
-- app-restart queue metadata and receive partial coexistence.
+- no port-bind race during listener restart;
+- staged partial remains in the root that accepted it;
+- fresh authorization resumes only against the current active root;
+- server dispose while multiple clients are active;
+- receive-root change with staged partials;
+- queue metadata and partial staging across app restart.
 
-### 12. Additional property/fuzz tests
+### 9. Additional deterministic property/fuzz tests
 
-Already covered: frame length/depth/UTF-8/duplicates/truncation, pairing URI fields, path traversal, filename sanitation, Unicode/case collisions, reserved names, manifest timestamp/size/path bounds, receiver plan validation, resume offsets, source mutation, 64-way destination reservations, rate limits, TLS pinning.
+Already covered:
 
-Useful remaining cases:
+- framed JSON bounds/depth/UTF-8/comments/trailing commas/duplicates/truncation;
+- encoded pairing JSON strictness and URI fields;
+- pairing lifetime/clock boundaries;
+- one-time authorization replay/expiry/concurrency/capacity;
+- mDNS compression loops/duplicate TXT/truncation/random packets;
+- filename sanitation/path traversal/Unicode/case collisions;
+- reserved Windows names;
+- batch manifest/plan limits;
+- source length mutation;
+- resume offsets/staged tails;
+- destination collision concurrency;
+- rate limits;
+- TLS pinning/mutual TLS;
+- external-file staging/cancellation/size limits;
+- corrupted trust/history/diagnostic rows.
 
+Useful remaining deterministic cases:
+
+- partial-file mutation between resume negotiation and receiver file-open;
+- connection close exactly at every request/response transition;
+- certificate replacement during an active trusted-device interaction;
+- extreme but legal identity/display names through all storage/UI boundaries;
 - very high-count randomized legal/illegal relative paths;
-- alternate path separators and UNC/device path variants across target-specific parsing;
-- partial-file mutation between resume negotiation and stream start;
-- repeated/reordered batch item-start frames;
-- receiver final-total mismatch;
-- connection close exactly at every protocol transition;
-- high-concurrency rate-limiter eviction behavior;
-- certificate change during a trusted-device flow;
-- extreme but legal device/display names;
-- clock-change behavior around certificate/pairing expiry boundaries.
+- platform-specific alternate separator/device-path cases;
+- receive-root replacement while multiple staged transfers exist.
 
-Use deterministic generated fixtures; never use real user files/secrets in automated fuzz tests.
+Use generated temporary fixtures only; never use real user files/secrets.
 
-## P2 — Performance, accessibility, and polish
+## P2 — Performance, accessibility, and UX
 
-### 13. Run and archive performance measurements
+### 10. Run and archive performance measurements
 
-The synthetic harness is implemented. Run comparable Release builds on representative hardware and archive JSON results for:
+The synthetic harness exists for:
 
-- Windows laptop/desktop;
-- Android mid-range/high-end device;
-- iPhone/iPad;
-- Mac.
+- SHA-256 throughput;
+- batch-manifest validation;
+- portable path sanitation.
 
-The harness measures hashing, manifest validation, and path sanitation only. Separately measure full peer-to-peer transfers for:
+Run comparable Release builds on representative Windows, Android, iPhone/iPad, and Mac hardware and archive machine-readable results.
+
+Separately measure full peer-to-peer behavior for:
 
 - small-file latency;
 - large-file throughput;
@@ -367,9 +328,9 @@ The harness measures hashing, manifest validation, and path sanitation only. Sep
 - resume efficiency;
 - discovery traffic.
 
-Do not publish one CI runner number as a universal transfer-speed promise.
+Do not advertise one CI-runner number as a universal transfer-speed promise.
 
-### 14. Accessibility release pass
+### 11. Accessibility release pass
 
 Validate with:
 
@@ -381,110 +342,82 @@ Validate with:
 - large text/font scaling;
 - high contrast;
 - reduced motion;
-- touch target checks;
+- touch target sizing;
 - pairing fingerprint reading/copying;
 - batch selective-consent controls;
-- drag/drop status announcement;
+- drag/drop/share/open-file status announcements;
 - identity-regeneration notice;
 - queue interrupted-state announcement.
 
-Fix focus order, names, hints, contrast, clipping, and dynamic-status announcements discovered during this pass.
+Fix focus order, labels/hints, clipping, contrast, semantic announcements, and control reachability discovered by those real tests.
 
-### 15. UI/UX polish
+### 12. Localization visual validation
 
-Consider after release blockers are green:
+Source resources and CI parity are now broad. Real-device validation still needs:
 
-- responsive desktop max-width/layout improvements;
-- clearer peer trust indicators;
-- better empty states;
-- stronger visual separation of pairing vs transfer authorization;
-- non-blocking status banners for recoverable network errors;
+- Hindi clipping/wrapping on every page;
+- large font scaling;
+- technical fingerprint/IP/path readability;
+- culture fallback;
+- relaunch after language change;
+- plural/count wording;
+- layout behavior for long translated buttons/statuses;
+- future RTL readiness for any future RTL locale.
+
+### 13. UI/UX polish after release blockers are green
+
+Potential improvements driven by real testing:
+
+- responsive desktop max-width/layout tuning;
+- clearer trust indicators;
+- richer empty states;
+- stronger visual separation of pairing versus transfer authorization;
+- non-blocking banners for recoverable local-network failures;
 - clearer fresh-pair resume explanation;
-- visible drag/drop affordance on desktop;
-- optional first-run explanation of local-network privacy/permissions;
-- clearer identity-renewal/re-pair explanation;
-- smoothed speed/ETA and per-file batch progress where measurements justify it.
+- visible desktop drag/drop affordance;
+- first-run local-network privacy/permission explanation;
+- smoother speed/ETA if measurements justify it;
+- improved per-file batch progress.
 
-Privacy mode must continue to avoid filename/text disclosure in status/notification surfaces.
+Privacy mode must continue to avoid peer/file/text disclosure in history, diagnostics, queue persistence, and notification surfaces.
 
 ## P2 — Distribution/community readiness
 
-### 16. Store metadata and policy review
+### 14. Store metadata and policy review
 
-Prepare/verify per platform:
+Prepare from final signed binaries:
 
-- screenshots from final signed binaries;
-- short/long description;
+- screenshots;
+- short/long descriptions;
 - privacy-policy URL;
 - support URL/email;
-- optional support-development URL;
+- optional development-support URL;
 - Apache-2.0 attribution;
-- exact dependency/third-party notice inventory;
+- exact restored dependency/third-party notice inventory;
 - local-network permission rationale;
-- no-cloud/local-transfer description;
-- foreground-service disclosure where required;
+- account-free/no-cloud description;
+- Android foreground-service rationale;
 - Bonjour/local-network rationale on Apple;
-- private-network capability rationale on Windows;
+- Apple document/open-file behavior disclosure if relevant;
+- Windows private-network capability rationale;
 - version/release notes;
-- appropriate age/content declarations.
+- age/content declarations.
 
-### 17. Validate support/funding surfaces
+### 15. Verify funding/support surfaces
 
-Current project support URL:
+Keep the optional support URL `https://buymeacoffee.com/sanskarIN` clearly separate from product capability, security support priority, and private user data. Payment must not unlock hidden transfer features or privileged access.
 
-https://buymeacoffee.com/sanskarIN
+## Release definition
 
-Keep it optional. It must never imply that payment is required for:
+SwiftDrop is ready for a production release only when all of the following are true:
 
-- open-source source access;
-- transfer features;
-- security fixes;
-- vulnerability handling;
-- privileged access to private user data;
-- bypassing normal support/security procedures.
+1. Required automated compile/test/security gates are green for the exact candidate.
+2. The complete physical cross-device/network matrix is recorded and acceptable.
+3. No known unresolved high-severity security/integrity/privacy defect remains.
+4. Signed platform packages install/update/uninstall correctly.
+5. Store declarations and privacy documentation match the final binaries.
+6. Accessibility/manual permission/network lifecycle validation is complete enough for supported targets.
+7. Performance has been measured rather than guessed.
+8. `PROJECT_STATUS.md`, `CHANGELOG.md`, `PRIVACY.md`, platform docs, and `what_changed.md` match the release candidate.
 
-### 18. Release candidate process
-
-For every RC:
-
-1. Freeze protocol-affecting changes.
-2. Run localization parity.
-3. Run portable Core build/tests.
-4. Compile benchmark harness.
-5. Run CodeQL/security hygiene/dependency checks.
-6. Run Android/Windows/Mac Catalyst/iOS Simulator compile gates.
-7. Review all Actions logs, not only a summary badge.
-8. Run physical-device peer matrix.
-9. Run restricted-network/low-storage/background cases.
-10. Run accessibility pass.
-11. Run target performance measurements.
-12. Review permissions/entitlements against actual shipped behavior.
-13. Review privacy/security docs against shipped binary.
-14. Generate dependency/license inventory from exact release restore graph.
-15. Update `CHANGELOG.md`, `PROJECT_STATUS.md`, and `what_changed.md`.
-16. Tag only after source and device gates pass.
-17. Build signed packages in trusted release environments.
-18. Clean-install and upgrade-test signed packages.
-19. Produce final store screenshots/metadata from signed RC.
-20. Submit/review stores as applicable.
-
-## Definition of production-ready
-
-SwiftDrop should be described as production-ready only when all of these are true:
-
-- portable Core tests pass;
-- localization and repository hygiene gates pass;
-- CodeQL/dependency checks pass;
-- every intended platform compiles in its correct SDK environment;
-- signed packages install/upgrade correctly;
-- real-device peer transfers pass in both directions for supported platform pairs;
-- permission-denied/network-blocked/low-storage/interrupted-transfer behavior is validated;
-- certificate/SecureStorage lifecycle behavior is validated on targets;
-- accessibility and localization passes are completed;
-- privacy/security/docs match the shipped binary;
-- no credentials/signing secrets are committed;
-- store requirements are satisfied.
-
-## Scope discipline
-
-Do not add cloud relay, account login, analytics, advertising identifiers, remote Internet transfer, silent clipboard monitoring, automatic opening/execution of received files, or custom cryptography merely to make the feature list larger. Any of those would materially change SwiftDrop's privacy/threat model and require a separate product/security design review.
+Until those conditions are met, describe SwiftDrop as implemented substantially in source and under release validation—not as bug-free or production-verified.
