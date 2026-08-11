@@ -38,8 +38,25 @@ public sealed class FileNameSanitizerTests
     public void SanitizeSegment_Bounds_Long_Names()
     {
         var value = FileNameSanitizer.SanitizeSegment(new string('a', 300) + ".txt");
-        Assert.True(value.Length <= 180);
+        Assert.True(value.Length <= FileNameSanitizer.MaximumSegmentLength);
         Assert.True(value.EndsWith(".txt", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SanitizeSegment_Bounds_Extremely_Long_Extension()
+    {
+        var value = FileNameSanitizer.SanitizeSegment("a." + new string('x', 400));
+        Assert.Equal(FileNameSanitizer.MaximumSegmentLength, value.Length);
+    }
+
+    [Fact]
+    public void SanitizeSegment_DoesNotSplitSurrogatePairAtLengthBoundary()
+    {
+        var input = new string('a', 175) + "😀" + new string('b', 20) + ".txt";
+        var value = FileNameSanitizer.SanitizeSegment(input);
+
+        Assert.Equal(new string('a', 175) + ".txt", value);
+        Assert.True(value.Length <= FileNameSanitizer.MaximumSegmentLength);
     }
 
     [Theory]
