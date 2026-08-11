@@ -1,5 +1,7 @@
 # SwiftDrop protocol security
 
+Updated: 2026-08-11
+
 Protocol version: `1`
 
 ## Pairing invitation
@@ -98,7 +100,11 @@ An interrupted batch keeps a stable random `transferId`; a new explicit send get
 - length/SHA-256;
 - completion time.
 
-On retry SwiftDrop **re-hashes the destination file** and requires the same transfer ID, root key, source path, length, and SHA-256 before offering a full-length zero-byte resume. Changed/missing files or a new transfer ID fall back to normal collision-safe transfer behavior.
+On retry SwiftDrop requires the same transfer ID, root key, source path, destination metadata, length, and SHA-256 before offering a full-length zero-byte resume. The destination is path-confined, reparse/symlink checked, length checked, and freshly SHA-256 hashed while the batch response plan is created.
+
+After the sender returns the matching `BatchItemStart`, **SwiftDrop verifies the completed destination again immediately before the zero-byte completion acknowledgement**. If the destination is removed, changed, redirected, or no longer maps to the recorded completion metadata between planning and acknowledgement, the receiver invalidates/fails that shortcut instead of falsely acknowledging stale bytes.
+
+Changed/missing destinations, changed source manifests, different roots, or new transfer IDs therefore cannot use completed-item reuse. A later retry can safely transfer data again. A brand-new explicit send gets a new transfer ID and retains normal collision-safe duplicate-send behavior.
 
 Completion metadata is an optimization, never authorization. Persistence failure does not make an already verified transfer fail.
 
@@ -121,7 +127,11 @@ Content URIs are staged into app cache with:
 
 The iOS/Mac Catalyst Share Extension uses a dedicated App Group package handoff. It:
 
-- bounds provider count/files/text;
+- bounds input/provider/file/text counts and sizes;
+- applies a bounded provider-response timeout;
+- ties provider waits and provider-file copying to extension-lifetime cancellation;
+- prevents late cancelled/timed-out callbacks from beginning a new staging copy;
+- checks cancellation between copy chunks;
 - copies temporary provider representations while their access is valid;
 - uses security-scoped access where supplied;
 - validates/sanitizes/deconflicts filenames;
@@ -130,7 +140,19 @@ The iOS/Mac Catalyst Share Extension uses a dedicated App Group package handoff.
 - publishes packages atomically from `.staging-*` to `pending-*`;
 - never sends content automatically.
 
-The containing app rejects stale/malformed/unmapped/symlinked packages, re-stages accepted files into app cache, then presents content for review.
+The containing app serializes App Group imports. For each pending package it:
+
+- validates package-directory confinement and package ID;
+- rejects symlink/reparse package roots, manifest files, file roots, and file entries;
+- applies strict JSON/depth/unknown-member validation;
+- enforces package version, age, count, text, per-file, aggregate, and canonical filename policy;
+- requires the physical `files/` directory to contain **exactly** the manifest-declared top-level files—no undeclared extra files and no nested directories;
+- verifies exact declared file lengths;
+- re-stages accepted files into app cache before exposing them to the normal review UI;
+- deletes invalid packages rather than transferring them;
+- never auto-sends imported content.
+
+Only one pending Apple share bundle is surfaced for review at a time so a later package cannot silently overwrite/merge the current user selection. Remaining pending packages stay in the App Group inbox for a later activation/import rather than being deleted as if reviewed.
 
 ### Mac Catalyst native drop
 
@@ -146,17 +168,21 @@ User-dropped paths/text are bounded and handed to the same review inbox. Windows
 - no SwiftDrop cloud relay/upload path;
 - transfer file/text contents are not stored in SQLite;
 - queue metadata stores generic labels/machine codes only;
+- completed-batch metadata stores a hashed receive-root identity rather than the absolute root and never stores authorization;
 - history privacy mode redacts peer/file identifiers;
 - diagnostics redact common identifiers in privacy mode;
 - clipboard is read only on explicit user action;
 - received files are never automatically opened/executed;
+- shared/dropped/opened files/text are never automatically transferred;
 - extension warnings are not malware scanning;
 - Android application backup is disabled for local app metadata;
 - Windows package requests private-network client/server capability rather than general Internet client capability.
 
 ## Validation coverage
 
-Portable tests cover strict pairing, typed wire requests, unknown/duplicate fields, one-time authorization/replay, full file/batch/text/pair conversation sequencing, TLS pinning/mutual TLS, resume offsets, source/staged mutation, SHA-256 failure cleanup, path/traversal/symlink rejection, destination races, batch completion verification/persistence, database migrations, discovery fuzzing, rate limiting, and session-drain races.
+Portable tests cover strict pairing, typed wire requests, unknown/duplicate fields, one-time authorization/replay, full file/batch/text/pair conversation sequencing, TLS pinning/mutual TLS, resume offsets, source/staged mutation, SHA-256 failure cleanup, path/traversal/symlink rejection, destination races, stable batch IDs, repeated completed-file revalidation after mutation, completed-batch persistence/database migrations, exact external-share package file sets, discovery fuzzing, rate limiting, UTF-8 intake limits, and session-drain races.
+
+Apple provider callback behavior itself remains target-platform code and therefore requires Apple compile/runtime validation in addition to portable Core tests.
 
 These tests do not replace signed target builds or physical-device/network/accessibility validation.
 
