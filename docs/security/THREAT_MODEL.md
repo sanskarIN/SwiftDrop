@@ -30,6 +30,7 @@ Platform share/open/drop surfaces may stage explicitly supplied content locally 
 - Prevent traversal or link-based redirection outside the approved receive root.
 - Prevent replay of one-time transfer authorization after consumption/expiry.
 - Prevent completed-batch retry metadata from becoming transfer authorization or a false-completion shortcut.
+- Reject ambiguous/extra protocol and pairing metadata instead of silently interpreting a partial schema.
 - Never auto-open received files and never auto-send shared/dropped/opened content.
 - Minimize persistent sensitive metadata and never persist reusable pairing authorization.
 
@@ -57,7 +58,7 @@ Residual risk: limits reduce pressure but do not make a hostile LAN harmless. Ho
 
 Mitigation: framed JSON has bounded length/depth, strict UTF-8/JSON parsing, no comments/trailing commas, case-insensitive duplicate-property rejection, **unknown/unmapped-member rejection**, and type-specific request-shape validation. Cross-type stray fields are rejected rather than silently ignored. File/batch/text/pair requests use shared Core wire records/factories/validators.
 
-Pairing URI and decoded pairing JSON are also treated as untrusted input. Validation covers strict duplicate/comment/trailing-comma/depth behavior, URI structure, exact protocol version, local numeric address policy, bounded identity metadata, canonical SHA-256 fingerprint, nonce syntax, port, and expiry/lifetime.
+Pairing URI and decoded pairing JSON are also treated as untrusted input. Pairing decoding enforces bounded depth, strict JSON, duplicate-property rejection, **unknown-member rejection**, URI structure, exact protocol version, local numeric address policy, bounded identity metadata, canonical SHA-256 fingerprint, nonce syntax, port, and expiry/lifetime. Unknown query parameters and unknown encoded payload properties fail closed.
 
 ### One-time authorization confusion or replay
 
@@ -71,8 +72,10 @@ Mitigation:
 
 - rooted paths are rejected, including portable Windows-root syntax on non-Windows hosts;
 - `.`/`..` traversal is rejected;
+- `/` and `\\` are explicitly treated as separators rather than legal single-segment portable filename data on every host OS;
 - filename segments are Unicode-normalized and portable-invalid/control characters are removed;
 - Windows reserved device names are neutralized;
+- filename segments are capped at 180 UTF-16 code units even when an extension is pathological, without splitting a surrogate pair;
 - batch destinations that collide after sanitation/case/Unicode normalization are rejected/deconflicted as appropriate;
 - final paths must resolve under the configured receive root;
 - existing symlink/reparse components beneath the receive root are rejected around staging and final promotion;
@@ -93,7 +96,9 @@ Mitigation: an interrupted batch keeps a stable transfer ID only for that resume
 
 Before SwiftDrop offers a full-length resume offset for an already-finalized item, it requires the same transfer/root/source/length/hash, resolves the destination beneath the receive root, rejects reparse-path destinations, confirms the file exists at the expected length, and re-hashes it. Missing/mutated/mismatched data invalidates the optimization and must not be treated as a completed item. A new explicit send uses a new transfer ID so ordinary duplicate-send collision behavior remains intact.
 
-Residual TOCTOU boundary: a local process already authorized to modify the receive filesystem can race checks. Release/security testing should mutate/remove a completed destination around retry transitions and confirm fail-closed behavior; SwiftDrop cannot defend against an endpoint/OS fully controlled by an attacker.
+After the sender returns the matching item-start frame, SwiftDrop performs the completed-file verification **again immediately before sending the zero-byte completion ACK**. A removal, replacement, mutation, reparse/path change, or completion-record mismatch between plan creation and acknowledgement therefore fails closed instead of being falsely acknowledged.
+
+Residual TOCTOU boundary: a local process already authorized to modify the receive filesystem can still race checks at finer granularity. Repeated checks narrow that window but cannot defend against an endpoint/OS fully controlled by an attacker. Release/security testing should mutate/remove completed destinations around retry transitions and confirm fail-closed behavior.
 
 ### Storage exhaustion
 
@@ -124,13 +129,18 @@ Mitigation:
 - file count/per-file/aggregate/text/time bounds are enforced;
 - unknown manifest members are rejected;
 - filenames are sanitized/deconflicted;
+- provider callbacks have a bounded **response** wait and extension-lifetime cancellation;
+- timed-out/cancelled late callbacks cannot begin a fresh staging copy;
+- active file-copy loops observe extension-lifetime cancellation without incorrectly applying the response timer to an already-started legitimate copy;
 - extension publication is atomic from staging to pending state;
+- containing app serializes package imports;
 - containing app validates package-directory identity, package age, manifest/file exact lengths, root confinement, and symlink/reparse status;
+- physical `files/` entries must match the manifest exactly: undeclared files, nested directories, duplicate portable names, and missing declared files are rejected;
 - containing app re-stages accepted package files into app cache before normal review;
 - malformed packages are rejected/cleaned rather than transferred;
 - shared content is never automatically sent.
 
-Residual boundary: App Group access/provisioning/sandbox enforcement is platform-controlled and must be validated in signed builds. An endpoint process with equivalent platform privileges remains outside SwiftDrop's protection boundary.
+Residual boundary: App Group access/provisioning/sandbox enforcement and `NSItemProvider` callback/lifetime behavior are platform-controlled and must be validated in signed builds with real providers. An endpoint process with equivalent platform privileges remains outside SwiftDrop's protection boundary.
 
 ### Android share and desktop drop abuse
 
@@ -144,7 +154,7 @@ Residual boundary: a process/user with access to the application data directory 
 
 ### Denial of service
 
-Mitigation: source/certificate attempt limits, bounded metadata, bounded discovery records, bounded authorization stores, file/batch/text/share-package limits, fixed transfer chunks, exact-length accounting, idle timeouts, cancellation, active-session draining, and stale-cache/package cleanup constrain several exhaustion paths.
+Mitigation: source/certificate attempt limits, bounded metadata, bounded discovery records, bounded authorization stores, file/batch/text/share-package limits, provider-response timeout, fixed transfer chunks, exact-length accounting, idle timeouts, cancellation, active-session draining, and stale-cache/package cleanup constrain several exhaustion paths.
 
 Residual risk: a hostile LAN or compromised endpoint can still consume resources. SwiftDrop does not bypass firewall, MDM, client isolation, or OS lifecycle controls.
 
@@ -169,7 +179,7 @@ A certificate fingerprint is a device-identity signal, not proof of a person's i
 
 ## Validation boundary
 
-Source controls and portable tests are not equivalent to production validation. Release readiness still requires successful automated gates for the exact candidate, signed package tests, physical cross-device transfer matrices, restricted-network cases, real low-storage/lifecycle cases, Apple App Group/Share Extension sandbox validation, accessibility/localization checks, and platform secure-storage/restore behavior.
+Source controls and portable tests are not equivalent to production validation. Release readiness still requires successful automated gates for the exact candidate, signed package tests, physical cross-device transfer matrices, restricted-network cases, real low-storage/lifecycle cases, Apple App Group/Share Extension provider and sandbox validation, accessibility/localization checks, and platform secure-storage/restore behavior.
 
 ## Security reporting
 
