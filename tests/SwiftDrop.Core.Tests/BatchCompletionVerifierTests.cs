@@ -59,6 +59,40 @@ public sealed class BatchCompletionVerifierTests
     }
 
     [Fact]
+    public async Task TryVerifyAsync_SecondPassRejectsMutationAfterSuccessfulPlanningCheck()
+    {
+        var root = TempDirectory();
+        try
+        {
+            var destination = Path.Combine(root, "folder", "resume.bin");
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            await File.WriteAllBytesAsync(destination, [10, 20, 30, 40]);
+            var hash = await Hashing.Sha256FileAsync(destination, CancellationToken.None);
+            var entry = new FileManifestEntry("source/resume.bin", 4, hash, DateTimeOffset.UtcNow);
+            var completion = new CompletedBatchItem(
+                "batch-retry",
+                entry.RelativePath,
+                ReceiveRootKey.Create(root),
+                "folder/resume.bin",
+                entry.Length,
+                entry.Sha256,
+                DateTimeOffset.UtcNow);
+
+            Assert.Equal(
+                "folder/resume.bin",
+                await BatchCompletionVerifier.TryVerifyAsync(root, completion, entry));
+
+            await File.WriteAllBytesAsync(destination, [40, 30, 20, 10]);
+
+            Assert.Null(await BatchCompletionVerifier.TryVerifyAsync(root, completion, entry));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
     public async Task TryVerifyAsync_RejectsDifferentRootSourceOrManifest()
     {
         var root = TempDirectory();
