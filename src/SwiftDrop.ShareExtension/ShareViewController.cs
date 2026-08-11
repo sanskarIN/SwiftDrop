@@ -10,6 +10,7 @@ namespace SwiftDrop.ShareExtension;
 public sealed class ShareViewController : UIViewController
 {
     private const int CopyBufferSize = 128 * 1024;
+    private static readonly TimeSpan ProviderLoadTimeout = TimeSpan.FromSeconds(20);
     private readonly CancellationTokenSource _lifetimeCts = new();
     private UILabel? _statusLabel;
     private int _started;
@@ -75,7 +76,7 @@ public sealed class ShareViewController : UIViewController
                     if (++providerCount > ExternalSharePackageConstants.MaximumItems * 2) break;
                     if (sources.Count >= ExternalSharePackageConstants.MaximumItems) break;
 
-                    var sharedFile = await TryLoadProviderFileAsync(provider, temporaryRoots);
+                    var sharedFile = await TryLoadProviderFileAsync(provider, temporaryRoots, ct);
                     ct.ThrowIfCancellationRequested();
                     if (sharedFile is not null)
                     {
@@ -83,7 +84,7 @@ public sealed class ShareViewController : UIViewController
                         continue;
                     }
 
-                    var text = await TryLoadProviderTextAsync(provider);
+                    var text = await TryLoadProviderTextAsync(provider, ct);
                     ct.ThrowIfCancellationRequested();
                     if (!string.IsNullOrWhiteSpace(text)) texts.Add(text);
                 }
@@ -115,13 +116,15 @@ public sealed class ShareViewController : UIViewController
 
     private static async Task<AppleSharedFileSource?> TryLoadProviderFileAsync(
         NSItemProvider provider,
-        HashSet<string> temporaryRoots)
+        HashSet<string> temporaryRoots,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(provider);
+        ct.ThrowIfCancellationRequested();
 
         if (provider.HasItemConformingTo("public.file-url"))
         {
-            var fileUrl = await LoadFileUrlItemAsync(provider, "public.file-url", temporaryRoots);
+            var fileUrl = await LoadFileUrlItemAsync(provider, "public.file-url", temporaryRoots, ct);
             if (fileUrl is not null)
                 return new AppleSharedFileSource(fileUrl, provider.SuggestedName);
         }
@@ -130,18 +133,29 @@ public sealed class ShareViewController : UIViewController
         var typeIdentifier = registered.FirstOrDefault(identifier => !IsTextOrUrlType(identifier));
         if (string.IsNullOrWhiteSpace(typeIdentifier)) return null;
 
-        var staged = await LoadFileRepresentationAsync(provider, typeIdentifier, provider.SuggestedName, temporaryRoots);
+        var staged = await LoadFileRepresentationAsync(provider, typeIdentifier, provider.SuggestedName, temporaryRoots, ct);
         return staged is null ? null : new AppleSharedFileSource(staged, provider.SuggestedName);
     }
 
-    private static Task<NSUrl?> LoadFileUrlItemAsync(
+    private static async Task<NSUrl?> LoadFileUrlItemAsync(
         NSItemProvider provider,
         string typeIdentifier,
-        HashSet<string> temporaryRoots)
+        HashSet<string> temporaryRoots,
+        CancellationToken ct)
     {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ProviderLoadTimeout);
+        var providerToken = timeout.Token;
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = providerToken.Register(() => tcs.TrySetCanceled(providerToken));
+
         provider.LoadItem(typeIdentifier, null, (item, error) =>
         {
+            if (providerToken.IsCancellationRequested)
+            {
+                tcs.TrySetCanceled(providerToken);
+                return;
+            }
             if (error is not null || item is not NSUrl url || !url.IsFileUrl)
             {
                 tcs.TrySetResult(null);
@@ -150,25 +164,48 @@ public sealed class ShareViewController : UIViewController
 
             try
             {
-                tcs.TrySetResult(CopyProviderFileToTemporaryStorage(url, provider.SuggestedName, temporaryRoots));
+                tcs.TrySetResult(CopyProviderFileToTemporaryStorage(
+                    url,
+                    provider.SuggestedName,
+                    temporaryRoots,
+                    providerToken));
             }
             catch (Exception ex)
             {
                 tcs.TrySetException(ex);
             }
         });
-        return tcs.Task;
+
+        try
+        {
+            return await tcs.Task;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("Shared provider did not return the file URL before the safety timeout.");
+        }
     }
 
-    private static Task<NSUrl?> LoadFileRepresentationAsync(
+    private static async Task<NSUrl?> LoadFileRepresentationAsync(
         NSItemProvider provider,
         string typeIdentifier,
         string? suggestedName,
-        HashSet<string> temporaryRoots)
+        HashSet<string> temporaryRoots,
+        CancellationToken ct)
     {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ProviderLoadTimeout);
+        var providerToken = timeout.Token;
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = providerToken.Register(() => tcs.TrySetCanceled(providerToken));
+
         provider.LoadFileRepresentation(typeIdentifier, (url, error) =>
         {
+            if (providerToken.IsCancellationRequested)
+            {
+                tcs.TrySetCanceled(providerToken);
+                return;
+            }
             if (error is not null || url is null || !url.IsFileUrl)
             {
                 tcs.TrySetResult(null);
@@ -177,25 +214,40 @@ public sealed class ShareViewController : UIViewController
 
             try
             {
-                tcs.TrySetResult(CopyProviderFileToTemporaryStorage(url, suggestedName, temporaryRoots));
+                tcs.TrySetResult(CopyProviderFileToTemporaryStorage(
+                    url,
+                    suggestedName,
+                    temporaryRoots,
+                    providerToken));
             }
             catch (Exception ex)
             {
                 tcs.TrySetException(ex);
             }
         });
-        return tcs.Task;
+
+        try
+        {
+            return await tcs.Task;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("Shared provider did not return a file representation before the safety timeout.");
+        }
     }
 
     private static NSUrl CopyProviderFileToTemporaryStorage(
         NSUrl url,
         string? suggestedName,
-        HashSet<string> temporaryRoots)
+        HashSet<string> temporaryRoots,
+        CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var granted = false;
         try
         {
             granted = url.StartAccessingSecurityScopedResource();
+            ct.ThrowIfCancellationRequested();
             var sourcePath = url.Path;
             if (string.IsNullOrWhiteSpace(sourcePath))
                 throw new InvalidDataException("Shared provider file path is unavailable.");
@@ -223,6 +275,7 @@ public sealed class ShareViewController : UIViewController
             var buffer = new byte[CopyBufferSize];
             while (remaining > 0)
             {
+                ct.ThrowIfCancellationRequested();
                 var requested = (int)Math.Min(buffer.Length, remaining);
                 var read = input.Read(buffer, 0, requested);
                 if (read == 0) throw new EndOfStreamException("Shared provider file ended unexpectedly.");
@@ -230,6 +283,7 @@ public sealed class ShareViewController : UIViewController
                 remaining -= read;
             }
             output.Flush(flushToDisk: true);
+            ct.ThrowIfCancellationRequested();
             if (new FileInfo(source.FullName).Length != source.Length || new FileInfo(destination).Length != source.Length)
                 throw new IOException("Shared provider file changed while staging.");
 
@@ -241,8 +295,9 @@ public sealed class ShareViewController : UIViewController
         }
     }
 
-    private static Task<string?> TryLoadProviderTextAsync(NSItemProvider provider)
+    private static async Task<string?> TryLoadProviderTextAsync(NSItemProvider provider, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var typeIdentifier = provider.HasItemConformingTo("public.plain-text")
             ? "public.plain-text"
             : provider.HasItemConformingTo("public.text")
@@ -250,11 +305,21 @@ public sealed class ShareViewController : UIViewController
                 : provider.HasItemConformingTo("public.url")
                     ? "public.url"
                     : null;
-        if (typeIdentifier is null) return Task.FromResult<string?>(null);
+        if (typeIdentifier is null) return null;
 
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ProviderLoadTimeout);
+        var providerToken = timeout.Token;
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = providerToken.Register(() => tcs.TrySetCanceled(providerToken));
+
         provider.LoadItem(typeIdentifier, null, (item, error) =>
         {
+            if (providerToken.IsCancellationRequested)
+            {
+                tcs.TrySetCanceled(providerToken);
+                return;
+            }
             if (error is not null)
             {
                 tcs.TrySetResult(null);
@@ -269,7 +334,15 @@ public sealed class ShareViewController : UIViewController
             };
             tcs.TrySetResult(value);
         });
-        return tcs.Task;
+
+        try
+        {
+            return await tcs.Task;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException("Shared provider did not return text before the safety timeout.");
+        }
     }
 
     private static string? BuildBoundedText(IEnumerable<string> values, int maximumUtf8Bytes)
