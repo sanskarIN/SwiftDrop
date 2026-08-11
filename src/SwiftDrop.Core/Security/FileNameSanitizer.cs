@@ -4,7 +4,7 @@ namespace SwiftDrop.Core.Security;
 
 public static class FileNameSanitizer
 {
-    private static readonly char[] AdditionalInvalid = ['<', '>', ':', '"', '|', '?', '*'];
+    private static readonly char[] AdditionalInvalid = ['/', '\\', '<', '>', ':', '"', '|', '?', '*'];
     private static readonly HashSet<string> ReservedWindowsDeviceNames = CreateReservedWindowsDeviceNames();
 
     public static string SanitizeRelativePath(string relativePath)
