@@ -4,6 +4,7 @@ namespace SwiftDrop.Core.Security;
 
 public static class FileNameSanitizer
 {
+    public const int MaximumSegmentLength = 180;
     private static readonly char[] AdditionalInvalid = ['/', '\\', '<', '>', ':', '"', '|', '?', '*'];
     private static readonly HashSet<string> ReservedWindowsDeviceNames = CreateReservedWindowsDeviceNames();
 
@@ -45,15 +46,45 @@ public static class FileNameSanitizer
         if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
 
         result = AvoidReservedWindowsDeviceName(result);
-        if (result.Length > 180)
+        result = BoundSegment(result, MaximumSegmentLength).TrimEnd('.', ' ');
+        if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
+
+        result = AvoidReservedWindowsDeviceName(result);
+        if (result.Length > MaximumSegmentLength)
+            result = TakeUtf16Safe(result, MaximumSegmentLength).TrimEnd('.', ' ');
+        return string.IsNullOrWhiteSpace(result) ? "unnamed" : result;
+    }
+
+    private static string BoundSegment(string value, int maximumLength)
+    {
+        if (value.Length <= maximumLength) return value;
+
+        var extension = Path.GetExtension(value);
+        if (extension.Length >= maximumLength)
+            return TakeUtf16Safe(value, maximumLength);
+
+        var stem = Path.GetFileNameWithoutExtension(value);
+        var maximumStemLength = maximumLength - extension.Length;
+        var boundedStem = TakeUtf16Safe(stem, maximumStemLength);
+        if (boundedStem.Length == 0) boundedStem = "_";
+        var bounded = boundedStem + extension;
+        return bounded.Length <= maximumLength
+            ? bounded
+            : TakeUtf16Safe(bounded, maximumLength);
+    }
+
+    private static string TakeUtf16Safe(string value, int maximumLength)
+    {
+        if (maximumLength <= 0 || value.Length == 0) return string.Empty;
+        var length = Math.Min(maximumLength, value.Length);
+        if (length < value.Length &&
+            length > 0 &&
+            char.IsHighSurrogate(value[length - 1]) &&
+            char.IsLowSurrogate(value[length]))
         {
-            var extension = Path.GetExtension(result);
-            var stemLength = Math.Max(1, 180 - extension.Length);
-            result = result[..Math.Min(stemLength, result.Length)] + extension;
-            result = result.TrimEnd('.', ' ');
-            result = AvoidReservedWindowsDeviceName(result);
+            length--;
         }
-        return result;
+        return value[..length];
     }
 
     private static string AvoidReservedWindowsDeviceName(string value)
