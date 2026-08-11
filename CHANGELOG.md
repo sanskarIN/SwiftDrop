@@ -1,6 +1,24 @@
 # Changelog
 
-## Unreleased - 2026-08-10
+## Unreleased - 2026-08-11
+
+### Final security and intake hardening
+
+- Pairing payload JSON now rejects unknown/unmapped members in addition to duplicate/case-variant properties, malformed JSON, comments, trailing commas, depth violations, invalid URI fields, and unsupported protocol metadata.
+- Added a regression test proving an otherwise valid pairing payload with an extra encoded JSON property is rejected.
+- Completed-batch resume now re-verifies an already-finalized destination **again after the sender's matching `BatchItemStart` and immediately before the zero-byte item completion ACK**.
+- A completed destination removed, replaced, mutated, redirected, or no longer matching recorded metadata in the retry-plan→ACK window now fails closed instead of being falsely acknowledged.
+- Added regression coverage for a completed destination that passes the first verification, changes without changing length, then fails a second SHA-256 verification.
+- Added exact external-share package physical file-set validation in Core.
+- Apple App Group imports now reject undeclared extra files, nested directories, duplicate portable names, non-canonical names, and a physical file set that differs from the manifest.
+- Added portable tests for exact, missing, extra, duplicate, non-canonical, nested, and empty external-share file sets.
+- Added bounded Apple `NSItemProvider` response waits so a provider that never calls back cannot leave the extension awaiting indefinitely.
+- Share Extension lifetime cancellation now cancels pending provider waits and is checked throughout provider-file copying; late timed-out/cancelled callbacks cannot begin a new staging copy.
+- Separated provider **response** timeout from already-started file-copy duration so a prompt provider is not rejected merely because a legitimate large local copy takes longer than the response window.
+- Portable filename segments now explicitly remove both `/` and `\\` as data regardless of host OS semantics.
+- Filename length limiting now remains at 180 UTF-16 code units even for pathological long extensions and avoids splitting surrogate pairs at the truncation boundary.
+- Added tests for both portable separator characters, extreme extension lengths, and surrogate-safe filename truncation.
+- Refreshed the release checklist, threat model, protocol security document, security test plan, third-party notices, project status, and next-step roadmap for the exact current source boundaries.
 
 ### Apple platform integration
 
@@ -80,14 +98,14 @@
 
 ### Documentation
 
-- Updated README, BUILDING, privacy, platform integration/permissions, architecture, wire/security protocol docs, compatibility matrix, SQLite schema docs, project status, roadmap, release checklist, and manual test matrix for the current source state.
+- Updated README, BUILDING, privacy, platform integration/permissions, architecture, wire/security protocol docs, compatibility matrix, SQLite schema docs, project status, roadmap, release checklist, threat model, security test plan, third-party notices, and manual test matrix for the current source state.
 - Reclassified the current master-prompt scope as source-complete while keeping signed package, App Group provisioning, real-device/network/accessibility, dependency-license, and store validation explicitly pending.
 
 ### Validation boundary
 
 - The development chat runtime does not provide the full .NET MAUI workloads needed to compile/sign all targets locally.
-- Recent direct-main GitHub Contents API commits have not exposed combined status contexts through the connector; missing status data is treated as unknown/unreported, never as a pass.
-- Signed Apple App Group provisioning, Share Extension embedding/runtime behavior, Mac native drop under release sandbox, signed Android/Windows packages, physical cross-device transfers, accessibility/localization validation, real low-storage/network lifecycle cases, and final dependency-license review remain release gates.
+- Recent direct-main GitHub Contents API commits may not expose combined status contexts through the connector; missing status data is treated as unknown/unreported, never as a pass.
+- Signed Apple App Group provisioning, Share Extension embedding/runtime behavior, provider timeout/cancellation behavior, Mac native drop under release sandbox, signed Android/Windows packages, physical cross-device transfers, accessibility/localization validation, real low-storage/network lifecycle cases, and final dependency-license review remain release gates.
 
 ## 1.0.0 - 2026-08-09
 
