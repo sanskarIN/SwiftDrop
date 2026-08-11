@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Networking;
 using SwiftDrop.Core.Protocol;
@@ -12,7 +13,8 @@ public static class PairingCodec
     private const int PairingJsonMaxDepth = 16;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
-        MaxDepth = PairingJsonMaxDepth
+        MaxDepth = PairingJsonMaxDepth,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
 
     public static string Encode(PairingPayload payload)
