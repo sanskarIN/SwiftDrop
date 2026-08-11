@@ -10,7 +10,7 @@ namespace SwiftDrop.ShareExtension;
 public sealed class ShareViewController : UIViewController
 {
     private const int CopyBufferSize = 128 * 1024;
-    private static readonly TimeSpan ProviderLoadTimeout = TimeSpan.FromSeconds(20);
+    private static readonly TimeSpan ProviderResponseTimeout = TimeSpan.FromSeconds(20);
     private readonly CancellationTokenSource _lifetimeCts = new();
     private UILabel? _statusLabel;
     private int _started;
@@ -137,103 +137,157 @@ public sealed class ShareViewController : UIViewController
         return staged is null ? null : new AppleSharedFileSource(staged, provider.SuggestedName);
     }
 
-    private static async Task<NSUrl?> LoadFileUrlItemAsync(
+    private static Task<NSUrl?> LoadFileUrlItemAsync(
         NSItemProvider provider,
         string typeIdentifier,
         HashSet<string> temporaryRoots,
         CancellationToken ct)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(ProviderLoadTimeout);
-        var providerToken = timeout.Token;
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = providerToken.Register(() => tcs.TrySetCanceled(providerToken));
+        var callbackStarted = 0;
+        var timeout = new CancellationTokenSource();
+        timeout.CancelAfter(ProviderResponseTimeout);
+        var timeoutToken = timeout.Token;
+        CancellationTokenRegistration timeoutRegistration = default;
+        CancellationTokenRegistration lifetimeRegistration = default;
 
-        provider.LoadItem(typeIdentifier, null, (item, error) =>
+        void CompleteCleanup()
         {
-            if (providerToken.IsCancellationRequested)
-            {
-                tcs.TrySetCanceled(providerToken);
-                return;
-            }
-            if (error is not null || item is not NSUrl url || !url.IsFileUrl)
-            {
-                tcs.TrySetResult(null);
-                return;
-            }
+            timeoutRegistration.Dispose();
+            lifetimeRegistration.Dispose();
+            timeout.Dispose();
+        }
 
-            try
-            {
-                tcs.TrySetResult(CopyProviderFileToTemporaryStorage(
-                    url,
-                    provider.SuggestedName,
-                    temporaryRoots,
-                    providerToken));
-            }
-            catch (Exception ex)
-            {
-                tcs.TrySetException(ex);
-            }
+        lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
+        timeoutRegistration = timeoutToken.Register(() =>
+        {
+            if (Volatile.Read(ref callbackStarted) == 0)
+                tcs.TrySetException(new TimeoutException("Shared provider did not return the file URL before the safety timeout."));
         });
+        _ = tcs.Task.ContinueWith(
+            _ => CompleteCleanup(),
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
 
         try
         {
-            return await tcs.Task;
+            provider.LoadItem(typeIdentifier, null, (item, error) =>
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    tcs.TrySetCanceled(ct);
+                    return;
+                }
+                if (Interlocked.Exchange(ref callbackStarted, 1) != 0) return;
+                if (timeoutToken.IsCancellationRequested)
+                {
+                    tcs.TrySetException(new TimeoutException("Shared provider did not return the file URL before the safety timeout."));
+                    return;
+                }
+                if (error is not null || item is not NSUrl url || !url.IsFileUrl)
+                {
+                    tcs.TrySetResult(null);
+                    return;
+                }
+
+                try
+                {
+                    tcs.TrySetResult(CopyProviderFileToTemporaryStorage(
+                        url,
+                        provider.SuggestedName,
+                        temporaryRoots,
+                        ct));
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (Exception ex)
         {
-            throw new TimeoutException("Shared provider did not return the file URL before the safety timeout.");
+            tcs.TrySetException(ex);
         }
+
+        return tcs.Task;
     }
 
-    private static async Task<NSUrl?> LoadFileRepresentationAsync(
+    private static Task<NSUrl?> LoadFileRepresentationAsync(
         NSItemProvider provider,
         string typeIdentifier,
         string? suggestedName,
         HashSet<string> temporaryRoots,
         CancellationToken ct)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(ProviderLoadTimeout);
-        var providerToken = timeout.Token;
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = providerToken.Register(() => tcs.TrySetCanceled(providerToken));
+        var callbackStarted = 0;
+        var timeout = new CancellationTokenSource();
+        timeout.CancelAfter(ProviderResponseTimeout);
+        var timeoutToken = timeout.Token;
+        CancellationTokenRegistration timeoutRegistration = default;
+        CancellationTokenRegistration lifetimeRegistration = default;
 
-        provider.LoadFileRepresentation(typeIdentifier, (url, error) =>
+        void CompleteCleanup()
         {
-            if (providerToken.IsCancellationRequested)
-            {
-                tcs.TrySetCanceled(providerToken);
-                return;
-            }
-            if (error is not null || url is null || !url.IsFileUrl)
-            {
-                tcs.TrySetResult(null);
-                return;
-            }
+            timeoutRegistration.Dispose();
+            lifetimeRegistration.Dispose();
+            timeout.Dispose();
+        }
 
-            try
-            {
-                tcs.TrySetResult(CopyProviderFileToTemporaryStorage(
-                    url,
-                    suggestedName,
-                    temporaryRoots,
-                    providerToken));
-            }
-            catch (Exception ex)
-            {
-                tcs.TrySetException(ex);
-            }
+        lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
+        timeoutRegistration = timeoutToken.Register(() =>
+        {
+            if (Volatile.Read(ref callbackStarted) == 0)
+                tcs.TrySetException(new TimeoutException("Shared provider did not return a file representation before the safety timeout."));
         });
+        _ = tcs.Task.ContinueWith(
+            _ => CompleteCleanup(),
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
 
         try
         {
-            return await tcs.Task;
+            provider.LoadFileRepresentation(typeIdentifier, (url, error) =>
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    tcs.TrySetCanceled(ct);
+                    return;
+                }
+                if (Interlocked.Exchange(ref callbackStarted, 1) != 0) return;
+                if (timeoutToken.IsCancellationRequested)
+                {
+                    tcs.TrySetException(new TimeoutException("Shared provider did not return a file representation before the safety timeout."));
+                    return;
+                }
+                if (error is not null || url is null || !url.IsFileUrl)
+                {
+                    tcs.TrySetResult(null);
+                    return;
+                }
+
+                try
+                {
+                    tcs.TrySetResult(CopyProviderFileToTemporaryStorage(
+                        url,
+                        suggestedName,
+                        temporaryRoots,
+                        ct));
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            });
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (Exception ex)
         {
-            throw new TimeoutException("Shared provider did not return a file representation before the safety timeout.");
+            tcs.TrySetException(ex);
         }
+
+        return tcs.Task;
     }
 
     private static NSUrl CopyProviderFileToTemporaryStorage(
@@ -295,7 +349,7 @@ public sealed class ShareViewController : UIViewController
         }
     }
 
-    private static async Task<string?> TryLoadProviderTextAsync(NSItemProvider provider, CancellationToken ct)
+    private static Task<string?> TryLoadProviderTextAsync(NSItemProvider provider, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var typeIdentifier = provider.HasItemConformingTo("public.plain-text")
@@ -305,44 +359,71 @@ public sealed class ShareViewController : UIViewController
                 : provider.HasItemConformingTo("public.url")
                     ? "public.url"
                     : null;
-        if (typeIdentifier is null) return null;
+        if (typeIdentifier is null) return Task.FromResult<string?>(null);
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(ProviderLoadTimeout);
-        var providerToken = timeout.Token;
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = providerToken.Register(() => tcs.TrySetCanceled(providerToken));
+        var callbackStarted = 0;
+        var timeout = new CancellationTokenSource();
+        timeout.CancelAfter(ProviderResponseTimeout);
+        var timeoutToken = timeout.Token;
+        CancellationTokenRegistration timeoutRegistration = default;
+        CancellationTokenRegistration lifetimeRegistration = default;
 
-        provider.LoadItem(typeIdentifier, null, (item, error) =>
+        void CompleteCleanup()
         {
-            if (providerToken.IsCancellationRequested)
-            {
-                tcs.TrySetCanceled(providerToken);
-                return;
-            }
-            if (error is not null)
-            {
-                tcs.TrySetResult(null);
-                return;
-            }
+            timeoutRegistration.Dispose();
+            lifetimeRegistration.Dispose();
+            timeout.Dispose();
+        }
 
-            var value = item switch
-            {
-                NSString text => text.ToString(),
-                NSUrl url when !url.IsFileUrl => url.AbsoluteString,
-                _ => null
-            };
-            tcs.TrySetResult(value);
+        lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
+        timeoutRegistration = timeoutToken.Register(() =>
+        {
+            if (Volatile.Read(ref callbackStarted) == 0)
+                tcs.TrySetException(new TimeoutException("Shared provider did not return text before the safety timeout."));
         });
+        _ = tcs.Task.ContinueWith(
+            _ => CompleteCleanup(),
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
 
         try
         {
-            return await tcs.Task;
+            provider.LoadItem(typeIdentifier, null, (item, error) =>
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    tcs.TrySetCanceled(ct);
+                    return;
+                }
+                if (Interlocked.Exchange(ref callbackStarted, 1) != 0) return;
+                if (timeoutToken.IsCancellationRequested)
+                {
+                    tcs.TrySetException(new TimeoutException("Shared provider did not return text before the safety timeout."));
+                    return;
+                }
+                if (error is not null)
+                {
+                    tcs.TrySetResult(null);
+                    return;
+                }
+
+                var value = item switch
+                {
+                    NSString text => text.ToString(),
+                    NSUrl url when !url.IsFileUrl => url.AbsoluteString,
+                    _ => null
+                };
+                tcs.TrySetResult(value);
+            });
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (Exception ex)
         {
-            throw new TimeoutException("Shared provider did not return text before the safety timeout.");
+            tcs.TrySetException(ex);
         }
+
+        return tcs.Task;
     }
 
     private static string? BuildBoundedText(IEnumerable<string> values, int maximumUtf8Bytes)
