@@ -89,6 +89,24 @@ public static class AppleShareContainerImporter
                 (new DirectoryInfo(sourceFilesRoot).Attributes & FileAttributes.ReparsePoint) != 0)
                 throw new InvalidDataException("External share files directory cannot be a symbolic link.");
 
+            var actualFileNames = new List<string>();
+            if (Directory.Exists(sourceFilesRoot))
+            {
+                foreach (var entryPath in Directory.EnumerateFileSystemEntries(sourceFilesRoot, "*", SearchOption.TopDirectoryOnly))
+                {
+                    ct.ThrowIfCancellationRequested();
+                    if (Directory.Exists(entryPath))
+                        throw new InvalidDataException("External share package cannot contain undeclared directories.");
+                    var info = new FileInfo(entryPath);
+                    if (!info.Exists)
+                        throw new InvalidDataException("External share package entry disappeared during validation.");
+                    if ((info.Attributes & FileAttributes.ReparsePoint) != 0)
+                        throw new InvalidDataException("External share package files cannot be symbolic links.");
+                    actualFileNames.Add(info.Name);
+                }
+            }
+            ExternalSharePackageFileSetValidator.ValidateExact(manifest.Files, actualFileNames);
+
             var validatedSources = new List<(ExternalSharePackageFile Item, string SourcePath)>(manifest.Files.Count);
             foreach (var item in manifest.Files)
             {
