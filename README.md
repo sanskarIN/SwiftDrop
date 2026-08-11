@@ -14,7 +14,7 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 - Short-lived one-time 8-digit pairing codes.
 - Manual numeric local-IP fallback.
 - Strict local/private/link-local/unique-local address policy; public Internet targets and DNS peer names are rejected in protocol v1.
-- Strict pairing URI and encoded JSON validation, including duplicate-property rejection and bounded expiry/lifetime.
+- Strict pairing URI and encoded JSON validation, including duplicate-property rejection, **unknown-property rejection**, comments/trailing-comma rejection, and bounded expiry/lifetime.
 - Visual SHA-256 certificate fingerprint confirmation.
 
 ### Transport and identity
@@ -44,6 +44,7 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 - Collision-safe destinations.
 - Non-overwrite final promotion.
 - Existing receive-root symlink/reparse components rejected.
+- Portable filename policy treats both `/` and `\\` as separators, neutralizes reserved names, normalizes Unicode, and enforces a surrogate-safe 180-character segment limit.
 
 ### Idempotent batch resume
 
@@ -59,7 +60,9 @@ On retry, an already-finalized item is treated as complete **only after** SwiftD
 - destination still exists at expected length;
 - a fresh SHA-256 of that destination still matches.
 
-Only then does the receiver return a full-length resume offset and receive zero more bytes for that item. A brand-new explicit batch uses a fresh transfer ID, so deliberate duplicate sends continue to use normal collision handling.
+That verification occurs once while the retry plan is created **and again after the sender returns the matching `BatchItemStart`, immediately before the zero-byte completion acknowledgement**. If the destination changes, disappears, is redirected, or no longer matches recorded completion metadata in that interval, the shortcut fails closed instead of acknowledging stale bytes.
+
+Only then does the receiver complete the full-length resume path without receiving payload bytes for that item. A brand-new explicit batch uses a fresh transfer ID, so deliberate duplicate sends continue to use normal collision handling.
 
 ### Cross-platform external intake
 
@@ -81,7 +84,12 @@ Only then does the receiver return a full-length resume offset and receive zero 
 - File/document URL opening into bounded cache staging.
 - Dedicated **SwiftDrop Share Extension** for files/images/movies/text/web URLs.
 - App Group `group.in.sanskar.swiftdrop` handoff with strict versioned manifests and atomic package publication.
-- Containing app rejects stale/malformed/unmapped/symlinked App Group packages and re-stages accepted files into app cache.
+- Share Extension provider callbacks have a bounded response wait; extension lifetime cancellation cancels pending waits and active staged-copy loops.
+- The provider response timeout does not incorrectly terminate a legitimate already-started large local copy; that copy remains governed by extension/user lifetime.
+- Containing app rejects stale/malformed/unmapped/symlinked App Group packages.
+- The physical App Group `files/` set must exactly match manifest-declared top-level files; undeclared extra files, nested directories, missing files, duplicate portable names, and non-canonical names are rejected.
+- Accepted package files are re-staged into app cache.
+- One pending Apple share bundle is surfaced for review at a time so later packages cannot silently overwrite/merge the active user selection.
 - Shared content is presented for review; it is never auto-sent.
 
 **Mac Catalyst desktop**
@@ -111,6 +119,8 @@ Protocol JSON is strict and typed:
 - cross-type field smuggling rejected;
 - truncated frames fail;
 - idle timeouts and cancellation enforced.
+
+Pairing payload JSON is also closed-schema: an extra encoded property is rejected rather than silently ignored.
 
 Production sender, pairing client, receiver, and portable tests use the same Core wire records/factories/validators/authorizer.
 
@@ -148,13 +158,15 @@ Portable tests include:
 
 - pairing/identity/certificate/fingerprint policy;
 - one-time authorization and replay rejection;
-- strict/unknown/duplicate JSON member behavior;
+- strict/unknown/duplicate JSON member behavior for framed protocol and pairing payloads;
 - complete framed file/batch/text/pair conversation sequencing;
 - mutual-TLS loopback pinning/file/resume behavior;
 - transfer interruption/source mutation/staged corruption/integrity cleanup;
-- stable batch IDs and verified completed-file reuse;
+- stable batch IDs and repeated completed-file verification around retry transitions;
 - SQLite v0/v1/v2→v3 migration and corruption handling;
 - traversal/path/collision/symlink/final-promotion race handling;
+- portable filename separator/long-extension/surrogate-boundary behavior;
+- exact Apple share-package physical file-set validation;
 - discovery fuzz/truncation/pointer-loop/duplicate metadata;
 - session-drain races;
 - privacy redaction;
@@ -213,7 +225,7 @@ Signed iOS/Mac Catalyst packages still require the real Apple Developer configur
 - app ID `in.sanskar.swiftdrop`;
 - extension ID `in.sanskar.swiftdrop.share`.
 
-Do not claim Share Extension production readiness until signed device/TestFlight/Mac sandbox validation succeeds.
+Do not claim Share Extension production readiness until signed device/TestFlight/Mac sandbox validation succeeds, including provider timeout/cancellation and App Group tamper cases.
 
 ## Networking notes
 
@@ -244,6 +256,7 @@ Financial support is optional and does not unlock features, priority security ha
 - Permissions: `docs/platform-permissions.md`
 - Local database: `docs/storage/database-schema.md`
 - Manual tests: `docs/testing/manual-test-matrix.md`
+- Security tests: `docs/testing/security-test-plan.md`
 - Release checklist: `docs/release/release-checklist.md`
 - Project status: `PROJECT_STATUS.md`
 - Next validation steps: `NEXT_STEPS.md`
@@ -251,7 +264,7 @@ Financial support is optional and does not unlock features, priority security ha
 
 ## Production-status boundary
 
-The current master-prompt scope is implemented in repository source, including Apple Share Extension, Mac native drop, typed protocol hostability, and idempotent completed-file batch resume. Production verification still requires successful current CI runs, signed packages/extensions, real App Group provisioning, physical cross-device/network/accessibility tests, exact dependency-license review, and store submission checks.
+The current master-prompt scope is implemented in repository source, including Apple Share Extension, Mac native drop, typed protocol hostability, closed-schema pairing/protocol JSON, exact App Group package file sets, and idempotent completed-file batch resume with planning→ACK revalidation. Production verification still requires successful current CI runs, signed packages/extensions, real App Group provisioning, physical cross-device/network/accessibility tests, exact dependency-license review, and store submission checks.
 
 ## License
 
