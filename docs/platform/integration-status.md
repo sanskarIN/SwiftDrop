@@ -1,5 +1,7 @@
 # Platform Integration Status
 
+Updated: 2026-08-11
+
 This document describes source-level integration currently present in SwiftDrop. It does not replace signed package, store, or physical-device validation.
 
 ## Android
@@ -35,17 +37,22 @@ Implemented in source:
 - Bonjour service declaration.
 - `swiftdrop://pair` activation.
 - Normal system file selection/document URL intake.
-- Containing-app App Group entitlement:
-  `group.in.sanskar.swiftdrop`.
+- Containing-app App Group entitlement: `group.in.sanskar.swiftdrop`.
 - Dedicated `SwiftDrop.ShareExtension` target for files/images/movies/text/web URLs.
 - Share Extension App Group entitlement matching the containing app.
 - Strict versioned App Group package manifest validated by `SwiftDrop.Core`.
 - Atomic extension publication from `.staging-*` to `pending-*`.
-- Containing-app import of pending packages on launch/foreground activation.
+- Containing-app serialized import of pending packages on launch/foreground activation.
 - Stale extension staging cleanup.
-- Strict JSON/unknown-field/package-age/path/item-size/aggregate-size validation.
+- Strict JSON/duplicate/unknown-field/package-age/path/item-size/aggregate-size validation.
+- Physical `files/` set must exactly match the manifest: undeclared files, nested directories, missing files, duplicate portable names, and non-canonical names are rejected.
 - Rejection of symlink/reparse package/files where represented by the filesystem.
 - Re-staging accepted package files into the app's normal bounded cache before review.
+- Bounded `NSItemProvider` response wait.
+- Extension lifetime cancellation for pending provider waits and active staged-copy loops.
+- Late timed-out/cancelled callbacks prevented from starting a new copy.
+- Provider response timeout stops waiting for a provider to answer but does not incorrectly time-limit a legitimate already-started large copy.
+- One external bundle is surfaced for review at a time; later pending packages remain pending instead of silently overwriting/merging the active selection.
 - No automatic send after extension import.
 
 Conservative lifecycle boundary:
@@ -57,10 +64,11 @@ Validation still required:
 
 - Apple Developer App Group capability and provisioning profiles for app + extension.
 - Signed physical-device Share Extension appearance/activation behavior.
+- Real `NSItemProvider` timeout/cancellation/large-copy behavior across Files, iCloud Drive, Photos, and representative third-party providers.
 - Local-network permission prompt behavior.
 - Bonjour discovery on physical devices.
 - URL activation across cold/warm starts.
-- App Group handoff across cold/warm main-app activation.
+- App Group handoff and malformed/extra-file package rejection across cold/warm main-app activation.
 - Transfer interruption during foreground/background/sleep transitions.
 - TestFlight/App Store package embedding of the extension.
 
@@ -75,7 +83,7 @@ Implemented in source:
 - App sandbox entitlement.
 - Network client/server entitlements for local LAN transport.
 - Same App Group entitlement as the Apple Share Extension.
-- Dedicated Share Extension target for bounded file/text/URL handoff.
+- Dedicated Share Extension target for bounded file/text/URL handoff with the same provider-response/cancellation and exact-package-file-set protections as iOS.
 - Native `UIDropInteraction` on the main MAUI surface.
 - Finder files/folders, text, and pairing-link drop support.
 - Temporary security-scoped access during native staging.
@@ -90,6 +98,7 @@ Validation still required:
 - Mac firewall prompts and inbound server behavior.
 - Bonjour discovery across supported macOS versions.
 - Share Extension embedding/activation under release signing.
+- Real provider timeout/cancellation and App Group tamper cases.
 - Finder file/folder drops under release sandbox.
 - Security-scoped URL behavior for external volumes/providers.
 - App notarization/store packaging.
@@ -123,7 +132,7 @@ Implemented consistently in shared code/services:
 - Receiver certificate pinning and sender client certificate.
 - Strict typed protocol requests/acks.
 - Case-insensitive duplicate JSON member rejection.
-- Unknown JSON member rejection.
+- Unknown JSON member rejection for framed protocol **and encoded pairing payloads**.
 - Type-specific request shape validation.
 - One-time transfer authorization after authenticated client-certificate presence.
 - Certificate-bound trusted-device metadata.
@@ -131,16 +140,18 @@ Implemented consistently in shared code/services:
 - Selective receive.
 - Collision handling and non-overwrite final promotion.
 - Receive-root path confinement including portable rooted/traversal syntax and existing reparse/symlink component rejection.
+- Portable filename segments normalize Unicode, remove both separator characters, neutralize reserved Windows names, and apply an unconditional surrogate-safe 180-character cap.
 - `.swiftdrop.part` resume.
 - Stable batch IDs across pause/failure/retry.
 - Schema-v3 verified completed-file reuse for idempotent interrupted-batch resume.
+- Second completed-file verification immediately before a zero-byte resumed-item completion ACK.
 - SHA-256 integrity verification.
 - Queue/history/diagnostics/resume metadata only; transfer contents excluded from SQLite.
 - UTF-8-byte-bounded external text intake.
 
 ## Source-complete vs release-validated
 
-The current master-prompt source scope includes the previously missing Apple Share Extension and Mac Catalyst native drop implementations. That means those items are **implemented in source**, not yet **release-validated**.
+The current master-prompt source scope includes the previously missing Apple Share Extension and Mac Catalyst native drop implementations plus the latest closed-schema pairing, exact App Group file-set, provider-response cancellation, portable filename-boundary, and completed-item retry revalidation hardening. These are **implemented in source**, not yet **release-validated**.
 
 A platform is release-validated only after:
 
@@ -148,7 +159,7 @@ A platform is release-validated only after:
 2. release workloads compile the app and any extension;
 3. real signing/provisioning/package identity succeeds;
 4. signed package install/upgrade works;
-5. physical-device/network/transfer/resume/accessibility validation passes;
+5. physical-device/network/transfer/resume/provider/accessibility validation passes;
 6. privacy/store declarations match the shipped binary.
 
-See `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, and `docs/release/release-checklist.md`.
+See `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, `docs/testing/security-test-plan.md`, and `docs/release/release-checklist.md`.
