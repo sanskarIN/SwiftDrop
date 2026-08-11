@@ -337,6 +337,17 @@ public sealed class ReceiveServerService : IAsyncDisposable
 
                 if (item.AlreadyCompleted)
                 {
+                    var sourceEntry = item.EffectiveEntry with { RelativePath = item.SourceRelativePath };
+                    var reverified = await _batchResumeState.TryGetVerifiedAsync(transferId, sourceEntry, ct);
+                    if (reverified is null ||
+                        !string.Equals(
+                            reverified.DestinationRelativePath,
+                            item.EffectiveEntry.RelativePath,
+                            PathComparisonPolicy.Comparison))
+                    {
+                        throw new IOException("Completed batch item changed after resume planning.");
+                    }
+
                     await FrameProtocol.WriteJsonAsync(
                         connection,
                         new TransferAcknowledgement(true, item.EffectiveEntry.Length),
