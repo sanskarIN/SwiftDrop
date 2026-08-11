@@ -11,6 +11,14 @@ public sealed class FileNameSanitizerTests
         Assert.Equal("reportbad.txt", value);
     }
 
+    [Theory]
+    [InlineData("folder/file.txt", "folderfile.txt")]
+    [InlineData("folder\\file.txt", "folderfile.txt")]
+    public void SanitizeSegment_Removes_Both_Portable_Separator_Characters(string input, string expected)
+    {
+        Assert.Equal(expected, FileNameSanitizer.SanitizeSegment(input));
+    }
+
     [Fact]
     public void SanitizeRelativePath_Preserves_Safe_Subfolders()
     {
