@@ -137,7 +137,7 @@ public sealed class ShareViewController : UIViewController
         return staged is null ? null : new AppleSharedFileSource(staged, provider.SuggestedName);
     }
 
-    private static Task<NSUrl?> LoadFileUrlItemAsync(
+    private static async Task<NSUrl?> LoadFileUrlItemAsync(
         NSItemProvider provider,
         string typeIdentifier,
         HashSet<string> temporaryRoots,
@@ -145,30 +145,15 @@ public sealed class ShareViewController : UIViewController
     {
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var callbackStarted = 0;
-        var timeout = new CancellationTokenSource();
+        using var timeout = new CancellationTokenSource();
         timeout.CancelAfter(ProviderResponseTimeout);
         var timeoutToken = timeout.Token;
-        CancellationTokenRegistration timeoutRegistration = default;
-        CancellationTokenRegistration lifetimeRegistration = default;
-
-        void CompleteCleanup()
-        {
-            timeoutRegistration.Dispose();
-            lifetimeRegistration.Dispose();
-            timeout.Dispose();
-        }
-
-        lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
-        timeoutRegistration = timeoutToken.Register(() =>
+        using var lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
+        using var timeoutRegistration = timeoutToken.Register(() =>
         {
             if (Volatile.Read(ref callbackStarted) == 0)
                 tcs.TrySetException(new TimeoutException("Shared provider did not return the file URL before the safety timeout."));
         });
-        _ = tcs.Task.ContinueWith(
-            _ => CompleteCleanup(),
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default);
 
         try
         {
@@ -210,10 +195,10 @@ public sealed class ShareViewController : UIViewController
             tcs.TrySetException(ex);
         }
 
-        return tcs.Task;
+        return await tcs.Task;
     }
 
-    private static Task<NSUrl?> LoadFileRepresentationAsync(
+    private static async Task<NSUrl?> LoadFileRepresentationAsync(
         NSItemProvider provider,
         string typeIdentifier,
         string? suggestedName,
@@ -222,30 +207,15 @@ public sealed class ShareViewController : UIViewController
     {
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var callbackStarted = 0;
-        var timeout = new CancellationTokenSource();
+        using var timeout = new CancellationTokenSource();
         timeout.CancelAfter(ProviderResponseTimeout);
         var timeoutToken = timeout.Token;
-        CancellationTokenRegistration timeoutRegistration = default;
-        CancellationTokenRegistration lifetimeRegistration = default;
-
-        void CompleteCleanup()
-        {
-            timeoutRegistration.Dispose();
-            lifetimeRegistration.Dispose();
-            timeout.Dispose();
-        }
-
-        lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
-        timeoutRegistration = timeoutToken.Register(() =>
+        using var lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
+        using var timeoutRegistration = timeoutToken.Register(() =>
         {
             if (Volatile.Read(ref callbackStarted) == 0)
                 tcs.TrySetException(new TimeoutException("Shared provider did not return a file representation before the safety timeout."));
         });
-        _ = tcs.Task.ContinueWith(
-            _ => CompleteCleanup(),
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default);
 
         try
         {
@@ -287,7 +257,7 @@ public sealed class ShareViewController : UIViewController
             tcs.TrySetException(ex);
         }
 
-        return tcs.Task;
+        return await tcs.Task;
     }
 
     private static NSUrl CopyProviderFileToTemporaryStorage(
@@ -349,7 +319,7 @@ public sealed class ShareViewController : UIViewController
         }
     }
 
-    private static Task<string?> TryLoadProviderTextAsync(NSItemProvider provider, CancellationToken ct)
+    private static async Task<string?> TryLoadProviderTextAsync(NSItemProvider provider, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var typeIdentifier = provider.HasItemConformingTo("public.plain-text")
@@ -359,34 +329,19 @@ public sealed class ShareViewController : UIViewController
                 : provider.HasItemConformingTo("public.url")
                     ? "public.url"
                     : null;
-        if (typeIdentifier is null) return Task.FromResult<string?>(null);
+        if (typeIdentifier is null) return null;
 
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var callbackStarted = 0;
-        var timeout = new CancellationTokenSource();
+        using var timeout = new CancellationTokenSource();
         timeout.CancelAfter(ProviderResponseTimeout);
         var timeoutToken = timeout.Token;
-        CancellationTokenRegistration timeoutRegistration = default;
-        CancellationTokenRegistration lifetimeRegistration = default;
-
-        void CompleteCleanup()
-        {
-            timeoutRegistration.Dispose();
-            lifetimeRegistration.Dispose();
-            timeout.Dispose();
-        }
-
-        lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
-        timeoutRegistration = timeoutToken.Register(() =>
+        using var lifetimeRegistration = ct.Register(() => tcs.TrySetCanceled(ct));
+        using var timeoutRegistration = timeoutToken.Register(() =>
         {
             if (Volatile.Read(ref callbackStarted) == 0)
                 tcs.TrySetException(new TimeoutException("Shared provider did not return text before the safety timeout."));
         });
-        _ = tcs.Task.ContinueWith(
-            _ => CompleteCleanup(),
-            CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously,
-            TaskScheduler.Default);
 
         try
         {
@@ -423,7 +378,7 @@ public sealed class ShareViewController : UIViewController
             tcs.TrySetException(ex);
         }
 
-        return tcs.Task;
+        return await tcs.Task;
     }
 
     private static string? BuildBoundedText(IEnumerable<string> values, int maximumUtf8Bytes)
