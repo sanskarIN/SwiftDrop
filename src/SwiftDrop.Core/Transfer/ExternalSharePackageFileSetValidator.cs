@@ -5,6 +5,8 @@ namespace SwiftDrop.Core.Transfer;
 
 public static class ExternalSharePackageFileSetValidator
 {
+    private static readonly StringComparer PackageNameComparer = StringComparer.OrdinalIgnoreCase;
+
     public static void ValidateExact(
         IReadOnlyList<ExternalSharePackageFile> declaredFiles,
         IEnumerable<string> actualFileNames)
@@ -12,8 +14,7 @@ public static class ExternalSharePackageFileSetValidator
         ArgumentNullException.ThrowIfNull(declaredFiles);
         ArgumentNullException.ThrowIfNull(actualFileNames);
 
-        var comparer = PathComparisonPolicy.Comparer;
-        var declared = new HashSet<string>(comparer);
+        var declared = new HashSet<string>(PackageNameComparer);
         foreach (var item in declaredFiles)
         {
             ArgumentNullException.ThrowIfNull(item);
@@ -22,7 +23,7 @@ public static class ExternalSharePackageFileSetValidator
                 throw new InvalidDataException("External share package declares duplicate portable filenames.");
         }
 
-        var actual = new HashSet<string>(comparer);
+        var actual = new HashSet<string>(PackageNameComparer);
         foreach (var value in actualFileNames)
         {
             var name = ValidateSingleSegment(value, nameof(actualFileNames));
