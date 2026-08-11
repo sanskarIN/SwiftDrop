@@ -151,6 +151,16 @@ public sealed class PairingCodecTests
     }
 
     [Fact]
+    public void Decode_RejectsUnknownJsonProperty()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var json = SerializePayload(CreateValid(now)).TrimEnd('}');
+        var link = BuildRawPayloadLink(json + ",\"debug\":true}");
+
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(link, now));
+    }
+
+    [Fact]
     public void Decode_RejectsJsonCommentsAndTrailingCommas()
     {
         var now = DateTimeOffset.UtcNow;
