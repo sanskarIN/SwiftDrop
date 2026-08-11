@@ -1,30 +1,82 @@
 # Third-Party Notices
 
+Updated: 2026-08-11
+
 SwiftDrop is licensed under Apache-2.0. It also depends on third-party packages and platform SDK components that remain governed by their own licenses.
 
-## Direct NuGet dependencies
+This file describes direct source references for review. It is **not** a substitute for the exact restored transitive dependency/license inventory of a signed release candidate.
 
-Runtime projects currently reference:
+## Shipped/runtime projects
 
-- Microsoft.Data.Sqlite
-- Microsoft.Extensions.Logging.Abstractions
-- Microsoft.Maui.Controls
-- Microsoft.Extensions.Logging.Debug
-- QRCoder
+### `SwiftDrop.Core`
 
-The test project currently references:
+Direct NuGet package references:
 
-- Microsoft.NET.Test.Sdk
-- xunit
-- xunit.runner.visualstudio
-- coverlet.collector
+- `Microsoft.Data.Sqlite` — 10.0.0 in the current project file.
+- `Microsoft.Extensions.Logging.Abstractions` — 10.0.0 in the current project file.
 
-## Platform SDKs
+### `SwiftDrop.App`
 
-Building SwiftDrop can also use the Android SDK, Apple Xcode/iOS/macOS SDKs, the Windows App SDK, .NET, and .NET MAUI. Those SDKs are not redistributed by this repository merely because the source project targets them.
+Direct NuGet package references:
 
-## Release requirement
+- `Microsoft.Maui.Controls` — 10.0.0 in the current project file.
+- `Microsoft.Extensions.Logging.Debug` — 10.0.0 in the current project file.
+- `QRCoder` — 1.6.0 in the current project file.
 
-Before publishing a binary release, generate the final dependency graph from the exact locked/restored package set, review each package's license and notice requirements, and include any attribution or license text required for redistribution. Do not treat this file as a substitute for that release-time dependency audit.
+Direct project references:
 
-No third-party license grants rights to transferred user content.
+- `SwiftDrop.Core` on all app targets.
+- `SwiftDrop.ShareExtension` on iOS and Mac Catalyst as an app-extension project reference.
+
+### `SwiftDrop.ShareExtension`
+
+The dedicated iOS/Mac Catalyst Share Extension currently declares no direct NuGet `PackageReference` of its own. It references:
+
+- `SwiftDrop.Core`.
+
+Its restored runtime graph therefore still includes the dependencies pulled by the referenced Core project and Apple/.NET target packs. Release review must inspect the **restored extension target graph**, not infer that “no direct PackageReference” means “no third-party/runtime dependencies.”
+
+## Test-only dependencies
+
+`tests/SwiftDrop.Core.Tests` directly references:
+
+- `Microsoft.NET.Test.Sdk` — 17.13.0 in the current project file.
+- `xunit` — 2.9.3 in the current project file.
+- `xunit.runner.visualstudio` — 3.0.2 in the current project file.
+- `coverlet.collector` — 6.0.4 in the current project file.
+
+These test dependencies are not automatically part of a shipped application binary merely because they are used by CI/development tests.
+
+## Benchmark/development dependencies
+
+The synthetic benchmark project and repository build tooling may restore additional .NET SDK/framework assets according to their project/SDK declarations. They are development/release-engineering inputs unless the exact signed binary dependency graph demonstrates otherwise.
+
+## Platform SDKs and framework components
+
+Building SwiftDrop can use:
+
+- .NET 10 SDK/runtime/target packs;
+- .NET MAUI workloads;
+- Android SDK/platform tooling;
+- Apple Xcode, iOS SDK, and Mac Catalyst/macOS SDK components;
+- Windows App SDK / Windows platform tooling.
+
+Those SDKs are governed by their respective licenses. They are not automatically redistributed by this repository merely because SwiftDrop targets them.
+
+## Release dependency inventory
+
+Before publishing any binary release:
+
+1. Restore the **exact release-candidate commit** on the supported target environments.
+2. Generate dependency inventories for `SwiftDrop.Core`, `SwiftDrop.App`, and `SwiftDrop.ShareExtension` for every shipped target framework.
+3. Include transitive packages/framework components where redistribution or notice obligations apply.
+4. Review package provenance, versions, licenses, notices, vulnerabilities/security advisories, and redistribution terms.
+5. Compare the inventory against the final signed/package outputs; do not rely only on source project files.
+6. Include every required attribution/license text in the app/package/release materials.
+7. Repeat the review whenever package versions, workloads, SDKs, target frameworks, or shipped projects change.
+
+The release-readiness workflow can generate dependency inventory evidence, but workflow configuration alone is not proof that the exact signed candidate was reviewed.
+
+## User content
+
+No third-party dependency license grants SwiftDrop or its dependencies ownership rights over files/text a user chooses to transfer. User content remains governed by the user and applicable law/agreements.
