@@ -10,8 +10,8 @@ public sealed class TransferEngine
     public async Task SendFileAsync(Stream network, string sourcePath, long offset, IProgress<long>? progress, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
-        var expectedLength = new FileInfo(sourcePath).Length;
-        await SendFileAsync(network, sourcePath, offset, expectedLength, progress, ct);
+        var source = TransferSourceSafety.GetRegularFile(sourcePath);
+        await SendFileAsync(network, source.FullName, offset, source.Length, progress, ct);
     }
 
     public async Task SendFileAsync(
@@ -27,8 +27,9 @@ public sealed class TransferEngine
         if (expectedLength < 0 || expectedLength > ProtocolConstants.MaxSingleFileBytes)
             throw new ArgumentOutOfRangeException(nameof(expectedLength));
 
+        var source = TransferSourceSafety.GetRegularFile(sourcePath);
         await using var file = new FileStream(
-            sourcePath,
+            source.FullName,
             FileMode.Open,
             FileAccess.Read,
             FileShare.Read,
@@ -117,7 +118,19 @@ public sealed class TransferEngine
         finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
         partial = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, partialRelativePath);
         File.Move(partial, finalPath, overwrite: false);
-        File.SetLastWriteTimeUtc(finalPath, entry.LastWriteUtc.UtcDateTime);
+        ApplyLastWriteTimeBestEffort(finalPath, entry.LastWriteUtc);
+    }
+
+    private static void ApplyLastWriteTimeBestEffort(string path, DateTimeOffset lastWriteUtc)
+    {
+        try
+        {
+            File.SetLastWriteTimeUtc(path, lastWriteUtc.UtcDateTime);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentOutOfRangeException or PlatformNotSupportedException)
+        {
+            // Content has already been verified and promoted. Optional timestamp metadata must not turn a valid transfer into a failure.
+        }
     }
 
     private static async ValueTask<int> ReadNetworkAsync(Stream stream, Memory<byte> buffer, CancellationToken ct)
