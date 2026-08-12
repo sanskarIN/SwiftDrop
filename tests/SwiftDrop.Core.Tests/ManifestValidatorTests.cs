@@ -89,7 +89,7 @@ public sealed class ManifestValidatorTests
     [InlineData("folder\\file.txt")]
     [InlineData("report?.txt")]
     [InlineData("CON.txt")]
-    [InlineData("name .txt")]
+    [InlineData("file.txt ")]
     [InlineData("Cafe\u0301.txt")]
     public void ValidateEntry_RejectsPathThatWouldChangeDuringSanitization(string path)
     {
