@@ -50,13 +50,16 @@ public static class PathGuard
 
     public static string GetCollisionFreePath(string path)
     {
-        if (!File.Exists(path) && !Directory.Exists(path)) return path;
-        var directory = Path.GetDirectoryName(path) ?? string.Empty;
-        var name = Path.GetFileNameWithoutExtension(path);
-        var ext = Path.GetExtension(path);
-        for (var i = 1; i < 10000; i++)
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var full = Path.GetFullPath(path);
+        if (!File.Exists(full) && !Directory.Exists(full)) return full;
+
+        var directory = Path.GetDirectoryName(full) ?? string.Empty;
+        var requestedName = Path.GetFileName(full);
+        for (var i = 1; i < 10_000; i++)
         {
-            var candidate = Path.Combine(directory, $"{name} ({i}){ext}");
+            var collisionName = FileNameSanitizer.CreateCollisionSegment(requestedName, i);
+            var candidate = Path.Combine(directory, collisionName);
             if (!File.Exists(candidate) && !Directory.Exists(candidate)) return candidate;
         }
         throw new IOException("Could not resolve destination filename collision.");
