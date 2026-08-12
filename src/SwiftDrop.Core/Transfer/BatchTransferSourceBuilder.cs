@@ -45,7 +45,8 @@ public static class BatchTransferSourceBuilder
                              MaxDirectoriesPerBatchSource))
                 {
                     ct.ThrowIfCancellationRequested();
-                    var relative = Path.Combine(rootName, Path.GetRelativePath(rootDirectory.FullName, file)).Replace('\\', '/');
+                    var localRelative = Path.GetRelativePath(rootDirectory.FullName, file);
+                    var relative = $"{rootName}/{PortableRelativePath.NormalizeSeparators(localRelative)}";
                     AddPendingFile(pending, file, relative, usedRelativePaths, ref totalBytes);
                 }
             }
@@ -115,11 +116,9 @@ public static class BatchTransferSourceBuilder
 
     private static bool RootCollides(string rootName, IEnumerable<string> usedRelativePaths)
     {
-        var platformPrefix = rootName + Path.DirectorySeparatorChar;
         var portablePrefix = rootName + '/';
         return usedRelativePaths.Any(path =>
             PortablePathComparer.Equals(path, rootName) ||
-            path.StartsWith(platformPrefix, StringComparison.OrdinalIgnoreCase) ||
             path.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -128,12 +127,13 @@ public static class BatchTransferSourceBuilder
         var normalized = FileNameSanitizer.SanitizeRelativePath(relativePath);
         if (!usedRelativePaths.Contains(normalized)) return normalized;
 
-        var directory = Path.GetDirectoryName(normalized);
-        var fileName = Path.GetFileName(normalized);
+        var lastSlash = normalized.LastIndexOf('/');
+        var directory = lastSlash >= 0 ? normalized[..lastSlash] : string.Empty;
+        var fileName = lastSlash >= 0 ? normalized[(lastSlash + 1)..] : normalized;
         for (var i = 2; i <= 9999; i++)
         {
             var renamed = FileNameSanitizer.CreateCollisionSegment(fileName, i);
-            var candidate = string.IsNullOrWhiteSpace(directory) ? renamed : Path.Combine(directory, renamed);
+            var candidate = directory.Length == 0 ? renamed : $"{directory}/{renamed}";
             if (!usedRelativePaths.Contains(candidate)) return candidate;
         }
 
