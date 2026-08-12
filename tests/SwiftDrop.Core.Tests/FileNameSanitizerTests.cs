@@ -1,3 +1,4 @@
+using System.Text;
 using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.Core.Tests;
@@ -53,6 +54,7 @@ public sealed class FileNameSanitizerTests
     {
         var value = FileNameSanitizer.SanitizeSegment("a." + new string('x', 400));
         Assert.Equal(FileNameSanitizer.MaximumSegmentLength, value.Length);
+        Assert.True(Encoding.UTF8.GetByteCount(value) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
     }
 
     [Fact]
@@ -63,6 +65,36 @@ public sealed class FileNameSanitizerTests
 
         Assert.Equal(new string('a', 175) + ".txt", value);
         Assert.True(value.Length <= FileNameSanitizer.MaximumSegmentLength);
+        Assert.True(Encoding.UTF8.GetByteCount(value) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+    }
+
+    [Fact]
+    public void SanitizeSegment_BoundsUnicodeHeavyNamesByUtf8Bytes()
+    {
+        var value = FileNameSanitizer.SanitizeSegment(new string('界', 100) + ".txt");
+
+        Assert.True(Encoding.UTF8.GetByteCount(value) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+        Assert.EndsWith(".txt", value, StringComparison.Ordinal);
+        Assert.DoesNotContain('\uFFFD', value);
+    }
+
+    [Fact]
+    public void SanitizeSegment_BoundsEmojiNamesWithoutSplittingRunes()
+    {
+        var value = FileNameSanitizer.SanitizeSegment(string.Concat(Enumerable.Repeat("😀", 100)) + ".bin");
+
+        Assert.True(Encoding.UTF8.GetByteCount(value) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+        Assert.EndsWith(".bin", value, StringComparison.Ordinal);
+        Assert.DoesNotContain('\uFFFD', value);
+    }
+
+    [Fact]
+    public void SanitizedSegment_LeavesByteHeadroomForPartialSuffix()
+    {
+        var value = FileNameSanitizer.SanitizeSegment(new string('界', 100) + ".dat");
+        var stagedName = value + ".swiftdrop.part";
+
+        Assert.True(Encoding.UTF8.GetByteCount(stagedName) <= 255);
     }
 
     [Theory]
