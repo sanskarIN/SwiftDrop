@@ -71,6 +71,32 @@ public sealed class ProtocolSessionAuthorizerTests
         Assert.Equal(0, calls);
     }
 
+    [Theory]
+    [InlineData("../escape.txt")]
+    [InlineData("folder//file.txt")]
+    [InlineData("C:\\escape.txt")]
+    public void ValidateAndAuthorize_RejectsUnsafeManifestPathBeforeConsumingNonce(string path)
+    {
+        var calls = 0;
+        var valid = ProtocolRequestFactory.CreateFile(
+            Nonce,
+            "device",
+            "Laptop",
+            new FileManifestEntry("file.txt", 1, new string('A', 64), Now));
+        var request = valid with { Entry = valid.Entry! with { RelativePath = path } };
+
+        Assert.Throws<InvalidDataException>(() =>
+            ProtocolSessionAuthorizer.ValidateAndAuthorize(
+                request,
+                Now,
+                _ =>
+                {
+                    calls++;
+                    return true;
+                }));
+        Assert.Equal(0, calls);
+    }
+
     [Fact]
     public void ValidateAndAuthorize_RejectsExpiredAuthorization()
     {
