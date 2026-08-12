@@ -130,6 +130,25 @@ public sealed class PairingCodecTests
         Assert.Throws<FormatException>(() => PairingCodec.Decode($"swiftdrop://pair:1234/{query}", now));
     }
 
+    [Theory]
+    [InlineData("swiftdrop://pair?p=AAAA+AAA")]
+    [InlineData("swiftdrop://pair?p=AAAA/AAA")]
+    [InlineData("swiftdrop://pair?p=AAAA=")]
+    [InlineData("swiftdrop://pair?p=AAAA%2DAAA")]
+    [InlineData("swiftdrop://pair?p")]
+    public void Decode_RejectsNonCanonicalPayloadQueryEncoding(string link)
+        => Assert.Throws<FormatException>(() => PairingCodec.Decode(link));
+
+    [Fact]
+    public void Decode_RejectsEmptyQuerySegments()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var link = PairingCodec.Encode(CreateValid(now));
+
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(link + "&", now));
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(link.Replace("?p=", "?&p=", StringComparison.Ordinal), now));
+    }
+
     [Fact]
     public void Decode_RejectsDuplicateJsonProperty()
     {
