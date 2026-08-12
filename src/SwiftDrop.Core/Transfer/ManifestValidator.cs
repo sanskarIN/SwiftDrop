@@ -15,7 +15,12 @@ public static class ManifestValidator
             throw new InvalidDataException("Invalid transfer path metadata.");
         if (entry.RelativePath.Any(char.IsControl))
             throw new InvalidDataException("Transfer path contains control characters.");
+
         _ = PortableRelativePath.GetSegments(entry.RelativePath);
+        var canonicalPath = FileNameSanitizer.SanitizeRelativePath(entry.RelativePath);
+        if (!string.Equals(canonicalPath, entry.RelativePath, StringComparison.Ordinal))
+            throw new InvalidDataException("Transfer path is not in canonical portable form.");
+
         if (entry.Length < 0 || entry.Length > ProtocolConstants.MaxSingleFileBytes)
             throw new InvalidDataException("Unsafe file size.");
         if (!IsSha256(entry.Sha256))
