@@ -29,6 +29,35 @@ public sealed class TransferSourcePathPolicyTests
     }
 
     [Fact]
+    public void ExistingDistinct_DropsSymlinkedSourceWhenSupported()
+    {
+        var root = CreateTempDirectory();
+        var outside = CreateTempDirectory();
+        try
+        {
+            var target = Path.Combine(outside, "target.bin");
+            File.WriteAllBytes(target, [1]);
+            var link = Path.Combine(root, "link.bin");
+            try
+            {
+                File.CreateSymbolicLink(link, target);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or PlatformNotSupportedException or IOException)
+            {
+                return;
+            }
+
+            Assert.Empty(TransferSourcePathPolicy.ExistingDistinct([link]));
+            Assert.Throws<InvalidDataException>(() => TransferSourcePathPolicy.GetHistoryMetadata(link));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+            DeleteBestEffort(outside);
+        }
+    }
+
+    [Fact]
     public void GetHistoryMetadata_UsesFileLengthAndZeroForDirectorySource()
     {
         var root = CreateTempDirectory();
