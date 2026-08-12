@@ -127,6 +127,69 @@ public sealed class BatchTransferSourceBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_DeconflictsCaseOnlyPortableTopLevelNames()
+    {
+        var root = CreateTempDirectory("case-collision");
+        var left = Path.Combine(root, "left");
+        var right = Path.Combine(root, "right");
+        Directory.CreateDirectory(left);
+        Directory.CreateDirectory(right);
+        try
+        {
+            var first = Path.Combine(left, "Report.txt");
+            var second = Path.Combine(right, "report.TXT");
+            await File.WriteAllTextAsync(first, "first");
+            await File.WriteAllTextAsync(second, "second");
+
+            var batch = await BatchTransferSourceBuilder.BuildAsync([first, second]);
+            var paths = batch.Items.Select(item => Normalize(item.Entry.RelativePath)).ToArray();
+
+            Assert.Equal(2, paths.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.Equal("Report.txt", paths[0]);
+            Assert.Contains(" (2)", paths[1], StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
+    public async Task BuildAsync_DeconflictsSanitizationEquivalentTopLevelNames()
+    {
+        var root = CreateTempDirectory("sanitized-collision");
+        var left = Path.Combine(root, "left");
+        var right = Path.Combine(root, "right");
+        Directory.CreateDirectory(left);
+        Directory.CreateDirectory(right);
+        try
+        {
+            var first = Path.Combine(left, "report?.txt");
+            var second = Path.Combine(right, "report*.txt");
+            try
+            {
+                await File.WriteAllTextAsync(first, "first");
+                await File.WriteAllTextAsync(second, "second");
+            }
+            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)
+            {
+                return;
+            }
+
+            var batch = await BatchTransferSourceBuilder.BuildAsync([first, second]);
+            var paths = batch.Items.Select(item => Normalize(item.Entry.RelativePath)).ToArray();
+
+            Assert.Equal(2, paths.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.Contains(paths, path => path == "report.txt");
+            Assert.Contains(paths, path => path == "report (2).txt");
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
     public async Task BuildAsync_RejectsTopLevelSymlinkedFileWhenSupported()
     {
         var root = CreateTempDirectory("link-file");
