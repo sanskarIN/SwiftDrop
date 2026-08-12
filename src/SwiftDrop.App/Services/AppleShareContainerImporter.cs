@@ -5,6 +5,7 @@ using Foundation;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
+using SwiftDrop.Core.Storage;
 using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.App.Services;
@@ -108,6 +109,7 @@ public static class AppleShareContainerImporter
             ExternalSharePackageFileSetValidator.ValidateExact(manifest.Files, actualFileNames);
 
             var validatedSources = new List<(ExternalSharePackageFile Item, string SourcePath)>(manifest.Files.Count);
+            long aggregateBytes = 0;
             foreach (var item in manifest.Files)
             {
                 var sourcePath = PathGuard.ResolveUnderRoot(sourceFilesRoot, item.FileName);
@@ -116,10 +118,12 @@ public static class AppleShareContainerImporter
                     throw new InvalidDataException("Shared package file does not match its manifest.");
                 if ((source.Attributes & FileAttributes.ReparsePoint) != 0)
                     throw new InvalidDataException("Shared package files cannot be symbolic links.");
+                aggregateBytes = checked(aggregateBytes + source.Length);
                 validatedSources.Add((item, source.FullName));
             }
 
             stagingRoot = Path.Combine(FileSystem.CacheDirectory, "shared-input", manifest.PackageId);
+            StorageCapacityGuard.EnsureCapacity(stagingRoot, aggregateBytes);
             if (Directory.Exists(stagingRoot)) Directory.Delete(stagingRoot, recursive: true);
             Directory.CreateDirectory(stagingRoot);
 
