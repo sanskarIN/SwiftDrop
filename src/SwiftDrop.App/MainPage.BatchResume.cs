@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using SwiftDrop.App.Services;
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.App;
 
@@ -37,7 +38,7 @@ public partial class MainPage
     private async void ResumeBatchStableClicked(object? sender, EventArgs e)
     {
         var transferId = _pausedBatchTransferId;
-        var paths = _pausedBatchPaths.Where(SourceExists).ToArray();
+        var paths = TransferSourcePathPolicy.ExistingDistinct(_pausedBatchPaths);
         if (paths.Length == 0 || string.IsNullOrWhiteSpace(transferId))
         {
             ClearPausedBatchResumeState();
@@ -120,10 +121,10 @@ public partial class MainPage
             {
                 PreservePausedBatchResumeState(paths, transferId);
                 _viewModel.BatchTransferStatus = AppText.Get("PausedResumeStatus");
-                foreach (var path in _pausedBatchPaths.Where(File.Exists))
+                foreach (var path in _pausedBatchPaths)
                 {
-                    var info = new FileInfo(path);
-                    await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "paused", false);
+                    var metadata = TransferSourcePathPolicy.GetHistoryMetadata(path);
+                    await _history.AddAsync("sent", remote.DeviceName, metadata.Name, metadata.Length, "paused", false);
                 }
             }
             else
@@ -164,7 +165,7 @@ public partial class MainPage
 
     private void PreservePausedBatchResumeState(IEnumerable<string> paths, string transferId)
     {
-        _pausedBatchPaths = paths.Where(SourceExists).Distinct(StringComparer.Ordinal).ToArray();
+        _pausedBatchPaths = TransferSourcePathPolicy.ExistingDistinct(paths);
         _pausedBatchTransferId = _pausedBatchPaths.Length == 0 ? null : transferId;
     }
 
@@ -173,7 +174,4 @@ public partial class MainPage
         _pausedBatchPaths = Array.Empty<string>();
         _pausedBatchTransferId = null;
     }
-
-    private static bool SourceExists(string path)
-        => File.Exists(path) || Directory.Exists(path);
 }
