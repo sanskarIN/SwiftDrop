@@ -1,5 +1,6 @@
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
+using SwiftDrop.Core.Security;
 using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.Core.Tests;
@@ -65,7 +66,30 @@ public sealed class ManifestValidatorTests
     [Fact]
     public void ValidateEntry_RejectsOversizedPathMetadata()
     {
-        var entry = Entry() with { RelativePath = new string('a', 1025) };
+        var entry = Entry() with { RelativePath = new string('a', ManifestValidator.MaximumRelativePathLength + 1) };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Theory]
+    [InlineData("../escape.txt")]
+    [InlineData("folder/../escape.txt")]
+    [InlineData("folder/./file.txt")]
+    [InlineData("folder//file.txt")]
+    [InlineData("folder/file.txt/")]
+    [InlineData("/rooted.txt")]
+    [InlineData("C:\\rooted.txt")]
+    [InlineData("\\\\server\\share\\file.txt")]
+    public void ValidateEntry_RejectsNonCanonicalPortablePathStructure(string path)
+    {
+        var entry = Entry() with { RelativePath = path };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
+    [Fact]
+    public void ValidateEntry_RejectsExcessivePathDepth()
+    {
+        var path = string.Join('/', Enumerable.Repeat("a", PortableRelativePath.MaximumSegments + 1)) + "/file.txt";
+        var entry = Entry() with { RelativePath = path };
         Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
     }
 
