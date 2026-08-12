@@ -97,6 +97,37 @@ public sealed class FileNameSanitizerTests
         Assert.True(Encoding.UTF8.GetByteCount(stagedName) <= 255);
     }
 
+    [Fact]
+    public void CreateCollisionSegment_UsesConventionalSuffixWhenItFits()
+        => Assert.Equal("report (2).pdf", FileNameSanitizer.CreateCollisionSegment("report.pdf", 2));
+
+    [Fact]
+    public void CreateCollisionSegment_PreservesDistinctMarkerForMaxLengthBase()
+    {
+        var safe = FileNameSanitizer.SanitizeSegment(new string('a', 300) + ".txt");
+        var first = FileNameSanitizer.CreateCollisionSegment(safe, 1);
+        var second = FileNameSanitizer.CreateCollisionSegment(safe, 2);
+
+        Assert.NotEqual(safe, first);
+        Assert.NotEqual(first, second);
+        Assert.StartsWith("(1) ", first, StringComparison.Ordinal);
+        Assert.StartsWith("(2) ", second, StringComparison.Ordinal);
+        Assert.True(first.Length <= FileNameSanitizer.MaximumSegmentLength);
+        Assert.True(second.Length <= FileNameSanitizer.MaximumSegmentLength);
+        Assert.True(Encoding.UTF8.GetByteCount(first) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+        Assert.True(Encoding.UTF8.GetByteCount(second) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+    }
+
+    [Fact]
+    public void CreateCollisionSegment_PreservesMarkerForUnicodeByteBoundBase()
+    {
+        var safe = FileNameSanitizer.SanitizeSegment(new string('界', 100) + ".dat");
+        var collision = FileNameSanitizer.CreateCollisionSegment(safe, 9999);
+
+        Assert.StartsWith("(9999) ", collision, StringComparison.Ordinal);
+        Assert.True(Encoding.UTF8.GetByteCount(collision) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+    }
+
     [Theory]
     [InlineData("CON", "_CON")]
     [InlineData("con.txt", "_con.txt")]
