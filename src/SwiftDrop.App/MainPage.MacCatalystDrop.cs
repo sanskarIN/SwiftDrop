@@ -4,6 +4,7 @@ using SwiftDrop.App.Services;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 using SwiftDrop.Core.Storage;
+using SwiftDrop.Core.Transfer;
 using UIKit;
 
 namespace SwiftDrop.App;
@@ -52,7 +53,10 @@ public partial class MainPage
     {
         if (items.Count == 0) return;
         var root = Path.Combine(FileSystem.CacheDirectory, "shared-input", "drop-" + Guid.NewGuid().ToString("N"));
-        var budget = new DropBudget();
+        var budget = new TransferStagingBudget(
+            ProtocolConstants.MaxBatchFiles,
+            ProtocolConstants.MaxBatchBytes,
+            ProtocolConstants.MaxSingleFileBytes);
         var staged = new List<string>();
         var texts = new List<string>();
 
@@ -101,7 +105,7 @@ public partial class MainPage
     private static async Task<string?> TryStageDroppedProviderAsync(
         NSItemProvider provider,
         string stagingRoot,
-        DropBudget budget)
+        TransferStagingBudget budget)
     {
         if (provider.HasItemConformingTo("public.file-url"))
         {
@@ -118,7 +122,7 @@ public partial class MainPage
     private static Task<string?> LoadDroppedFileUrlAsync(
         NSItemProvider provider,
         string stagingRoot,
-        DropBudget budget)
+        TransferStagingBudget budget)
     {
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         provider.LoadItem("public.file-url", null, (item, error) =>
@@ -139,7 +143,7 @@ public partial class MainPage
         NSItemProvider provider,
         string typeIdentifier,
         string stagingRoot,
-        DropBudget budget)
+        TransferStagingBudget budget)
     {
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
         provider.LoadFileRepresentation(typeIdentifier, (url, error) =>
@@ -160,7 +164,7 @@ public partial class MainPage
         NSUrl url,
         string? suggestedName,
         string stagingRoot,
-        DropBudget budget)
+        TransferStagingBudget budget)
     {
         var granted = false;
         try
@@ -200,7 +204,7 @@ public partial class MainPage
         }
     }
 
-    private static void CopyDroppedDirectory(string sourceRoot, string destinationRoot, DropBudget budget)
+    private static void CopyDroppedDirectory(string sourceRoot, string destinationRoot, TransferStagingBudget budget)
     {
         var source = new DirectoryInfo(sourceRoot);
         if ((source.Attributes & FileAttributes.ReparsePoint) != 0)
@@ -239,13 +243,13 @@ public partial class MainPage
         }
     }
 
-    private static void CopyDroppedFile(string sourcePath, string destinationPath, DropBudget budget)
+    private static void CopyDroppedFile(string sourcePath, string destinationPath, TransferStagingBudget budget)
     {
         var source = new FileInfo(sourcePath);
         if (!source.Exists) throw new FileNotFoundException("Dropped file is unavailable.", sourcePath);
         if ((source.Attributes & FileAttributes.ReparsePoint) != 0)
             throw new InvalidDataException("Dropped symbolic-link files are not accepted.");
-        budget.Reserve(source.Length);
+        budget.EnsureCanStage(source.Length);
         StorageCapacityGuard.EnsureCapacity(destinationPath, source.Length);
 
         using var input = new FileStream(source.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 128 * 1024, FileOptions.SequentialScan);
@@ -264,6 +268,7 @@ public partial class MainPage
         output.Flush(flushToDisk: true);
         if (new FileInfo(source.FullName).Length != source.Length || new FileInfo(destinationPath).Length != source.Length)
             throw new IOException("Dropped file changed while staging.");
+        budget.Commit(source.Length);
     }
 
     private static Task<string?> TryLoadDroppedTextAsync(NSItemProvider provider)
@@ -306,23 +311,6 @@ public partial class MainPage
         }
         catch
         {
-        }
-    }
-
-    private sealed class DropBudget
-    {
-        private int _files;
-        private long _bytes;
-
-        public void Reserve(long length)
-        {
-            if (length < 0 || length > ProtocolConstants.MaxSingleFileBytes)
-                throw new InvalidDataException("Dropped file exceeds SwiftDrop limits.");
-            if (++_files > ProtocolConstants.MaxBatchFiles)
-                throw new InvalidDataException("Dropped content contains too many files.");
-            _bytes = checked(_bytes + length);
-            if (_bytes > ProtocolConstants.MaxBatchBytes)
-                throw new InvalidDataException("Dropped content exceeds the aggregate SwiftDrop limit.");
         }
     }
 
