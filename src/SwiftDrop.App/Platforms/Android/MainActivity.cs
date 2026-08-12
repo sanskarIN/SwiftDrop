@@ -158,6 +158,8 @@ public class MainActivity : MauiAppCompatActivity
                 total = checked(total + read);
                 if (total > maximumBytes)
                     throw new InvalidDataException("Shared Android item exceeds SwiftDrop staging limits.");
+                if (metadata.DeclaredLength is null)
+                    StorageCapacityGuard.EnsureCapacity(path, read);
                 await output.WriteAsync(buffer.AsMemory(0, read));
             }
             await output.FlushAsync();
@@ -197,9 +199,10 @@ public class MainActivity : MauiAppCompatActivity
                 var displayName = displayIndex >= 0 && !cursor.IsNull(displayIndex)
                     ? cursor.GetString(displayIndex)
                     : fallback;
-                long? length = sizeIndex >= 0 && !cursor.IsNull(sizeIndex)
+                var rawLength = sizeIndex >= 0 && !cursor.IsNull(sizeIndex)
                     ? cursor.GetLong(sizeIndex)
-                    : null;
+                    : -1;
+                long? length = rawLength >= 0 ? rawLength : null;
                 return new SharedUriMetadata(
                     string.IsNullOrWhiteSpace(displayName) ? fallback : displayName,
                     length);
