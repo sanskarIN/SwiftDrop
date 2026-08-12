@@ -56,6 +56,32 @@ public sealed class BatchTransferSourceBuilderTests
     }
 
     [Fact]
+    public async Task BuildAsync_RepeatedFolderBuildKeepsDeterministicManifestOrder()
+    {
+        var root = CreateTempDirectory("deterministic");
+        try
+        {
+            var folder = Path.Combine(root, "folder");
+            Directory.CreateDirectory(Path.Combine(folder, "nested"));
+            await File.WriteAllTextAsync(Path.Combine(folder, "z.txt"), "z");
+            await File.WriteAllTextAsync(Path.Combine(folder, "a.txt"), "a");
+            await File.WriteAllTextAsync(Path.Combine(folder, "nested", "b.txt"), "b");
+
+            var first = await BatchTransferSourceBuilder.BuildAsync([folder], "stable-folder-id");
+            var retry = await BatchTransferSourceBuilder.BuildAsync([folder], "stable-folder-id");
+
+            Assert.Equal(first.Items.Select(item => item.Entry).ToArray(), retry.Items.Select(item => item.Entry).ToArray());
+            Assert.Equal(
+                ["folder/a.txt", "folder/nested/b.txt", "folder/z.txt"],
+                first.Items.Select(item => Normalize(item.Entry.RelativePath)).ToArray());
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
     public async Task BuildAsync_RejectsInvalidCallerTransferIdBeforeHashing()
     {
         var root = CreateTempDirectory("bad-id");
@@ -97,6 +123,61 @@ public sealed class BatchTransferSourceBuilderTests
         finally
         {
             DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
+    public async Task BuildAsync_RejectsTopLevelSymlinkedFileWhenSupported()
+    {
+        var root = CreateTempDirectory("link-file");
+        var outside = CreateTempDirectory("link-file-target");
+        try
+        {
+            var target = Path.Combine(outside, "target.bin");
+            await File.WriteAllBytesAsync(target, [1]);
+            var link = Path.Combine(root, "link.bin");
+            try
+            {
+                File.CreateSymbolicLink(link, target);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or PlatformNotSupportedException or IOException)
+            {
+                return;
+            }
+
+            await Assert.ThrowsAsync<InvalidDataException>(() => BatchTransferSourceBuilder.BuildAsync([link]));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+            DeleteBestEffort(outside);
+        }
+    }
+
+    [Fact]
+    public async Task BuildAsync_RejectsTopLevelSymlinkedDirectoryWhenSupported()
+    {
+        var root = CreateTempDirectory("link-directory");
+        var outside = CreateTempDirectory("link-directory-target");
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(outside, "target.txt"), "target");
+            var link = Path.Combine(root, "linked-folder");
+            try
+            {
+                Directory.CreateSymbolicLink(link, outside);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or PlatformNotSupportedException or IOException)
+            {
+                return;
+            }
+
+            await Assert.ThrowsAsync<InvalidDataException>(() => BatchTransferSourceBuilder.BuildAsync([link]));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+            DeleteBestEffort(outside);
         }
     }
 
