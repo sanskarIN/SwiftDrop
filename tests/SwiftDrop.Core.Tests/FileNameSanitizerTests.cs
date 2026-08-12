@@ -20,11 +20,14 @@ public sealed class FileNameSanitizerTests
         Assert.Equal(expected, FileNameSanitizer.SanitizeSegment(input));
     }
 
-    [Fact]
-    public void SanitizeRelativePath_Preserves_Safe_Subfolders()
+    [Theory]
+    [InlineData("folder/sub/file.txt")]
+    [InlineData("folder\\sub\\file.txt")]
+    [InlineData("folder\\sub/file.txt")]
+    public void SanitizeRelativePath_UsesForwardSlashCanonicalWireForm(string input)
     {
-        var value = FileNameSanitizer.SanitizeRelativePath("folder/sub/file.txt");
-        Assert.Equal(Path.Combine("folder", "sub", "file.txt"), value);
+        var value = FileNameSanitizer.SanitizeRelativePath(input);
+        Assert.Equal("folder/sub/file.txt", value);
     }
 
     [Theory]
