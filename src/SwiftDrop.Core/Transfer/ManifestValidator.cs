@@ -1,17 +1,21 @@
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Protocol;
+using SwiftDrop.Core.Security;
 
 namespace SwiftDrop.Core.Transfer;
 
 public static class ManifestValidator
 {
+    public const int MaximumRelativePathLength = 1024;
+
     public static FileManifestEntry ValidateEntry(FileManifestEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        if (string.IsNullOrWhiteSpace(entry.RelativePath) || entry.RelativePath.Length > 1024)
+        if (string.IsNullOrWhiteSpace(entry.RelativePath) || entry.RelativePath.Length > MaximumRelativePathLength)
             throw new InvalidDataException("Invalid transfer path metadata.");
         if (entry.RelativePath.Any(char.IsControl))
             throw new InvalidDataException("Transfer path contains control characters.");
+        _ = PortableRelativePath.GetSegments(entry.RelativePath);
         if (entry.Length < 0 || entry.Length > ProtocolConstants.MaxSingleFileBytes)
             throw new InvalidDataException("Unsafe file size.");
         if (!IsSha256(entry.Sha256))
