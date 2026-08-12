@@ -96,6 +96,16 @@ public sealed class PairingCodecTests
         => Assert.Throws<FormatException>(() => PairingCodec.Decode("https://example.com"));
 
     [Fact]
+    public void Decode_RejectsSurroundingWhitespace()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var link = PairingCodec.Encode(CreateValid(now));
+
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(" " + link, now));
+        Assert.Throws<FormatException>(() => PairingCodec.Decode(link + "\r\n", now));
+    }
+
+    [Fact]
     public void Decode_RejectsDuplicatePayloadParameter()
     {
         var now = DateTimeOffset.UtcNow;
