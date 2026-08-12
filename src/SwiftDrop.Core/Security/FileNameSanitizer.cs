@@ -13,18 +13,11 @@ public static class FileNameSanitizer
     {
         var segments = PortableRelativePath.GetSegments(relativePath);
         var safe = segments.Select(SanitizeSegment).ToArray();
-        return Path.Combine(safe);
+        return string.Join('/', safe);
     }
 
     public static string GetPortableCollisionKey(string relativePath)
-    {
-        var sanitized = SanitizeRelativePath(relativePath)
-            .Replace('\\', '/')
-            .Replace(Path.DirectorySeparatorChar, '/')
-            .Replace(Path.AltDirectorySeparatorChar, '/')
-            .Normalize(NormalizationForm.FormC);
-        return sanitized;
-    }
+        => SanitizeRelativePath(relativePath).Normalize(NormalizationForm.FormC);
 
     public static string SanitizeSegment(string segment)
     {
