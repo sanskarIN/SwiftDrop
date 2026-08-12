@@ -9,8 +9,7 @@ public static class TransferSourceSafety
         info.Refresh();
         if (!info.Exists)
             throw new FileNotFoundException("Transfer source does not exist.", info.FullName);
-        if ((info.Attributes & FileAttributes.ReparsePoint) != 0 || info.LinkTarget is not null)
-            throw new InvalidDataException("Transfer source files cannot be symbolic links or reparse points.");
+        EnsureNotLink(info);
         return info;
     }
 
@@ -21,8 +20,15 @@ public static class TransferSourceSafety
         info.Refresh();
         if (!info.Exists)
             throw new DirectoryNotFoundException($"Transfer source directory does not exist: {info.FullName}");
-        if ((info.Attributes & FileAttributes.ReparsePoint) != 0 || info.LinkTarget is not null)
-            throw new InvalidDataException("Transfer source directories cannot be symbolic links or reparse points.");
+        EnsureNotLink(info);
         return info;
+    }
+
+    public static void EnsureNotLink(FileSystemInfo entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        entry.Refresh();
+        if ((entry.Attributes & FileAttributes.ReparsePoint) != 0 || entry.LinkTarget is not null)
+            throw new InvalidDataException("Transfer sources cannot be symbolic links or reparse points.");
     }
 }
