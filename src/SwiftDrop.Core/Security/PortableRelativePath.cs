@@ -2,6 +2,8 @@ namespace SwiftDrop.Core.Security;
 
 public static class PortableRelativePath
 {
+    public const int MaximumSegments = 64;
+
     public static string[] GetSegments(string relativePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
@@ -12,6 +14,8 @@ public static class PortableRelativePath
         var segments = normalized.Split('/', StringSplitOptions.None);
         if (segments.Length == 0 || segments.Any(segment => segment.Length == 0 || segment is "." or ".."))
             throw new InvalidDataException("Relative path contains an empty or traversal segment.");
+        if (segments.Length > MaximumSegments)
+            throw new InvalidDataException("Relative path contains too many nested segments.");
         return segments;
     }
 
