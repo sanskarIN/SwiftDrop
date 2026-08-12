@@ -11,6 +11,7 @@ namespace SwiftDrop.App;
 
 public partial class MainPage
 {
+    private static readonly TimeSpan MacProviderResponseTimeout = TimeSpan.FromSeconds(20);
     private UIView? _macDropHostView;
     private UIDropInteraction? _macDropInteraction;
     private MacDropDelegate? _macDropDelegate;
@@ -119,45 +120,91 @@ public partial class MainPage
         return await LoadDroppedFileRepresentationAsync(provider, typeIdentifier, stagingRoot, budget);
     }
 
-    private static Task<string?> LoadDroppedFileUrlAsync(
+    private static async Task<string?> LoadDroppedFileUrlAsync(
         NSItemProvider provider,
         string stagingRoot,
         TransferStagingBudget budget)
     {
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        provider.LoadItem("public.file-url", null, (item, error) =>
+        var callbackStarted = 0;
+        using var timeout = new CancellationTokenSource(MacProviderResponseTimeout);
+        var timeoutToken = timeout.Token;
+        using var timeoutRegistration = timeoutToken.Register(() =>
         {
-            if (error is not null || item is not NSUrl url || !url.IsFileUrl)
-            {
-                tcs.TrySetResult(null);
-                return;
-            }
-
-            try { tcs.TrySetResult(CopyDroppedPath(url, provider.SuggestedName, stagingRoot, budget)); }
-            catch (Exception ex) { tcs.TrySetException(ex); }
+            if (Volatile.Read(ref callbackStarted) == 0)
+                tcs.TrySetException(new TimeoutException("Dropped provider did not return the file URL before the safety timeout."));
         });
-        return tcs.Task;
+
+        try
+        {
+            provider.LoadItem("public.file-url", null, (item, error) =>
+            {
+                if (Interlocked.Exchange(ref callbackStarted, 1) != 0) return;
+                if (timeoutToken.IsCancellationRequested)
+                {
+                    tcs.TrySetException(new TimeoutException("Dropped provider did not return the file URL before the safety timeout."));
+                    return;
+                }
+                if (error is not null || item is not NSUrl url || !url.IsFileUrl)
+                {
+                    tcs.TrySetResult(null);
+                    return;
+                }
+
+                try { tcs.TrySetResult(CopyDroppedPath(url, provider.SuggestedName, stagingRoot, budget)); }
+                catch (Exception ex) { tcs.TrySetException(ex); }
+            });
+        }
+        catch (Exception ex)
+        {
+            tcs.TrySetException(ex);
+        }
+
+        return await tcs.Task;
     }
 
-    private static Task<string?> LoadDroppedFileRepresentationAsync(
+    private static async Task<string?> LoadDroppedFileRepresentationAsync(
         NSItemProvider provider,
         string typeIdentifier,
         string stagingRoot,
         TransferStagingBudget budget)
     {
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        provider.LoadFileRepresentation(typeIdentifier, (url, error) =>
+        var callbackStarted = 0;
+        using var timeout = new CancellationTokenSource(MacProviderResponseTimeout);
+        var timeoutToken = timeout.Token;
+        using var timeoutRegistration = timeoutToken.Register(() =>
         {
-            if (error is not null || url is null || !url.IsFileUrl)
-            {
-                tcs.TrySetResult(null);
-                return;
-            }
-
-            try { tcs.TrySetResult(CopyDroppedPath(url, provider.SuggestedName, stagingRoot, budget)); }
-            catch (Exception ex) { tcs.TrySetException(ex); }
+            if (Volatile.Read(ref callbackStarted) == 0)
+                tcs.TrySetException(new TimeoutException("Dropped provider did not return a file representation before the safety timeout."));
         });
-        return tcs.Task;
+
+        try
+        {
+            provider.LoadFileRepresentation(typeIdentifier, (url, error) =>
+            {
+                if (Interlocked.Exchange(ref callbackStarted, 1) != 0) return;
+                if (timeoutToken.IsCancellationRequested)
+                {
+                    tcs.TrySetException(new TimeoutException("Dropped provider did not return a file representation before the safety timeout."));
+                    return;
+                }
+                if (error is not null || url is null || !url.IsFileUrl)
+                {
+                    tcs.TrySetResult(null);
+                    return;
+                }
+
+                try { tcs.TrySetResult(CopyDroppedPath(url, provider.SuggestedName, stagingRoot, budget)); }
+                catch (Exception ex) { tcs.TrySetException(ex); }
+            });
+        }
+        catch (Exception ex)
+        {
+            tcs.TrySetException(ex);
+        }
+
+        return await tcs.Task;
     }
 
     private static string CopyDroppedPath(
@@ -271,7 +318,7 @@ public partial class MainPage
         budget.Commit(source.Length);
     }
 
-    private static Task<string?> TryLoadDroppedTextAsync(NSItemProvider provider)
+    private static async Task<string?> TryLoadDroppedTextAsync(NSItemProvider provider)
     {
         var typeIdentifier = provider.HasItemConformingTo("public.plain-text")
             ? "public.plain-text"
@@ -280,24 +327,47 @@ public partial class MainPage
                 : provider.HasItemConformingTo("public.url")
                     ? "public.url"
                     : null;
-        if (typeIdentifier is null) return Task.FromResult<string?>(null);
+        if (typeIdentifier is null) return null;
 
         var tcs = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        provider.LoadItem(typeIdentifier, null, (item, error) =>
+        var callbackStarted = 0;
+        using var timeout = new CancellationTokenSource(MacProviderResponseTimeout);
+        var timeoutToken = timeout.Token;
+        using var timeoutRegistration = timeoutToken.Register(() =>
         {
-            if (error is not null)
-            {
-                tcs.TrySetResult(null);
-                return;
-            }
-            tcs.TrySetResult(item switch
-            {
-                NSString text => text.ToString(),
-                NSUrl url when !url.IsFileUrl => url.AbsoluteString,
-                _ => null
-            });
+            if (Volatile.Read(ref callbackStarted) == 0)
+                tcs.TrySetException(new TimeoutException("Dropped provider did not return text before the safety timeout."));
         });
-        return tcs.Task;
+
+        try
+        {
+            provider.LoadItem(typeIdentifier, null, (item, error) =>
+            {
+                if (Interlocked.Exchange(ref callbackStarted, 1) != 0) return;
+                if (timeoutToken.IsCancellationRequested)
+                {
+                    tcs.TrySetException(new TimeoutException("Dropped provider did not return text before the safety timeout."));
+                    return;
+                }
+                if (error is not null)
+                {
+                    tcs.TrySetResult(null);
+                    return;
+                }
+                tcs.TrySetResult(item switch
+                {
+                    NSString text => text.ToString(),
+                    NSUrl url when !url.IsFileUrl => url.AbsoluteString,
+                    _ => null
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            tcs.TrySetException(ex);
+        }
+
+        return await tcs.Task;
     }
 
     private static bool IsTextOrUrlType(string identifier)
