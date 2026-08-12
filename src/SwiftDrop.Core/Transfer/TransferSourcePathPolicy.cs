@@ -7,7 +7,7 @@ public static class TransferSourcePathPolicy
     public static bool Exists(string? path)
         => !string.IsNullOrWhiteSpace(path) && (File.Exists(path) || Directory.Exists(path));
 
-    public static string[] ExistingDistinct(IEnumerable<string> paths)
+    public static string[] ExistingDistinct(IEnumerable<string?> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
         var result = new List<string>();
