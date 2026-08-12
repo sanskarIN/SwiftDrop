@@ -2,6 +2,7 @@ using Foundation;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 using SwiftDrop.Core.Storage;
+using SwiftDrop.Core.Transfer;
 using UIKit;
 
 namespace SwiftDrop.ShareExtension;
@@ -57,6 +58,10 @@ public sealed class ShareViewController : UIViewController
     private async Task ProcessShareAsync(CancellationToken ct)
     {
         var temporaryRoots = new HashSet<string>(StringComparer.Ordinal);
+        var stagingBudget = new TransferStagingBudget(
+            ExternalSharePackageConstants.MaximumItems,
+            ProtocolConstants.MaxBatchBytes,
+            ProtocolConstants.MaxSingleFileBytes);
         try
         {
             var context = ExtensionContext ?? throw new InvalidOperationException("Share extension context is unavailable.");
@@ -76,7 +81,7 @@ public sealed class ShareViewController : UIViewController
                     if (++providerCount > ExternalSharePackageConstants.MaximumItems * 2) break;
                     if (sources.Count >= ExternalSharePackageConstants.MaximumItems) break;
 
-                    var sharedFile = await TryLoadProviderFileAsync(provider, temporaryRoots, ct);
+                    var sharedFile = await TryLoadProviderFileAsync(provider, temporaryRoots, stagingBudget, ct);
                     ct.ThrowIfCancellationRequested();
                     if (sharedFile is not null)
                     {
@@ -117,14 +122,16 @@ public sealed class ShareViewController : UIViewController
     private static async Task<AppleSharedFileSource?> TryLoadProviderFileAsync(
         NSItemProvider provider,
         HashSet<string> temporaryRoots,
+        TransferStagingBudget stagingBudget,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(provider);
+        ArgumentNullException.ThrowIfNull(stagingBudget);
         ct.ThrowIfCancellationRequested();
 
         if (provider.HasItemConformingTo("public.file-url"))
         {
-            var fileUrl = await LoadFileUrlItemAsync(provider, "public.file-url", temporaryRoots, ct);
+            var fileUrl = await LoadFileUrlItemAsync(provider, "public.file-url", temporaryRoots, stagingBudget, ct);
             if (fileUrl is not null)
                 return new AppleSharedFileSource(fileUrl, provider.SuggestedName);
         }
@@ -133,7 +140,7 @@ public sealed class ShareViewController : UIViewController
         var typeIdentifier = registered.FirstOrDefault(identifier => !IsTextOrUrlType(identifier));
         if (string.IsNullOrWhiteSpace(typeIdentifier)) return null;
 
-        var staged = await LoadFileRepresentationAsync(provider, typeIdentifier, provider.SuggestedName, temporaryRoots, ct);
+        var staged = await LoadFileRepresentationAsync(provider, typeIdentifier, provider.SuggestedName, temporaryRoots, stagingBudget, ct);
         return staged is null ? null : new AppleSharedFileSource(staged, provider.SuggestedName);
     }
 
@@ -141,6 +148,7 @@ public sealed class ShareViewController : UIViewController
         NSItemProvider provider,
         string typeIdentifier,
         HashSet<string> temporaryRoots,
+        TransferStagingBudget stagingBudget,
         CancellationToken ct)
     {
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -182,6 +190,7 @@ public sealed class ShareViewController : UIViewController
                         url,
                         provider.SuggestedName,
                         temporaryRoots,
+                        stagingBudget,
                         ct));
                 }
                 catch (Exception ex)
@@ -203,6 +212,7 @@ public sealed class ShareViewController : UIViewController
         string typeIdentifier,
         string? suggestedName,
         HashSet<string> temporaryRoots,
+        TransferStagingBudget stagingBudget,
         CancellationToken ct)
     {
         var tcs = new TaskCompletionSource<NSUrl?>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -244,6 +254,7 @@ public sealed class ShareViewController : UIViewController
                         url,
                         suggestedName,
                         temporaryRoots,
+                        stagingBudget,
                         ct));
                 }
                 catch (Exception ex)
@@ -264,6 +275,7 @@ public sealed class ShareViewController : UIViewController
         NSUrl url,
         string? suggestedName,
         HashSet<string> temporaryRoots,
+        TransferStagingBudget stagingBudget,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -278,8 +290,7 @@ public sealed class ShareViewController : UIViewController
             var source = new FileInfo(sourcePath);
             if (!source.Exists)
                 throw new FileNotFoundException("Shared provider file is unavailable.", sourcePath);
-            if (source.Length < 0 || source.Length > ProtocolConstants.MaxSingleFileBytes)
-                throw new InvalidDataException("Shared provider file exceeds SwiftDrop limits.");
+            stagingBudget.EnsureCanStage(source.Length);
 
             var root = Path.Combine(Path.GetTempPath(), "SwiftDropShare", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
@@ -311,6 +322,7 @@ public sealed class ShareViewController : UIViewController
             if (new FileInfo(source.FullName).Length != source.Length || new FileInfo(destination).Length != source.Length)
                 throw new IOException("Shared provider file changed while staging.");
 
+            stagingBudget.Commit(source.Length);
             return NSUrl.FromFilename(destination);
         }
         finally
