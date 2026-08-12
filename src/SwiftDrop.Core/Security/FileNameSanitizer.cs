@@ -10,13 +10,7 @@ public static class FileNameSanitizer
 
     public static string SanitizeRelativePath(string relativePath)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
-        if (Path.IsPathRooted(relativePath)) throw new InvalidDataException("Rooted paths are not allowed.");
-
-        var normalized = relativePath.Replace('\\', '/');
-        var segments = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0) throw new InvalidDataException("Path has no usable filename.");
-
+        var segments = PortableRelativePath.GetSegments(relativePath);
         var safe = segments.Select(SanitizeSegment).ToArray();
         return Path.Combine(safe);
     }
