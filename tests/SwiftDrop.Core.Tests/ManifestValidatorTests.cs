@@ -85,10 +85,22 @@ public sealed class ManifestValidatorTests
         Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
     }
 
+    [Theory]
+    [InlineData("folder\\file.txt")]
+    [InlineData("report?.txt")]
+    [InlineData("CON.txt")]
+    [InlineData("name .txt")]
+    [InlineData("Cafe\u0301.txt")]
+    public void ValidateEntry_RejectsPathThatWouldChangeDuringSanitization(string path)
+    {
+        var entry = Entry() with { RelativePath = path };
+        Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
+    }
+
     [Fact]
     public void ValidateEntry_RejectsExcessivePathDepth()
     {
-        var path = string.Join('/', Enumerable.Repeat("a", PortableRelativePath.MaximumSegments + 1)) + "/file.txt";
+        var path = string.Join('/', Enumerable.Repeat("a", PortableRelativePath.MaximumSegments + 1));
         var entry = Entry() with { RelativePath = path };
         Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
     }
