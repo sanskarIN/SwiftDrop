@@ -1,14 +1,15 @@
 # SwiftDrop Security Test Plan
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
-This plan complements automated unit tests and the manual cross-platform transfer matrix. Execute it against the exact release candidate before public/store distribution. Use synthetic test files and test identities only.
+This plan complements automated unit tests and the manual cross-platform transfer matrix. Execute it against the exact release candidate before public/store distribution. Use synthetic test files, synthetic identities, disposable receive roots, and disposable App Group/cache content only.
 
 ## Pairing and authentication
 
 - Verify expired QR/deep-link invitations are rejected.
 - Verify a consumed nonce cannot authorize a second transfer.
 - Verify invalid request shape is rejected before a one-time transfer nonce is consumed.
+- Verify invalid file/batch path metadata is rejected before a one-time transfer nonce is consumed.
 - Verify a pair request never consumes transfer authorization.
 - Verify an incorrect 8-digit code is rejected without consuming a correct future code.
 - Verify a used code cannot be replayed.
@@ -21,6 +22,23 @@ This plan complements automated unit tests and the manual cross-platform transfe
 - Verify identity reset invalidates local trust/active authorization expectations.
 - Verify automatic identity regeneration creates a new device ID/certificate and requires re-pairing.
 
+### Pairing capability canonicality
+
+Starting from a valid generated invitation, verify all of these are rejected rather than treated as aliases:
+
+- leading/trailing space, tab, CR, or LF;
+- an added outer authority port, path, fragment, or user-info;
+- unknown, duplicate, empty, or reordered extra query fields;
+- missing `=` after `p`;
+- standard Base64 `+` or `/` in the payload;
+- Base64 padding `=`;
+- percent-encoded payload characters such as `%2D`;
+- a Base64URL text whose length modulo four is invalid;
+- any non-canonical Base64URL representation that decodes but does not re-encode identically;
+- duplicate/case-variant/unknown decoded JSON properties.
+
+A generated invitation should round-trip exactly through `PairingCodec.Encode`/`Decode` except documented payload-value canonicalization such as fingerprint/address formatting.
+
 ## Protocol abuse and parsing
 
 - Send zero, negative, oversized, and truncated JSON frame lengths.
@@ -31,40 +49,67 @@ This plan complements automated unit tests and the manual cross-platform transfe
 - Cross-smuggle type-specific fields (for example text fields in a file request or file metadata in a pair request) and verify type-shape rejection.
 - Send missing/overlong/control-character sender identity.
 - Send malformed pairing nonces/codes, transfer IDs, hashes, timestamps, file metadata, batch totals, and duplicate batch paths.
+- Verify batch transfer IDs reject whitespace, punctuation outside `-`/`_`, non-ASCII text, and lengths above 128 characters.
 - Send receiver batch plans containing unknown/duplicate/missing paths, invalid offsets, contradictory acceptance, or unexpected ordering.
 - Send unexpected/reordered `BatchItemStart` frames.
-- Exceed single-file, batch-file-count, batch-total-byte, text-snippet, and metadata limits.
+- Exceed single-file, batch-file-count, batch-total-byte, text-snippet, path-depth/path-length, and metadata limits.
 - Close the connection at each request/response/payload transition and verify bounded failure.
 - Hold metadata/payload reads or writes idle beyond the configured timeout.
 - Open repeated connections from one source address and repeated pairing attempts from one certificate fingerprint to verify rate limits.
 - Attempt to expand limiter/authorization cardinality and verify bounded behavior.
 
-## Filesystem safety
+## Canonical path and filesystem safety
 
-- Attempt `../`, rooted paths, Windows drive/UNC-style roots on non-Windows targets, alternate separators, reserved/control characters, and platform-invalid names.
+- Attempt `../`, rooted paths, Windows drive/UNC/device-style roots on every target, repeated separators, empty segments, trailing separators, and `.` segments.
+- Attempt more than 64 path segments.
+- Send a backslash-containing manifest path and verify it is rejected; protocol-v1 wire paths use `/` only.
+- Send a path whose filename would change during sanitation, including portable-invalid characters, reserved Windows device names, trailing dot/space behavior, or decomposed Unicode, and verify rejection before authorization.
+- Verify a valid sender-created folder manifest uses `/` separators regardless of sender operating system.
+- Verify each canonical segment stays within both 180 UTF-16 code units and 180 UTF-8 bytes.
+- Test Unicode-heavy and emoji-heavy filenames near the UTF-8 byte limit and verify no broken surrogate/rune is emitted.
+- Verify the `.swiftdrop.part` suffix remains below common 255-byte component limits for a maximum SwiftDrop segment.
+- Verify collision names remain distinct when the original name is already at the character/byte limit; the uniqueness marker must not be truncated away.
 - Verify filename sanitation and final resolution remain beneath the configured receive root.
 - Place symlink/reparse components inside a disposable receive root and verify staging/finalization/completed-resume verification reject them.
 - Verify existing completed files are never silently overwritten.
-- Run concurrent same-destination incoming attempts and confirm reservation/collision behavior produces distinct safe results or bounded rejection.
+- Run concurrent same-destination incoming attempts and confirm reservation/collision behavior produces distinct bounded names or bounded rejection.
 - Verify final promotion fails rather than overwriting a destination that appears after planning.
 - Verify low-space behavior fails before receiving bytes that cannot fit with safety reserve.
 - Interrupt a transfer and verify only bounded `.swiftdrop.part` staging remains.
 - Resume with a fresh invitation and verify the receiver returns only a valid staged offset.
 - Corrupt or lengthen a staged partial before resume and verify safe truncation/rejection/integrity behavior.
-- Mutate sender source size after manifest creation and verify framing fails rather than sending a changed length.
 - Corrupt payload/staging and verify SHA-256 mismatch never finalizes it.
-- Verify completed files preserve only supported safe metadata and are never automatically launched.
+- Verify inability to apply optional final timestamp metadata does not convert already-verified/promoted content into a false transfer failure.
+- Verify completed files are never automatically launched.
+
+## Outgoing source safety
+
+- Select a normal single file and verify it transfers.
+- Replace the selected single-file path with a symlink/reparse point before send and verify the send-boundary check rejects it before payload bytes are written.
+- Pause a single-file transfer, replace its source with a symlink where the OS permits, and verify it is removed from resume candidates.
+- Select a folder whose root is a symlink/reparse point and verify rejection.
+- Put a symlinked file inside a selected folder and verify folder enumeration rejects the source tree.
+- Put a symlinked directory/junction inside a selected folder and verify enumeration rejects rather than following it.
+- Verify recursive enumeration is bounded by file/directory limits.
+- Create the same folder tree in different filesystem enumeration orders and verify the generated source-manifest order is deterministic.
+- Modify source length after manifest creation and verify streaming fails rather than changing framing.
+- Modify same-length source contents after hashing and verify receiver SHA-256 validation fails.
+- Verify relative path-length/count/aggregate limits are rejected during source preflight before expensive hashing where the implementation can know them.
 
 ## Batch, selective receive, and idempotent retry
 
 - Reject the whole batch and verify no payload bytes are accepted.
 - Accept only a subset and verify unselected items are never sent.
 - Try duplicate names from separate source folders and verify sender deconfliction plus receiver collision handling.
-- Verify portable case/Unicode/sanitized-path collisions cannot collapse multiple source items onto one destination.
+- Try case-only, Unicode-normalization, and sanitation-equivalent source names and verify sender creates deterministic portable-distinct manifest paths **before hashing**.
+- Verify generated manifest paths are forward-slash canonical on Windows, Android, iOS, and Mac Catalyst.
 - Interrupt during an item and between items.
+- Pause/resume a batch containing both directly selected files and a selected folder; verify the folder source remains resumable.
 - Resume the same interrupted batch with a fresh pairing invitation and verify the stable batch transfer ID is retained.
+- Confirm the active UI path calls the stable-ID batch API; no compatibility path should generate a fresh transfer ID per retry.
 - Confirm already-finalized items are revalidated and receive a full-length resume offset instead of a collision-renamed duplicate copy.
 - Modify an already-finalized destination after the first interrupted attempt and verify the completed-item shortcut is rejected/invalidated.
+- Modify/delete the finalized destination **after the receiver sends the retry plan but before the item completion ACK** and verify the second completed-file verification fails closed.
 - Delete an already-finalized destination and verify retry does not falsely acknowledge completion.
 - Change the receive root and verify completed-item metadata from the old root cannot authorize/skip data in the new root.
 - Start a completely new explicit send of identical files and verify it receives a new transfer ID and normal collision-safe duplicate-send behavior.
@@ -85,9 +130,12 @@ This plan complements automated unit tests and the manual cross-platform transfe
 - Send one/multiple content URIs through `ACTION_SEND` / `ACTION_SEND_MULTIPLE`.
 - Provide more providers than the configured count limit and verify bounded handling.
 - Provide declared lengths above the per-file/aggregate limit and verify rejection before expensive copy where possible.
-- Provide incorrect/unknown provider lengths and verify runtime byte caps still stop oversized content.
+- Provide a negative `OpenableColumns.Size` value and verify it is treated as unknown length rather than trusted negative metadata.
+- Provide an incorrect/unknown provider length and verify runtime bytes are bounded by the **remaining aggregate staging budget**, not only the per-file limit.
+- For an unknown-length provider, reduce available cache storage during copy and verify periodic storage-reserve checks stop/clean the staging file before exhausting the volume.
 - Make a content URI unavailable during copy and verify partial cache output is removed.
-- Verify portable filename sanitation and aggregate storage preflight.
+- Verify a failed URI copy does not consume staging-budget count/bytes for subsequent valid items.
+- Verify portable/UTF-8-bounded filename sanitation and collision naming.
 - Verify text + multiple files arrive in one coherent inbox handoff and are never auto-sent.
 - Verify stale nested share-cache staging is pruned without touching unrelated app files.
 
@@ -96,21 +144,38 @@ This plan complements automated unit tests and the manual cross-platform transfe
 - Verify containing app and Share Extension are signed/provisioned for the intended shared App Group.
 - Exercise supported file/image/movie/text/web-URL providers with synthetic data.
 - Exceed item count, text byte, per-file, aggregate byte, and package-age limits.
+- Verify Share Extension staging budget rejects the file that would exceed aggregate bytes **before copying that over-limit file**.
+- Delay a provider callback beyond the configured response timeout and verify bounded failure/cleanup.
+- Return a provider before the timeout but make the legitimate local file copy take longer than the response timeout; verify the already-started copy is not incorrectly cancelled solely by the provider-response timer.
 - Cancel/dismiss the extension during provider loading/staging and verify bounded cleanup.
-- Provide duplicate/sanitization-colliding names and verify deterministic deconfliction.
+- Provide duplicate/sanitization-colliding/max-length names and verify deterministic bounded deconfliction whose collision marker survives truncation.
 - Verify extension publication is atomic: incomplete `.staging-*` packages are never imported as pending packages.
 - Corrupt the package manifest, add duplicate/unknown JSON fields, alter version/package ID, or add unexpected files and verify import rejection.
+- Add undeclared nested directories or extra top-level files to `files/` and verify exact file-set rejection.
 - Add a symlink/reparse-like package/file entry where the platform/filesystem permits and verify rejection.
 - Change a staged file length after manifest creation and verify exact-length import rejection.
+- Fill/reduce app-cache storage before containing-app import and verify the **aggregate validated package bytes** are preflighted before recopy begins.
 - Verify stale pending/abandoned staging cleanup.
 - Verify imported content is re-staged into app cache and shown for review rather than automatically transmitted.
+- Verify only one pending bundle is surfaced for review at a time and later pending bundles are not silently merged/deleted.
 - Verify App Group packages never contain private keys, pairing nonces/codes, trusted-device secrets, or reusable transfer authorization.
 
-## Desktop and document/open input
+## Mac Catalyst native drop
+
+- Drop files, folders, text, and pairing links.
+- Verify security-scoped access is held only for staging.
+- Verify linked/reparse source files/directories are rejected.
+- Verify common file-count/per-file/aggregate staging budget behavior.
+- Delay file/text provider callbacks beyond the bounded response wait and verify the drop fails/cleans up rather than hanging indefinitely.
+- Return the provider before timeout but let a legitimate copy continue longer; verify the response timer does not terminate the active copy.
+- Verify maximum-length/Unicode/collision filenames remain bounded and distinct.
+- Verify all staged content enters review state and is never auto-sent.
+
+## Windows and document/open input
 
 - Send malformed `swiftdrop://` activations.
 - Verify Windows file/folder/text/pairing-link drop enters the normal bounded review path and never direct-sends.
-- Verify Mac Catalyst native drop acquires/releases security-scoped access only for staging, rejects symlink sources, bounds file/aggregate size, and deconflicts names.
+- Verify direct Windows file/folder sources pass regular-source/link rejection and canonical manifest construction before transfer.
 - Verify Apple document/open-file URLs stage under temporary security-scoped access and clean failure/cancellation output.
 - Verify all external-input text uses the shared UTF-8 byte-safe limiter.
 
@@ -130,6 +195,7 @@ This plan complements automated unit tests and the manual cross-platform transfe
 - Verify privacy mode hides/redacts peer/file history and sensitive diagnostic identifiers at write/read/export boundaries.
 - Verify queue metadata contains generic labels/state/timestamps/bounded error codes only and stale active rows become `Interrupted` after restart.
 - Verify completed-batch metadata is bounded/pruned and stores a hashed receive-root key rather than an absolute path.
+- Verify completed-batch source paths remain canonical protocol paths while destination paths remain local receiver metadata re-confined before reuse.
 - Verify malformed/corrupted trust/history/diagnostic/queue/resume rows fail closed and do not break valid rows where corruption tolerance is intended.
 - Verify Android backup-disabled configuration and Apple App Group boundaries against signed package behavior.
 
@@ -141,7 +207,8 @@ This plan complements automated unit tests and the manual cross-platform transfe
 - Generate exact restored dependency graphs for Core, app, and Share Extension target frameworks.
 - Review direct/transitive licenses and third-party notice obligations from the exact release graph.
 - Verify Apple app/extension IDs, App Group, versions, entitlements, activation rules, project reference, and solution inclusion with repository validation tooling and the signed artifacts.
-- Treat cryptographic, authentication, trust, path, App Group, protocol-framing, or resume-metadata changes as security-sensitive and require focused review.
+- Verify no obsolete compatibility/dead transfer handler is wired from XAML after the stable-ID cleanup.
+- Treat cryptographic, authentication, trust, canonical-path, source-link, App Group, protocol-framing, staging-budget, or resume-metadata changes as security-sensitive and require focused review.
 
 ## Release evidence
 
