@@ -40,8 +40,8 @@ public static class PairingCodec
             throw new FormatException("Invalid SwiftDrop pairing link.");
 
         var encoded = ReadSinglePayloadParameter(uri.Query);
-        if (encoded.Length is 0 or > MaxPayloadTextLength)
-            throw new FormatException("Pairing payload has an invalid size.");
+        if (encoded.Length is 0 or > MaxPayloadTextLength || !IsCanonicalBase64UrlText(encoded))
+            throw new FormatException("Pairing payload has an invalid Base64URL representation.");
 
         PairingPayload payload;
         try
@@ -49,6 +49,8 @@ public static class PairingCodec
             var decoded = Base64UrlDecode(encoded);
             if (decoded.Length > ProtocolConstants.HeaderLimitBytes)
                 throw new FormatException("Pairing payload is too large.");
+            if (!string.Equals(Base64UrlEncode(decoded), encoded, StringComparison.Ordinal))
+                throw new FormatException("Pairing payload is not canonically encoded.");
 
             StrictJsonGuard.Validate(decoded, PairingJsonMaxDepth);
             payload = JsonSerializer.Deserialize<PairingPayload>(decoded, Json)
@@ -111,12 +113,25 @@ public static class PairingCodec
 
     private static string ReadSinglePayloadParameter(string query)
     {
+        if (string.IsNullOrEmpty(query) || query[0] != '?')
+            throw new FormatException("Pairing payload missing.");
+
+        var raw = query[1..];
+        if (raw.Length == 0)
+            throw new FormatException("Pairing payload missing.");
+
         string? payload = null;
-        foreach (var pair in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var pair in raw.Split('&', StringSplitOptions.None))
         {
-            var pieces = pair.Split('=', 2);
-            var key = Uri.UnescapeDataString(pieces[0]);
-            var value = pieces.Length == 2 ? Uri.UnescapeDataString(pieces[1]) : string.Empty;
+            if (pair.Length == 0)
+                throw new FormatException("Empty pairing-link query parameter.");
+
+            var separator = pair.IndexOf('=');
+            if (separator <= 0 || separator != pair.LastIndexOf('='))
+                throw new FormatException("Invalid pairing-link query parameter.");
+
+            var key = pair[..separator];
+            var value = pair[(separator + 1)..];
             if (!string.Equals(key, "p", StringComparison.Ordinal))
                 throw new FormatException("Unexpected pairing-link parameter.");
             if (payload is not null)
@@ -139,6 +154,10 @@ public static class PairingCodec
         => !string.IsNullOrWhiteSpace(nonce) &&
            nonce.Length is >= 16 and <= 128 &&
            nonce.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_');
+
+    private static bool IsCanonicalBase64UrlText(string value)
+        => value.Length % 4 != 1 &&
+           value.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_');
 
     private static string Base64UrlEncode(ReadOnlySpan<byte> bytes)
         => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
