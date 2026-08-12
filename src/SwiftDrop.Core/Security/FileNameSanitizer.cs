@@ -5,6 +5,7 @@ namespace SwiftDrop.Core.Security;
 public static class FileNameSanitizer
 {
     public const int MaximumSegmentLength = 180;
+    public const int MaximumSegmentUtf8Bytes = 180;
     private static readonly char[] AdditionalInvalid = ['/', '\\', '<', '>', ':', '"', '|', '?', '*'];
     private static readonly HashSet<string> ReservedWindowsDeviceNames = CreateReservedWindowsDeviceNames();
 
@@ -40,16 +41,17 @@ public static class FileNameSanitizer
         if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
 
         result = AvoidReservedWindowsDeviceName(result);
-        result = BoundSegment(result, MaximumSegmentLength).TrimEnd('.', ' ');
+        result = BoundSegmentUtf16(result, MaximumSegmentLength);
+        result = BoundSegmentUtf8(result, MaximumSegmentUtf8Bytes).TrimEnd('.', ' ');
         if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
 
         result = AvoidReservedWindowsDeviceName(result);
-        if (result.Length > MaximumSegmentLength)
-            result = TakeUtf16Safe(result, MaximumSegmentLength).TrimEnd('.', ' ');
+        result = BoundSegmentUtf16(result, MaximumSegmentLength);
+        result = BoundSegmentUtf8(result, MaximumSegmentUtf8Bytes).TrimEnd('.', ' ');
         return string.IsNullOrWhiteSpace(result) ? "unnamed" : result;
     }
 
-    private static string BoundSegment(string value, int maximumLength)
+    private static string BoundSegmentUtf16(string value, int maximumLength)
     {
         if (value.Length <= maximumLength) return value;
 
@@ -67,6 +69,24 @@ public static class FileNameSanitizer
             : TakeUtf16Safe(bounded, maximumLength);
     }
 
+    private static string BoundSegmentUtf8(string value, int maximumBytes)
+    {
+        if (Encoding.UTF8.GetByteCount(value) <= maximumBytes) return value;
+
+        var extension = Path.GetExtension(value);
+        var extensionBytes = Encoding.UTF8.GetByteCount(extension);
+        if (extensionBytes >= maximumBytes)
+            return TakeUtf8Safe(value, maximumBytes);
+
+        var stem = Path.GetFileNameWithoutExtension(value);
+        var boundedStem = TakeUtf8Safe(stem, maximumBytes - extensionBytes);
+        if (boundedStem.Length == 0) boundedStem = "_";
+        var bounded = boundedStem + extension;
+        return Encoding.UTF8.GetByteCount(bounded) <= maximumBytes
+            ? bounded
+            : TakeUtf8Safe(bounded, maximumBytes);
+    }
+
     private static string TakeUtf16Safe(string value, int maximumLength)
     {
         if (maximumLength <= 0 || value.Length == 0) return string.Empty;
@@ -79,6 +99,21 @@ public static class FileNameSanitizer
             length--;
         }
         return value[..length];
+    }
+
+    private static string TakeUtf8Safe(string value, int maximumBytes)
+    {
+        if (maximumBytes <= 0 || value.Length == 0) return string.Empty;
+        var builder = new StringBuilder(Math.Min(value.Length, maximumBytes));
+        var usedBytes = 0;
+        foreach (var rune in value.EnumerateRunes())
+        {
+            var runeBytes = rune.Utf8SequenceLength;
+            if (usedBytes + runeBytes > maximumBytes) break;
+            builder.Append(rune.ToString());
+            usedBytes += runeBytes;
+        }
+        return builder.ToString();
     }
 
     private static string AvoidReservedWindowsDeviceName(string value)
