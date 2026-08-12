@@ -38,7 +38,8 @@ public static class BatchTransferSourceBuilder
             else if (Directory.Exists(full))
             {
                 var rootDirectory = TransferSourceSafety.GetRegularDirectory(full);
-                var rootName = MakeUniqueRootName(rootDirectory.Name, usedRelativePaths);
+                var rootLabel = string.IsNullOrWhiteSpace(rootDirectory.Name) ? "Folder" : rootDirectory.Name;
+                var rootName = MakeUniqueRootName(rootLabel, usedRelativePaths);
                 foreach (var file in TransferSourceEnumerator.EnumerateFiles(
                              rootDirectory.FullName,
                              ProtocolConstants.MaxBatchFiles,
@@ -93,6 +94,8 @@ public static class BatchTransferSourceBuilder
 
         var safeRelativePath = FileNameSanitizer.SanitizeRelativePath(relativePath);
         safeRelativePath = MakeUniqueRelativePath(safeRelativePath, usedRelativePaths);
+        if (safeRelativePath.Length > ManifestValidator.MaximumRelativePathLength)
+            throw new InvalidDataException("A transfer source path exceeds the SwiftDrop relative-path limit.");
         if (!usedRelativePaths.Add(safeRelativePath))
             throw new InvalidDataException("Batch path deconfliction failed.");
 
