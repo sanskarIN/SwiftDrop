@@ -48,14 +48,13 @@ public sealed class TransferCoordinator
     private async Task SendCoreAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
     {
         remote = await PrepareRemoteAsync(remote, ct);
-        if (!File.Exists(path)) throw new FileNotFoundException("Selected file cannot be opened.", path);
-        var info = new FileInfo(path);
+        var info = TransferSourceSafety.GetRegularFile(path);
         if (info.Length > ProtocolConstants.MaxSingleFileBytes) throw new InvalidDataException("File exceeds SwiftDrop safety limit.");
-        var safeName = FileNameSanitizer.SanitizeSegment(Path.GetFileName(path));
+        var safeName = FileNameSanitizer.SanitizeSegment(info.Name);
         var entry = ManifestValidator.ValidateEntry(new FileManifestEntry(
             safeName,
             info.Length,
-            await Hashing.Sha256FileAsync(path, ct),
+            await Hashing.Sha256FileAsync(info.FullName, ct),
             info.LastWriteTimeUtc));
         var request = ProtocolRequestFactory.CreateFile(
             remote.Nonce,
@@ -77,7 +76,7 @@ public sealed class TransferCoordinator
         var bytesProgress = new Progress<long>(sent => progress?.Report(entry.Length == 0 ? 1 : (double)sent / entry.Length));
         await new TransferEngine().SendFileAsync(
             ssl,
-            path,
+            info.FullName,
             resumeOffset,
             entry.Length,
             bytesProgress,
