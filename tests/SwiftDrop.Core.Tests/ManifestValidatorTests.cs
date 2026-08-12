@@ -100,7 +100,7 @@ public sealed class ManifestValidatorTests
     [Fact]
     public void ValidateEntry_RejectsExcessivePathDepth()
     {
-        var path = string.Join('/', Enumerable.Repeat("a", PortableRelativePath.MaximumSegments + 1));
+        var path = string.Join("/", Enumerable.Repeat("a", PortableRelativePath.MaximumSegments + 1));
         var entry = Entry() with { RelativePath = path };
         Assert.Throws<InvalidDataException>(() => ManifestValidator.ValidateEntry(entry));
     }
