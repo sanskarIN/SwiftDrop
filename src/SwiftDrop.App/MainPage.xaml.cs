@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
@@ -6,6 +5,7 @@ using SwiftDrop.App.Services;
 using SwiftDrop.App.ViewModels;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Security;
+using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.App;
 
@@ -416,6 +416,13 @@ public partial class MainPage : ContentPage
             await DisplayAlert(AppText.Get("FileRequired"), AppText.Get("ChooseFileFirst"), AppText.Get("Ok"));
             return;
         }
+
+        var sourcePath = TransferSourcePathPolicy.ExistingDistinct([_selectedFile.FullPath]).SingleOrDefault();
+        if (sourcePath is null)
+        {
+            await DisplayAlert(AppText.Get("ResumeUnavailable"), AppText.Get("SourceFileUnavailable"), AppText.Get("Ok"));
+            return;
+        }
         if (!TryTakeRemote(out var remote))
         {
             await DisplayAlert(
@@ -425,13 +432,15 @@ public partial class MainPage : ContentPage
             return;
         }
         _pausedSinglePath = null;
-        await RunSingleSendAsync(remote, _selectedFile.FullPath);
+        await RunSingleSendAsync(remote, sourcePath);
     }
 
     private async void ResumeSendClicked(object? sender, EventArgs e)
     {
-        var path = _pausedSinglePath;
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        var path = TransferSourcePathPolicy.ExistingDistinct(
+                string.IsNullOrWhiteSpace(_pausedSinglePath) ? Array.Empty<string>() : [_pausedSinglePath])
+            .SingleOrDefault();
+        if (path is null)
         {
             _pausedSinglePath = null;
             _viewModel.ResumeSendEnabled = false;
@@ -457,16 +466,17 @@ public partial class MainPage : ContentPage
         _singleCts?.Dispose();
         _singleCts = new CancellationTokenSource();
         _pauseSingle = false;
-        var info = new FileInfo(path);
+        FileInfo? info = null;
         try
         {
+            info = TransferSourceSafety.GetRegularFile(path);
             _viewModel.SetSingleTransferControls(sending: true, canResume: false);
             _viewModel.TransferStatus = _pausedSinglePath is null
                 ? AppText.Get("SendingStatus")
                 : AppText.Get("ResumingStatus");
             await _transfers.SendAsync(
                 remote,
-                path,
+                info.FullName,
                 new Progress<double>(x => _viewModel.TransferProgress = x),
                 _singleCts.Token);
             _viewModel.TransferProgress = 1;
@@ -478,28 +488,42 @@ public partial class MainPage : ContentPage
         {
             if (_pauseSingle)
             {
-                _pausedSinglePath = path;
-                _viewModel.TransferStatus = AppText.Get("PausedResumeStatus");
-                await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "paused", false);
+                _pausedSinglePath = TransferSourcePathPolicy.ExistingDistinct([path]).SingleOrDefault();
+                _viewModel.TransferStatus = _pausedSinglePath is null
+                    ? AppText.Get("FailedStatus")
+                    : AppText.Get("PausedResumeStatus");
+                await _history.AddAsync(
+                    "sent",
+                    remote.DeviceName,
+                    info?.Name ?? Path.GetFileName(path),
+                    info?.Length ?? 0,
+                    "paused",
+                    false);
             }
             else
             {
                 _pausedSinglePath = null;
                 _viewModel.TransferStatus = AppText.Get("CancelledStatus");
-                await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "cancelled", false);
+                await _history.AddAsync(
+                    "sent",
+                    remote.DeviceName,
+                    info?.Name ?? Path.GetFileName(path),
+                    info?.Length ?? 0,
+                    "cancelled",
+                    false);
             }
         }
         catch (Exception ex)
         {
-            _pausedSinglePath = File.Exists(path) ? path : null;
+            _pausedSinglePath = TransferSourcePathPolicy.ExistingDistinct([path]).SingleOrDefault();
             _viewModel.TransferStatus = _pausedSinglePath is null
                 ? AppText.Get("FailedStatus")
                 : AppText.Get("FailedSafeResumeStatus");
             await _history.AddAsync(
                 "sent",
                 remote.DeviceName,
-                info.Name,
-                info.Exists ? info.Length : 0,
+                info?.Name ?? Path.GetFileName(path),
+                info?.Length ?? 0,
                 "failed",
                 false);
             await DisplayAlert(AppText.Get("TransferFailed"), ex.Message, AppText.Get("Ok"));
@@ -520,138 +544,6 @@ public partial class MainPage : ContentPage
     {
         _pauseSingle = false;
         _singleCts?.Cancel();
-    }
-
-    private async void SendBatchClicked(object? sender, EventArgs e)
-    {
-        if (_selectedBatchFiles.Length == 0)
-        {
-            await DisplayAlert(AppText.Get("FilesRequired"), AppText.Get("ChooseFilesFirst"), AppText.Get("Ok"));
-            return;
-        }
-        if (!TryTakeRemote(out var remote))
-        {
-            await DisplayAlert(
-                AppText.Get("DeviceRequired"),
-                AppText.Get("FreshPairingInvitationFirst"),
-                AppText.Get("Ok"));
-            return;
-        }
-        _pausedBatchPaths = Array.Empty<string>();
-        await RunBatchSendAsync(remote, _selectedBatchFiles.Select(x => x.FullPath).ToArray());
-    }
-
-    private async void ResumeBatchClicked(object? sender, EventArgs e)
-    {
-        var paths = _pausedBatchPaths.Where(File.Exists).ToArray();
-        if (paths.Length == 0)
-        {
-            _pausedBatchPaths = Array.Empty<string>();
-            _viewModel.ResumeBatchEnabled = false;
-            await DisplayAlert(
-                AppText.Get("ResumeUnavailable"),
-                AppText.Get("BatchFilesUnavailable"),
-                AppText.Get("Ok"));
-            return;
-        }
-        if (!TryTakeRemote(out var remote))
-        {
-            await DisplayAlert(
-                AppText.Get("FreshPairingRequired"),
-                AppText.Get("FreshPairingResumeMessage"),
-                AppText.Get("Ok"));
-            return;
-        }
-        await RunBatchSendAsync(remote, paths);
-    }
-
-    private async Task RunBatchSendAsync(PairingPayload remote, string[] paths)
-    {
-        _batchCts?.Dispose();
-        _batchCts = new CancellationTokenSource();
-        _pauseBatch = false;
-        var stopwatch = Stopwatch.StartNew();
-        try
-        {
-            _viewModel.SetBatchTransferControls(sending: true, canResume: false);
-            _viewModel.BatchTransferStatus = _pausedBatchPaths.Length == 0
-                ? AppText.Get("PreparingChecksums")
-                : AppText.Get("PreparingResumeChecksums");
-            var progress = new Progress<BatchProgress>(value =>
-            {
-                _viewModel.BatchTransferProgress = value.Fraction;
-                var seconds = Math.Max(stopwatch.Elapsed.TotalSeconds, .001);
-                var speed = value.CompletedBytes / seconds;
-                var remaining = Math.Max(0, value.TotalBytes - value.CompletedBytes);
-                var eta = speed <= 1
-                    ? AppText.Get("Calculating")
-                    : TimeSpan.FromSeconds(remaining / speed).ToString(@"hh\:mm\:ss");
-                _viewModel.BatchTransferStatus = AppText.Format(
-                    "BatchProgressFormat",
-                    value.CompletedItems,
-                    value.TotalItems,
-                    FormatBytes(value.CompletedBytes),
-                    FormatBytes(value.TotalBytes),
-                    FormatBytes((long)speed),
-                    eta,
-                    value.CurrentFile);
-            });
-
-            var result = await _transfers.SendBatchAsync(remote, paths, progress, _batchCts.Token);
-            foreach (var item in result.Completed)
-                await _history.AddAsync("sent", remote.DeviceName, item.Entry.RelativePath, item.Entry.Length, "completed", true);
-            foreach (var item in result.Skipped)
-                await _history.AddAsync("sent", remote.DeviceName, item.Entry.RelativePath, item.Entry.Length, "not-selected", false);
-            _pausedBatchPaths = Array.Empty<string>();
-            _viewModel.BatchTransferProgress = 1;
-            _viewModel.BatchTransferStatus = AppText.Format(
-                "BatchCompletedFormat",
-                result.Completed.Count,
-                result.Skipped.Count);
-        }
-        catch (OperationCanceledException)
-        {
-            if (_pauseBatch)
-            {
-                _pausedBatchPaths = paths.Where(File.Exists).ToArray();
-                _viewModel.BatchTransferStatus = AppText.Get("PausedResumeStatus");
-                foreach (var path in _pausedBatchPaths)
-                {
-                    var info = new FileInfo(path);
-                    await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "paused", false);
-                }
-            }
-            else
-            {
-                _pausedBatchPaths = Array.Empty<string>();
-                _viewModel.BatchTransferStatus = AppText.Get("BatchCancelledStatus");
-            }
-        }
-        catch (Exception ex)
-        {
-            _pausedBatchPaths = paths.Where(File.Exists).ToArray();
-            _viewModel.BatchTransferStatus = _pausedBatchPaths.Length == 0
-                ? AppText.Get("BatchFailedStatus")
-                : AppText.Get("BatchFailedSafeResumeStatus");
-            await DisplayAlert(AppText.Get("BatchTransferFailed"), ex.Message, AppText.Get("Ok"));
-        }
-        finally
-        {
-            stopwatch.Stop();
-            _viewModel.SetBatchTransferControls(sending: false, canResume: _pausedBatchPaths.Length > 0);
-        }
-    }
-
-    private void PauseBatchClicked(object? sender, EventArgs e)
-    {
-        _pauseBatch = true;
-        _batchCts?.Cancel();
-    }
-
-    private void CancelBatchClicked(object? sender, EventArgs e)
-    {
-        _pauseBatch = false;
-        _batchCts?.Cancel();
     }
 
     private async void PasteClipboardClicked(object? sender, EventArgs e)
