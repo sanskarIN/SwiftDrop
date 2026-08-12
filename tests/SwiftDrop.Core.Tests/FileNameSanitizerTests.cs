@@ -29,7 +29,13 @@ public sealed class FileNameSanitizerTests
     [Theory]
     [InlineData("../secret.txt")]
     [InlineData("folder/../../secret.txt")]
-    public void SanitizeRelativePath_Rejects_Traversal(string path)
+    [InlineData("folder/./secret.txt")]
+    [InlineData("folder//secret.txt")]
+    [InlineData("folder\\\\secret.txt")]
+    [InlineData("folder/secret.txt/")]
+    [InlineData("C:\\secret.txt")]
+    [InlineData("\\\\server\\share\\secret.txt")]
+    public void SanitizeRelativePath_Rejects_NonCanonicalOrRootedPaths(string path)
     {
         Assert.Throws<InvalidDataException>(() => FileNameSanitizer.SanitizeRelativePath(path));
     }
