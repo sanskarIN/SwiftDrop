@@ -101,12 +101,12 @@ public static class BatchTransferSourceBuilder
 
     private static string MakeUniqueRootName(string rootName, ISet<string> usedRelativePaths)
     {
-        var normalized = FileNameSanitizer.SanitizeRelativePath(rootName.Replace('\\', '/').Trim('/'));
+        var normalized = FileNameSanitizer.SanitizeSegment(rootName);
         if (!RootCollides(normalized, usedRelativePaths)) return normalized;
 
         for (var i = 2; i <= 9999; i++)
         {
-            var candidate = FileNameSanitizer.SanitizeSegment($"{normalized} ({i})");
+            var candidate = FileNameSanitizer.CreateCollisionSegment(normalized, i);
             if (!RootCollides(candidate, usedRelativePaths)) return candidate;
         }
 
@@ -115,12 +115,12 @@ public static class BatchTransferSourceBuilder
 
     private static bool RootCollides(string rootName, IEnumerable<string> usedRelativePaths)
     {
-        var prefix = rootName + Path.DirectorySeparatorChar;
-        var altPrefix = rootName + '/';
+        var platformPrefix = rootName + Path.DirectorySeparatorChar;
+        var portablePrefix = rootName + '/';
         return usedRelativePaths.Any(path =>
             PortablePathComparer.Equals(path, rootName) ||
-            path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(altPrefix, StringComparison.OrdinalIgnoreCase));
+            path.StartsWith(platformPrefix, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string MakeUniqueRelativePath(string relativePath, ISet<string> usedRelativePaths)
@@ -129,11 +129,10 @@ public static class BatchTransferSourceBuilder
         if (!usedRelativePaths.Contains(normalized)) return normalized;
 
         var directory = Path.GetDirectoryName(normalized);
-        var fileName = Path.GetFileNameWithoutExtension(normalized);
-        var extension = Path.GetExtension(normalized);
+        var fileName = Path.GetFileName(normalized);
         for (var i = 2; i <= 9999; i++)
         {
-            var renamed = FileNameSanitizer.SanitizeSegment($"{fileName} ({i}){extension}");
+            var renamed = FileNameSanitizer.CreateCollisionSegment(fileName, i);
             var candidate = string.IsNullOrWhiteSpace(directory) ? renamed : Path.Combine(directory, renamed);
             if (!usedRelativePaths.Contains(candidate)) return candidate;
         }
