@@ -50,6 +50,12 @@ public sealed class IncomingRequestPolicyTests
     [Theory]
     [InlineData("")]
     [InlineData("\n")]
+    [InlineData(" transfer")]
+    [InlineData("transfer ")]
+    [InlineData("transfer.id")]
+    [InlineData("transfer/id")]
+    [InlineData("transfer:id")]
+    [InlineData("ट्रांसफर")]
     public void ValidateTransferId_RejectsInvalidIds(string transferId)
         => Assert.Throws<InvalidDataException>(() => IncomingRequestPolicy.ValidateTransferId(transferId));
 
@@ -58,9 +64,12 @@ public sealed class IncomingRequestPolicyTests
         => Assert.Throws<InvalidDataException>(() =>
             IncomingRequestPolicy.ValidateTransferId(new string('x', 129)));
 
-    [Fact]
-    public void ValidateTransferId_ReturnsValidId()
-        => Assert.Equal("transfer-123", IncomingRequestPolicy.ValidateTransferId("transfer-123"));
+    [Theory]
+    [InlineData("transfer-123")]
+    [InlineData("transfer_123")]
+    [InlineData("ABCdef0123456789")]
+    public void ValidateTransferId_ReturnsValidTokenId(string transferId)
+        => Assert.Equal(transferId, IncomingRequestPolicy.ValidateTransferId(transferId));
 
     [Fact]
     public void ValidateBatchItemStart_RejectsReorderedOrUnknownPath()
