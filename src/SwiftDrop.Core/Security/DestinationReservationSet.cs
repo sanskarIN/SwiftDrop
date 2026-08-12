@@ -31,11 +31,11 @@ public sealed class DestinationReservationSet
         if (IsAvailableLocked(requestedPath)) return requestedPath;
 
         var directory = Path.GetDirectoryName(requestedPath) ?? string.Empty;
-        var name = Path.GetFileNameWithoutExtension(requestedPath);
-        var extension = Path.GetExtension(requestedPath);
+        var requestedName = Path.GetFileName(requestedPath);
         for (var i = 1; i < 10_000; i++)
         {
-            var candidate = Path.Combine(directory, $"{name} ({i}){extension}");
+            var collisionName = FileNameSanitizer.CreateCollisionSegment(requestedName, i);
+            var candidate = Path.Combine(directory, collisionName);
             if (IsAvailableLocked(candidate)) return candidate;
         }
 
