@@ -30,7 +30,7 @@ public static class IncomingRequestPolicy
     {
         if (string.IsNullOrWhiteSpace(pairingNonce) ||
             pairingNonce.Length is < 16 or > 128 ||
-            pairingNonce.Any(ch => !char.IsAsciiLetterOrDigit(ch) && ch is not '-' and not '_'))
+            pairingNonce.Any(ch => !IsAsciiTokenCharacter(ch)))
             throw new InvalidDataException("Pairing authorization nonce is invalid.");
         return pairingNonce;
     }
@@ -49,7 +49,9 @@ public static class IncomingRequestPolicy
 
     public static string ValidateTransferId(string? transferId)
     {
-        if (string.IsNullOrWhiteSpace(transferId) || transferId.Length > 128 || transferId.Any(char.IsControl))
+        if (string.IsNullOrWhiteSpace(transferId) ||
+            transferId.Length > 128 ||
+            transferId.Any(ch => !IsAsciiTokenCharacter(ch)))
             throw new InvalidDataException("Invalid transfer identifier.");
         return transferId;
     }
@@ -65,4 +67,7 @@ public static class IncomingRequestPolicy
         => !string.IsNullOrWhiteSpace(value) &&
            value.Length <= maxLength &&
            !value.Any(char.IsControl);
+
+    private static bool IsAsciiTokenCharacter(char value)
+        => char.IsAsciiLetterOrDigit(value) || value is '-' or '_';
 }
