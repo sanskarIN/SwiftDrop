@@ -5,15 +5,11 @@ public static class PathGuard
     public static string ResolveUnderRoot(string root, string relativePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
-        if (string.IsNullOrWhiteSpace(relativePath)) throw new InvalidDataException("Empty path.");
-        if (IsPortableRooted(relativePath)) throw new InvalidDataException("Rooted paths are not allowed.");
-        if (relativePath.IndexOfAny(Path.GetInvalidPathChars()) >= 0) throw new InvalidDataException("Invalid path.");
+        var segments = PortableRelativePath.GetSegments(relativePath);
+        if (relativePath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+            throw new InvalidDataException("Invalid path.");
 
-        var portableRelative = NormalizePortableSeparators(relativePath);
-        var segments = portableRelative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
-        if (segments.Length == 0 || segments.Any(segment => segment is "." or ".."))
-            throw new InvalidDataException("Path traversal attempt rejected.");
-
+        var portableRelative = Path.Combine(segments);
         var fullRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
         var full = Path.GetFullPath(Path.Combine(fullRoot, portableRelative));
         if (!full.StartsWith(fullRoot, PathComparisonPolicy.Comparison))
@@ -65,15 +61,4 @@ public static class PathGuard
         }
         throw new IOException("Could not resolve destination filename collision.");
     }
-
-    private static bool IsPortableRooted(string path)
-    {
-        if (Path.IsPathRooted(path)) return true;
-        if (path[0] is '/' or '\\') return true;
-        if (path.Length >= 2 && char.IsAsciiLetter(path[0]) && path[1] == ':') return true;
-        return false;
-    }
-
-    private static string NormalizePortableSeparators(string path)
-        => path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
 }
