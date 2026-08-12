@@ -1,24 +1,126 @@
 # Changelog
 
-## Unreleased - 2026-08-11
+## Unreleased - 2026-08-12
 
-### Final security and intake hardening
+### Canonical pairing capability representation
 
-- Pairing payload JSON now rejects unknown/unmapped members in addition to duplicate/case-variant properties, malformed JSON, comments, trailing commas, depth violations, invalid URI fields, and unsupported protocol metadata.
-- Added a regression test proving an otherwise valid pairing payload with an extra encoded JSON property is rejected.
-- Completed-batch resume now re-verifies an already-finalized destination **again after the sender's matching `BatchItemStart` and immediately before the zero-byte item completion ACK**.
-- A completed destination removed, replaced, mutated, redirected, or no longer matching recorded metadata in the retry-plan→ACK window now fails closed instead of being falsely acknowledged.
-- Added regression coverage for a completed destination that passes the first verification, changes without changing length, then fails a second SHA-256 verification.
-- Added exact external-share package physical file-set validation in Core.
-- Apple App Group imports now reject undeclared extra files, nested directories, duplicate portable names, non-canonical names, and a physical file set that differs from the manifest.
-- Added portable tests for exact, missing, extra, duplicate, non-canonical, nested, and empty external-share file sets.
-- Added bounded Apple `NSItemProvider` response waits so a provider that never calls back cannot leave the extension awaiting indefinitely.
-- Share Extension lifetime cancellation now cancels pending provider waits and is checked throughout provider-file copying; late timed-out/cancelled callbacks cannot begin a new staging copy.
-- Separated provider **response** timeout from already-started file-copy duration so a prompt provider is not rejected merely because a legitimate large local copy takes longer than the response window.
-- Portable filename segments now explicitly remove both `/` and `\\` as data regardless of host OS semantics.
-- Filename length limiting now remains at 180 UTF-16 code units even for pathological long extensions and avoids splitting surrogate pairs at the truncation boundary.
-- Added tests for both portable separator characters, extreme extension lengths, and surrogate-safe filename truncation.
-- Refreshed the release checklist, threat model, protocol security document, security test plan, third-party notices, project status, and next-step roadmap for the exact current source boundaries.
+- Pairing links now reject surrounding whitespace instead of trimming it into an alias.
+- Raw pairing query parsing now requires exactly one `p=` field and rejects empty, unknown, duplicate, or malformed query segments.
+- Pairing payload transport now accepts only unpadded canonical Base64URL using ASCII letters, digits, `-`, and `_`.
+- Standard Base64 `+`, `/`, padding `=`, percent-encoded payload aliases, invalid Base64URL lengths, and decoded bytes that do not re-encode to the exact original payload text are rejected.
+- Existing strict decoded pairing JSON validation remains active, including duplicate/case-variant duplicate/unknown-member rejection, bounded depth, comments/trailing-comma rejection, local numeric address policy, fingerprint/nonce/expiry validation, and exact protocol version.
+- Added direct regression coverage for canonical query/Base64URL and whitespace behavior.
+
+### Canonical cross-platform manifest paths
+
+- Added reusable `PortableRelativePath` policy.
+- Rooted, Windows drive/UNC/device, repeated/trailing separator, empty-segment, `.` and `..` paths are rejected portably.
+- Relative paths now have a maximum 64-segment nesting depth.
+- `FileNameSanitizer.SanitizeRelativePath` now emits `/` as the only wire separator on every host OS.
+- Incoming file/batch manifest paths must already equal SwiftDrop's canonical sanitized form; receiver code no longer accepts a peer path that would be rewritten after authorization.
+- Backslash wire paths, portable-invalid filename aliases, Windows reserved-device aliases, trailing dot/space aliases, and decomposed Unicode aliases are rejected at the manifest boundary.
+- `ManifestValidator` performs path structure/canonicality checks before transfer nonce consumption, with tests proving unsafe paths do not consume authorization.
+- Batch sender deconfliction uses canonical `/` paths throughout, fixing Windows→Android/iOS/Mac exact-plan identity drift.
+- Batch relative-path length is preflighted before hashing.
+
+### Portable filename and collision bounds
+
+- Filename segments now retain the existing 180 UTF-16 code-unit cap and add a 180 UTF-8 byte cap.
+- UTF-8 truncation is rune-safe and does not split surrogate pairs/Unicode scalars.
+- The byte cap intentionally leaves headroom for `.swiftdrop.part` on common 255-byte filesystem component limits.
+- Added `FileNameSanitizer.CreateCollisionSegment` so collision-generated names remain bounded and unique.
+- When `name (n).ext` would lose its suffix because the base is already at the limit, SwiftDrop uses a bounded prefix marker such as `(n) name...`.
+- Receive destination reservations, generic collision-free platform staging, batch sender deconfliction, and Apple Share package naming now share the bounded collision helper.
+- Added tests for Unicode/emoji-heavy names, extreme extensions, staging-suffix headroom, bounded collision markers, and concurrent/max-length receive reservations.
+
+### Outgoing source safety and deterministic folder manifests
+
+- Added reusable `TransferSourceSafety` for regular file/directory validation and symlink/reparse rejection.
+- Single-file coordinator validates the selected source as a regular non-link file.
+- `TransferEngine.SendFileAsync` repeats regular-source validation at the actual stream-open boundary.
+- Added `TransferSourceEnumerator` for explicit bounded recursive folder enumeration.
+- Selected folder roots and descendant files/directories that are symbolic links/reparse points are rejected.
+- Folder traversal is bounded by file/directory limits and no longer uses unrestricted `SearchOption.AllDirectories`.
+- Enumerated folder files are sorted deterministically by normalized relative path before manifest construction.
+- Batch builder reuses central regular-source validation and canonical `/` path construction.
+- Case-only, Unicode-normalization, and sanitation-equivalent portable sender paths are deconflicted before expensive hashing and revalidated by `BatchManifestValidator` afterward.
+- Filesystem-root folder selection has a safe fallback transfer root label.
+- Added tests for source file/directory links, deterministic enumeration/order, stable repeated folder manifests, sender portable collisions, and send-boundary link rejection.
+
+### Stable resume source and UI/API cleanup
+
+- Added `TransferSourcePathPolicy` for existing regular file/folder resume candidates using platform-aware local path comparison.
+- Active batch resume preserves folder source selections where they remain available.
+- Paused single/batch source state drops files/folders replaced by symlinks/reparse points before resume.
+- Single-file Send/Resume validates a regular source before consuming the fresh pairing invitation.
+- Paused folder history no longer assumes every source is a `FileInfo`; folder metadata is handled safely.
+- Removed obsolete duplicate non-XAML batch handlers from `MainPage`.
+- Removed `TransferCoordinatorCompatibilityExtensions`, eliminating the implicit fresh-batch-ID overload.
+- The active XAML batch workflow now has one coordinator API path: caller-supplied stable transfer ID.
+- Batch transfer IDs now use bounded canonical ASCII token syntax (letters, digits, `-`, `_`).
+
+### Completed-item retry race hardening
+
+- Existing schema-v3 completed-item retry still verifies transfer/root/source/destination/length/hash and freshly re-hashes the finalized destination while building the receiver retry plan.
+- Receiver now verifies the completed destination **again after the matching `BatchItemStart` and immediately before the zero-byte item completion acknowledgement**.
+- A destination removed, mutated, redirected, or no longer matching the completion record between plan generation and item ACK now fails closed instead of being falsely acknowledged.
+- Added regression coverage that verifies a completed file, mutates it, and confirms the repeated verification rejects it.
+
+### Shared external staging budgets
+
+- Added reusable Core `TransferStagingBudget` for maximum file count, maximum single-file bytes, aggregate bytes, and commit-after-success accounting.
+- Failed file copies do not consume staging count/byte budget.
+- Apple Share Extension, Android share intake, and Mac native drop now use this shared policy.
+
+### Android share reliability
+
+- Android `ACTION_SEND` / `ACTION_SEND_MULTIPLE` staging now enforces aggregate budget during actual copy, including providers whose size is unknown.
+- Negative provider `OpenableColumns.Size` is treated as unknown rather than as valid negative metadata.
+- Unknown-length provider bytes are capped to the remaining aggregate staging budget.
+- Unknown-length copies recheck destination free-space reserve while streaming so a provider cannot consume the volume down to zero merely because its final size was unknown at initial preflight.
+- Exact declared/staged length checks, portable filename sanitation, cleanup on failure, and atomic inbox handoff remain active.
+
+### Apple Share Extension provider lifecycle
+
+- Share Extension provider file/text callbacks are bounded by a provider-response timeout and extension-lifetime cancellation.
+- Late callbacks after timeout/cancellation cannot begin a new staging copy.
+- Cancellation is checked during provider-file copying.
+- Provider-response timeout is explicitly separated from local copy duration: a provider that responded before the timeout can complete an already-started legitimate copy even if that copy takes longer.
+- Aggregate staging budget is checked before copying the file that would exceed package limits.
+- Existing strict App Group manifest, atomic staging→pending publication, security-scoped access, capacity checks, and review-before-send behavior remain active.
+
+### Apple containing-app import hardening
+
+- App Group package import remains serialized.
+- Physical package `files/` contents must exactly match the manifest-declared top-level files.
+- Undeclared extra files, nested directories, portable duplicate names, missing declared files, and link/reparse entries are rejected.
+- Importer now sums the validated package file bytes and preflights app-cache capacity before recopying the package into normal review staging.
+- Only one pending package is surfaced per import pass; later pending packages are retained rather than silently merged/deleted.
+
+### Mac Catalyst native drop reliability
+
+- Mac native drop now shares the Core staging-budget policy.
+- File/folder copy retains security-scoped access and source link/reparse rejection.
+- Native-drop file/text provider callbacks now have bounded response waits.
+- A provider that returns before timeout is allowed to complete a legitimate copy beyond the response timer.
+- Portable UTF-8-bounded collision naming is used by generic drop collision resolution.
+
+### Transfer engine metadata reliability
+
+- Send engine revalidates regular-source/link status immediately before opening the source stream.
+- Source length remains bound to the manifest before/during streaming.
+- Optional last-write timestamp application now occurs as best-effort metadata after verified final promotion; inability to set that metadata no longer falsely converts verified transferred content into a failed transfer.
+
+### Documentation and release validation
+
+- Updated wire-format documentation for canonical pairing capability text, `/` manifest paths, transfer-ID tokens, source-link handling, and second completed-item verification.
+- Updated protocol security documentation with pre-authorization path validation, source-tree safety, external staging budgets, provider-response semantics, and Android unknown-size storage reserve behavior.
+- Updated threat model for capability aliases, canonical path identity, outgoing link/tree escape, byte-bounded collisions, staging exhaustion, and repeated completed-file verification.
+- Expanded security test plan, manual platform/cross-device matrix, and release checklist for all new invariants.
+- Updated platform integration status, public README, project status, and release-validation roadmap.
+- Production verification remains gated on exact-candidate CI, target workloads, signing/provisioning, real providers/devices/networks/filesystems/low-storage cases, accessibility/localization, dependency/license review, and store submission checks.
+
+## Unreleased - 2026-08-10 to 2026-08-11
 
 ### Apple platform integration
 
@@ -50,6 +152,7 @@
 - Centralized sender identity, pairing nonce, pairing code, transfer ID, and batch-item ordering rules.
 - Migrated transfer sender, nearby/manual pairing, and receive host to the same typed Core wire records.
 - Changed framed protocol JSON deserialization to reject unknown/unmapped members in addition to duplicate members, malformed UTF-8/JSON, comments, trailing commas, excessive depth, and invalid frame lengths.
+- Added strict duplicate/unknown member controls to encoded pairing JSON.
 - Preserved authorization ordering so malformed requests and missing TLS client certificates do not consume a valid one-time transfer nonce.
 - Added portable complete file/batch/text/pair conversation tests using the production wire records/policies.
 
@@ -71,12 +174,13 @@
 - Added SQLite schema version 3 with `completed_batch_items` metadata.
 - Added privacy-safe `ReceiveRootKey` using SHA-256 of normalized receive-root identity instead of storing absolute receive-root path.
 - Added `BatchCompletionStore`, `BatchResumeStateService`, and `BatchCompletionVerifier`.
-- Receiver now records verified finalized batch items before sending their item completion ACK.
+- Receiver records verified finalized batch items before sending normal item completion ACK.
 - On retry with the same batch ID, receiver revalidates metadata, path confinement/reparse status, destination length, and fresh SHA-256 before offering full-length resume offset.
-- Already-completed verified items use the existing protocol-v1 `ResumeOffset == Length` semantics and require zero additional payload bytes.
+- Already-completed verified items use protocol-v1 `ResumeOffset == Length` semantics and require zero additional payload bytes.
 - Changed/missing destinations, changed source manifest, different root, or new transfer ID fall back to normal collision-safe transfer behavior.
 - Completion metadata is bounded/pruned and best-effort; persistence failure cannot turn a successfully verified transfer into a failure.
 - Added v2→v3 migration tests, completion-store corruption/pruning tests, stable-ID tests, and completed-file verification tests.
+- Added a second completed-file verification before zero-byte ACK to reduce the retry-plan/ACK TOCTOU window.
 
 ### Privacy and local metadata
 
@@ -90,22 +194,22 @@
 
 - Added `scripts/validate_apple_integration.py`.
 - Integrated Apple metadata validation into Unix/PowerShell verification, regular CI, and release readiness.
-- Platform build triggers now include Share Extension source changes.
+- Platform build triggers include Share Extension source changes.
 - Apple jobs explicitly restore/build both Share Extension and containing app.
-- Release readiness now requires Apple extension/app compile gates and captures extension dependency graphs for both iOS and Mac Catalyst.
+- Release readiness requires Apple extension/app compile gates and captures extension dependency graphs for both iOS and Mac Catalyst.
 - Added Share Extension-specific warning policy that keeps nullable regressions strict while leaving Apple SDK availability/obsolete diagnostics visible.
 - Kept stable C# language mode (`latest`, not preview).
 
 ### Documentation
 
-- Updated README, BUILDING, privacy, platform integration/permissions, architecture, wire/security protocol docs, compatibility matrix, SQLite schema docs, project status, roadmap, release checklist, threat model, security test plan, third-party notices, and manual test matrix for the current source state.
-- Reclassified the current master-prompt scope as source-complete while keeping signed package, App Group provisioning, real-device/network/accessibility, dependency-license, and store validation explicitly pending.
+- Updated README, BUILDING, privacy, platform integration/permissions, architecture, wire/security protocol docs, compatibility matrix, SQLite schema docs, project status, roadmap, release checklist, manual/security test plans, third-party notices, and the engineering ledger for the source state.
+- Reclassified the master-prompt scope as source-complete while keeping signed package, App Group provisioning, real-device/network/accessibility, dependency-license, and store validation explicitly pending.
 
 ### Validation boundary
 
 - The development chat runtime does not provide the full .NET MAUI workloads needed to compile/sign all targets locally.
-- Recent direct-main GitHub Contents API commits may not expose combined status contexts through the connector; missing status data is treated as unknown/unreported, never as a pass.
-- Signed Apple App Group provisioning, Share Extension embedding/runtime behavior, provider timeout/cancellation behavior, Mac native drop under release sandbox, signed Android/Windows packages, physical cross-device transfers, accessibility/localization validation, real low-storage/network lifecycle cases, and final dependency-license review remain release gates.
+- Missing GitHub combined-status contexts are treated as unknown/unreported, never as a pass.
+- Signed Apple App Group provisioning, Share Extension embedding/runtime behavior, Mac native drop under release sandbox, signed Android/Windows packages, physical cross-device transfers, accessibility/localization validation, real low-storage/network lifecycle cases, and final dependency-license review remain release gates.
 
 ## 1.0.0 - 2026-08-09
 
