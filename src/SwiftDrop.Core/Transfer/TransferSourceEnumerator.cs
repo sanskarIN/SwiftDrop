@@ -13,10 +13,7 @@ public static class TransferSourceEnumerator
         if (maximumFiles <= 0) throw new ArgumentOutOfRangeException(nameof(maximumFiles));
         if (maximumDirectories <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDirectories));
 
-        var root = new DirectoryInfo(Path.GetFullPath(rootPath));
-        if (!root.Exists) throw new DirectoryNotFoundException($"Transfer source directory does not exist: {root.FullName}");
-        EnsureNotLink(root);
-
+        var root = TransferSourceSafety.GetRegularDirectory(rootPath);
         var files = new List<string>();
         var stack = new Stack<DirectoryInfo>();
         stack.Push(root);
@@ -25,13 +22,13 @@ public static class TransferSourceEnumerator
         while (stack.Count > 0)
         {
             var current = stack.Pop();
-            EnsureNotLink(current);
+            TransferSourceSafety.EnsureNotLink(current);
             if (++directoryCount > maximumDirectories)
                 throw new InvalidDataException("Transfer source contains too many directories.");
 
             foreach (var entry in current.EnumerateFileSystemInfos())
             {
-                EnsureNotLink(entry);
+                TransferSourceSafety.EnsureNotLink(entry);
                 if (entry is DirectoryInfo directory)
                 {
                     stack.Push(directory);
@@ -50,12 +47,5 @@ public static class TransferSourceEnumerator
                 path => PortableRelativePath.NormalizeSeparators(Path.GetRelativePath(root.FullName, path)),
                 StringComparer.Ordinal)
             .ToArray();
-    }
-
-    private static void EnsureNotLink(FileSystemInfo entry)
-    {
-        entry.Refresh();
-        if ((entry.Attributes & FileAttributes.ReparsePoint) != 0 || entry.LinkTarget is not null)
-            throw new InvalidDataException("Transfer sources cannot traverse symbolic links or reparse points.");
     }
 }
