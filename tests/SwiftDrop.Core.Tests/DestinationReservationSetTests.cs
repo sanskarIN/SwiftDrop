@@ -1,3 +1,4 @@
+using System.Text;
 using SwiftDrop.Core.Security;
 using Xunit;
 
@@ -67,6 +68,33 @@ public sealed class DestinationReservationSetTests
 
             Assert.NotEqual(Path.GetFullPath(requested), reservation.Path);
             Assert.True(reservation.Path.EndsWith("photo (1).jpg", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+        }
+    }
+
+    [Fact]
+    public void Reserve_MaxLengthNameKeepsUniqueBoundedCollisionMarker()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var safeName = FileNameSanitizer.SanitizeSegment(new string('a', 300) + ".txt");
+            var requested = Path.Combine(root, safeName);
+            var reservations = new DestinationReservationSet();
+            using var first = reservations.Reserve(requested);
+            using var second = reservations.Reserve(requested);
+            using var third = reservations.Reserve(requested);
+
+            var secondName = Path.GetFileName(second.Path);
+            var thirdName = Path.GetFileName(third.Path);
+            Assert.StartsWith("(1) ", secondName, StringComparison.Ordinal);
+            Assert.StartsWith("(2) ", thirdName, StringComparison.Ordinal);
+            Assert.NotEqual(second.Path, third.Path);
+            Assert.True(Encoding.UTF8.GetByteCount(secondName) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
+            Assert.True(Encoding.UTF8.GetByteCount(thirdName) <= FileNameSanitizer.MaximumSegmentUtf8Bytes);
         }
         finally
         {
