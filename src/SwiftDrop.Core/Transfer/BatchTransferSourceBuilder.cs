@@ -7,6 +7,7 @@ namespace SwiftDrop.Core.Transfer;
 public static class BatchTransferSourceBuilder
 {
     public const int MaxFilesPerBatch = ProtocolConstants.MaxBatchFiles;
+    private const int MaxDirectoriesPerBatchSource = ProtocolConstants.MaxBatchFiles * 2;
 
     public static Task<BatchTransferSource> BuildAsync(
         IEnumerable<string> paths,
@@ -37,7 +38,10 @@ public static class BatchTransferSourceBuilder
             else if (Directory.Exists(full))
             {
                 var rootName = MakeUniqueRootName(new DirectoryInfo(full).Name, usedRelativePaths);
-                foreach (var file in Directory.EnumerateFiles(full, "*", SearchOption.AllDirectories))
+                foreach (var file in TransferSourceEnumerator.EnumerateFiles(
+                             full,
+                             ProtocolConstants.MaxBatchFiles,
+                             MaxDirectoriesPerBatchSource))
                 {
                     ct.ThrowIfCancellationRequested();
                     var relative = Path.Combine(rootName, Path.GetRelativePath(full, file)).Replace('\\', '/');
@@ -78,7 +82,10 @@ public static class BatchTransferSourceBuilder
     {
         EnsureCount(pending.Count + 1);
         var info = new FileInfo(path);
+        info.Refresh();
         if (!info.Exists) throw new FileNotFoundException("Transfer source does not exist.", path);
+        if ((info.Attributes & FileAttributes.ReparsePoint) != 0 || info.LinkTarget is not null)
+            throw new InvalidDataException("Transfer source files cannot be symbolic links or reparse points.");
         if (info.Length < 0 || info.Length > ProtocolConstants.MaxSingleFileBytes)
             throw new InvalidDataException("A file exceeds the SwiftDrop per-file safety limit.");
 
