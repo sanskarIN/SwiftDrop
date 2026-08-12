@@ -30,7 +30,9 @@ public static class PairingCodec
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(text);
         if (text.Length > MaxLinkLength) throw new FormatException("SwiftDrop pairing link is too large.");
-        if (!Uri.TryCreate(text.Trim(), UriKind.Absolute, out var uri) ||
+        if (!string.Equals(text, text.Trim(), StringComparison.Ordinal))
+            throw new FormatException("SwiftDrop pairing link cannot contain surrounding whitespace.");
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri) ||
             !string.Equals(uri.Scheme, "swiftdrop", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(uri.Host, "pair", StringComparison.OrdinalIgnoreCase) ||
             !uri.IsDefaultPort ||
