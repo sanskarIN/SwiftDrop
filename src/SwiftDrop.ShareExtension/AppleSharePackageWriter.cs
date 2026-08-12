@@ -125,11 +125,9 @@ internal static class AppleSharePackageWriter
         var key = FileNameSanitizer.GetPortableCollisionKey(safeName);
         if (collisionKeys.Add(key)) return safeName;
 
-        var stem = Path.GetFileNameWithoutExtension(safeName);
-        var extension = Path.GetExtension(safeName);
         for (var index = 1; index < 10_000; index++)
         {
-            var candidate = FileNameSanitizer.SanitizeSegment($"{stem} ({index}){extension}");
+            var candidate = FileNameSanitizer.CreateCollisionSegment(safeName, index);
             key = FileNameSanitizer.GetPortableCollisionKey(candidate);
             if (collisionKeys.Add(key)) return candidate;
         }
