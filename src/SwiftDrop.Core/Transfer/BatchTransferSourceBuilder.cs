@@ -8,6 +8,7 @@ public static class BatchTransferSourceBuilder
 {
     public const int MaxFilesPerBatch = ProtocolConstants.MaxBatchFiles;
     private const int MaxDirectoriesPerBatchSource = ProtocolConstants.MaxBatchFiles * 2;
+    private static readonly StringComparer PortablePathComparer = StringComparer.OrdinalIgnoreCase;
 
     public static Task<BatchTransferSource> BuildAsync(
         IEnumerable<string> paths,
@@ -22,7 +23,7 @@ public static class BatchTransferSourceBuilder
         ArgumentNullException.ThrowIfNull(paths);
         transferId = IncomingRequestPolicy.ValidateTransferId(transferId);
         var pending = new List<PendingFile>();
-        var usedRelativePaths = new HashSet<string>(StringComparer.Ordinal);
+        var usedRelativePaths = new HashSet<string>(PortablePathComparer);
         long totalBytes = 0;
 
         foreach (var input in paths)
@@ -32,8 +33,7 @@ public static class BatchTransferSourceBuilder
             var full = Path.GetFullPath(input);
             if (File.Exists(full))
             {
-                var relative = MakeUniqueRelativePath(Path.GetFileName(full), usedRelativePaths);
-                AddPendingFile(pending, full, relative, usedRelativePaths, ref totalBytes);
+                AddPendingFile(pending, full, Path.GetFileName(full), usedRelativePaths, ref totalBytes);
             }
             else if (Directory.Exists(full))
             {
@@ -46,7 +46,6 @@ public static class BatchTransferSourceBuilder
                 {
                     ct.ThrowIfCancellationRequested();
                     var relative = Path.Combine(rootName, Path.GetRelativePath(rootDirectory.FullName, file)).Replace('\\', '/');
-                    relative = MakeUniqueRelativePath(relative, usedRelativePaths);
                     AddPendingFile(pending, file, relative, usedRelativePaths, ref totalBytes);
                 }
             }
@@ -71,6 +70,7 @@ public static class BatchTransferSourceBuilder
             items.Add(new FileTransferSource(source.LocalPath, entry));
         }
 
+        _ = BatchManifestValidator.Validate(items.Select(item => item.Entry).ToArray(), totalBytes);
         return new BatchTransferSource(transferId, items, totalBytes);
     }
 
@@ -102,32 +102,39 @@ public static class BatchTransferSourceBuilder
     private static string MakeUniqueRootName(string rootName, ISet<string> usedRelativePaths)
     {
         var normalized = FileNameSanitizer.SanitizeRelativePath(rootName.Replace('\\', '/').Trim('/'));
-        if (string.IsNullOrWhiteSpace(normalized)) normalized = "Folder";
-        if (!usedRelativePaths.Any(path => string.Equals(path, normalized, StringComparison.Ordinal) || path.StartsWith(normalized + "/", StringComparison.Ordinal)))
-            return normalized;
+        if (!RootCollides(normalized, usedRelativePaths)) return normalized;
 
         for (var i = 2; i <= 9999; i++)
         {
-            var candidate = $"{normalized} ({i})";
-            if (!usedRelativePaths.Any(path => string.Equals(path, candidate, StringComparison.Ordinal) || path.StartsWith(candidate + "/", StringComparison.Ordinal)))
-                return candidate;
+            var candidate = FileNameSanitizer.SanitizeSegment($"{normalized} ({i})");
+            if (!RootCollides(candidate, usedRelativePaths)) return candidate;
         }
 
         throw new IOException("Could not create a unique folder name for the batch.");
     }
 
+    private static bool RootCollides(string rootName, IEnumerable<string> usedRelativePaths)
+    {
+        var prefix = rootName + Path.DirectorySeparatorChar;
+        var altPrefix = rootName + '/';
+        return usedRelativePaths.Any(path =>
+            PortablePathComparer.Equals(path, rootName) ||
+            path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(altPrefix, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static string MakeUniqueRelativePath(string relativePath, ISet<string> usedRelativePaths)
     {
-        var normalized = relativePath.Replace('\\', '/');
+        var normalized = FileNameSanitizer.SanitizeRelativePath(relativePath);
         if (!usedRelativePaths.Contains(normalized)) return normalized;
 
-        var directory = Path.GetDirectoryName(normalized)?.Replace('\\', '/');
+        var directory = Path.GetDirectoryName(normalized);
         var fileName = Path.GetFileNameWithoutExtension(normalized);
         var extension = Path.GetExtension(normalized);
         for (var i = 2; i <= 9999; i++)
         {
-            var renamed = $"{fileName} ({i}){extension}";
-            var candidate = string.IsNullOrWhiteSpace(directory) ? renamed : $"{directory}/{renamed}";
+            var renamed = FileNameSanitizer.SanitizeSegment($"{fileName} ({i}){extension}");
+            var candidate = string.IsNullOrWhiteSpace(directory) ? renamed : Path.Combine(directory, renamed);
             if (!usedRelativePaths.Contains(candidate)) return candidate;
         }
 
