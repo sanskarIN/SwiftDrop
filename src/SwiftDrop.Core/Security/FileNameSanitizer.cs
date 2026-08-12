@@ -51,6 +51,25 @@ public static class FileNameSanitizer
         return string.IsNullOrWhiteSpace(result) ? "unnamed" : result;
     }
 
+    public static string CreateCollisionSegment(string segment, int index)
+    {
+        if (index is < 1 or > 9999) throw new ArgumentOutOfRangeException(nameof(index));
+        var safe = SanitizeSegment(segment);
+        var extension = Path.GetExtension(safe);
+        var stem = Path.GetFileNameWithoutExtension(safe);
+        var suffix = $" ({index})";
+        var conventional = $"{stem}{suffix}{extension}";
+
+        if (conventional.Length <= MaximumSegmentLength &&
+            Encoding.UTF8.GetByteCount(conventional) <= MaximumSegmentUtf8Bytes)
+        {
+            return SanitizeSegment(conventional);
+        }
+
+        // Prefix fallback keeps the uniqueness token at the beginning, where bounded truncation cannot discard it.
+        return SanitizeSegment($"({index}) {safe}");
+    }
+
     private static string BoundSegmentUtf16(string value, int maximumLength)
     {
         if (value.Length <= maximumLength) return value;
