@@ -7,6 +7,7 @@ using SwiftDrop.App.Services;
 using SwiftDrop.Core.Protocol;
 using SwiftDrop.Core.Security;
 using SwiftDrop.Core.Storage;
+using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.App;
 
@@ -63,9 +64,15 @@ public class MainActivity : MauiAppCompatActivity
             var text = intent.GetStringExtra(Intent.ExtraText);
             var uris = CollectSharedUris(intent);
             var stagedPaths = new List<string>(Math.Min(uris.Count, ProtocolConstants.MaxBatchFiles));
+            var stagingBudget = new TransferStagingBudget(
+                ProtocolConstants.MaxBatchFiles,
+                ProtocolConstants.MaxBatchBytes,
+                ProtocolConstants.MaxSingleFileBytes);
+
             foreach (var uri in uris.Take(ProtocolConstants.MaxBatchFiles))
             {
-                var staged = await StageSharedUriAsync(uri);
+                if (stagingBudget.RemainingFiles == 0 || stagingBudget.MaximumBytesForNextFile == 0) break;
+                var staged = await StageSharedUriAsync(uri, stagingBudget);
                 if (staged is not null) stagedPaths.Add(staged);
             }
 
@@ -113,13 +120,15 @@ public class MainActivity : MauiAppCompatActivity
         return uris;
     }
 
-    private async Task<string?> StageSharedUriAsync(Android.Net.Uri uri)
+    private async Task<string?> StageSharedUriAsync(Android.Net.Uri uri, TransferStagingBudget stagingBudget)
     {
         string? path = null;
         try
         {
             var metadata = GetMetadata(uri);
-            if (metadata.DeclaredLength is < 0 or > ProtocolConstants.MaxSingleFileBytes)
+            if (metadata.DeclaredLength is long declaredLength)
+                stagingBudget.EnsureCanStage(declaredLength);
+            else if (stagingBudget.MaximumBytesForNextFile == 0)
                 return null;
 
             using var input = ContentResolver?.OpenInputStream(uri);
@@ -140,14 +149,15 @@ public class MainActivity : MauiAppCompatActivity
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
 
             var buffer = new byte[BufferSize];
+            var maximumBytes = stagingBudget.MaximumBytesForNextFile;
             long total = 0;
             while (true)
             {
                 var read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length));
                 if (read == 0) break;
                 total = checked(total + read);
-                if (total > ProtocolConstants.MaxSingleFileBytes)
-                    throw new InvalidDataException("Shared Android item exceeds SwiftDrop file limits.");
+                if (total > maximumBytes)
+                    throw new InvalidDataException("Shared Android item exceeds SwiftDrop staging limits.");
                 await output.WriteAsync(buffer.AsMemory(0, read));
             }
             await output.FlushAsync();
@@ -157,6 +167,7 @@ public class MainActivity : MauiAppCompatActivity
             if (new FileInfo(path).Length != total)
                 throw new IOException("Shared Android staging length mismatch.");
 
+            stagingBudget.Commit(total);
             var completed = path;
             path = null;
             return completed;
