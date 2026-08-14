@@ -12,8 +12,14 @@
     <ApplicationVersion>1</ApplicationVersion>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <CodesignEntitlements>Platforms/iOS/Entitlements.plist</CodesignEntitlements>
+    <CodesignConfigureDependsOn>$(CodesignConfigureDependsOn);DisableCodesignInSimulator</CodesignConfigureDependsOn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SwiftDrop.Core/SwiftDrop.Core.csproj" />
   </ItemGroup>
+  <Target Name="DisableCodesignInSimulator" Condition="'$(SdkIsSimulator)' == 'true'">
+    <PropertyGroup>
+      <EnableCodeSigning>false</EnableCodeSigning>
+    </PropertyGroup>
+  </Target>
 </Project>
