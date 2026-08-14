@@ -1,0 +1,56 @@
+name: One-time final Windows SQLite sync
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-time-final-windows-sqlite-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Synchronize final Windows and SQLite evidence
+        run: python3 scripts/final_windows_sqlite_sync.py
+      - name: Configure commit identity
+        run: |
+          git config user.name 'Sanskar'
+          git config user.email 'sanskarin@outlook.in'
+      - name: Commit README evidence
+        run: |
+          if ! git diff --quiet -- README.md; then
+            git add README.md
+            git commit -s -m 'docs(readme): surface two-OS storage verification'
+          fi
+      - name: Commit project status evidence
+        run: |
+          if ! git diff --quiet -- PROJECT_STATUS.md; then
+            git add PROJECT_STATUS.md
+            git commit -s -m 'docs(status): record Windows SQLite hardening'
+          fi
+      - name: Commit remaining-work roadmap
+        run: |
+          if ! git diff --quiet -- NEXT_STEPS.md; then
+            git add NEXT_STEPS.md
+            git commit -s -m 'docs(roadmap): close SQLite source hardening'
+          fi
+      - name: Commit changelog evidence
+        run: |
+          if ! git diff --quiet -- CHANGELOG.md; then
+            git add CHANGELOG.md
+            git commit -s -m 'docs(changelog): record Windows SQLite fixes'
+          fi
+      - name: Commit engineering ledger
+        run: |
+          if ! git diff --quiet -- what_changed.md; then
+            git add what_changed.md
+            git commit -s -m 'docs(ledger): append Windows SQLite evidence'
+          fi
+      - name: Push focused documentation commits
+        run: git push origin HEAD:main
