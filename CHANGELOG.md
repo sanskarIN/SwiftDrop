@@ -3,6 +3,14 @@
 ## Unreleased - 2026-08-14
 
 
+### Documentation enforcement, community workflow, and dependency completion
+
+- Added a permanent documentation integrity validator and integrated it into regular CI, Linux/macOS and Windows portable verification, and the canonical release-readiness verification path.
+- Added a technical glossary and made it part of the required/indexed documentation contract.
+- Strengthened pull-request, bug-report, feature-request, and issue-contact templates around reproducibility, security/privacy, compatibility, dependencies/licenses, accessibility/localization, documentation, and signed-device/manual validation.
+- Updated QRCoder 1.6.0 -> 1.8.0, synchronized third-party notices, and revalidated Core CI, CodeQL, security hygiene, Android, Windows, Mac Catalyst, iOS Share Extension, and iOS containing-app hosted compilation.
+- Closed the superseded QRCoder Dependabot PR after the signed direct-to-main update passed; the final queue check found no open pull requests or issues.
+
 ### Complete documentation and contributor/support reference
 
 - Added `docs/README.md` as the canonical documentation index.
