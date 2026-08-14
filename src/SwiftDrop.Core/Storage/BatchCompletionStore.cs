@@ -30,7 +30,7 @@ public sealed class BatchCompletionStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO completed_batch_items(
                 transfer_id, source_relative_path, receive_root_key,
@@ -62,7 +62,7 @@ public sealed class BatchCompletionStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT destination_relative_path,length,sha256,completed_utc
             FROM completed_batch_items
@@ -103,7 +103,7 @@ public sealed class BatchCompletionStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             DELETE FROM completed_batch_items
             WHERE transfer_id=$transfer AND source_relative_path=$source AND receive_root_key=$root;
@@ -120,7 +120,7 @@ public sealed class BatchCompletionStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             DELETE FROM completed_batch_items WHERE completed_utc < $cutoff;
             DELETE FROM completed_batch_items
