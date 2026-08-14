@@ -1,14 +1,18 @@
 # Architecture
 
-SwiftDrop separates platform/UI interaction from reusable transfer, protocol, security, path, integrity, and metadata policy. Platform APIs remain in application/extension projects; reusable protocol/security/storage logic lives in `SwiftDrop.Core`.
+Updated: 2026-08-14
+
+SwiftDrop separates platform/UI interaction from reusable transfer, protocol, security, path, integrity, staging, and metadata policy. Platform APIs remain in application/extension projects; reusable protocol/security/storage logic lives in `SwiftDrop.Core`.
 
 ## Projects
 
-- `src/SwiftDrop.App` — .NET MAUI containing app: UI, platform manifests/entitlements, secure device identity integration, receiver lifecycle, pickers, Android share intake, Windows/Mac native drop, App Group import, application services, and view models.
-- `src/SwiftDrop.Core` — protocol models/factories/validators/authorization, pairing, certificate/fingerprint policy, TLS client/server, discovery, strict framed JSON, transfer engine, hashing, resume policy, path/collision/reparse safety, SQLite schema/storage, and portable security rules.
-- `src/SwiftDrop.ShareExtension` — iOS/Mac Catalyst Share Extension. It has no MAUI UI dependency and references `SwiftDrop.Core` for limits/sanitation/package validation policy. It stages user-selected content into the Apple App Group; it never performs a peer transfer automatically.
+- `src/SwiftDrop.App` — .NET MAUI containing app: UI, platform manifests/entitlements, secure device identity integration, receiver lifecycle, pickers, Android share intake, Windows/Mac native drop, Apple App Group import, application services, and view models. Product targets are Android, iOS, Mac Catalyst, and Windows.
+- `src/SwiftDrop.Core` — protocol models/factories/validators/authorization, pairing, certificate/fingerprint policy, TLS client/server, discovery, strict framed JSON, transfer engine, hashing, resume policy, path/collision/reparse safety, SQLite schema/storage, external-staging budget policy, source safety, and portable security rules.
+- `src/SwiftDrop.ShareExtension` — dedicated **iOS-only** `net10.0-ios` Share Extension. It has no MAUI UI dependency and references `SwiftDrop.Core` for limits/sanitation/package validation policy. It stages user-selected content into the Apple App Group and never performs a peer transfer automatically.
 - `tests/SwiftDrop.Core.Tests` — portable protocol/storage/security/transfer/TLS/migration/fuzz/boundary tests.
 - `benchmarks/SwiftDrop.Benchmarks` — synthetic bounded benchmark harness using generated temporary data only.
+
+Mac Catalyst external intake is implemented by the containing desktop app and native `UIDropInteraction`; there is no maintained Mac Catalyst Share Extension target.
 
 Canonical solution: `SwiftDrop.slnx`.
 
@@ -55,7 +59,7 @@ Important app-layer services include:
 - `DiagnosticLogService` — bounded privacy-aware diagnostics.
 - `ReceiveLocationService` — platform-aware receive-root selection.
 - `TransferNotificationService` — optional generic completion/failure notification behavior where implemented.
-- `AppleShareContainerImporter` — strict App Group package import on Apple targets.
+- `AppleShareContainerImporter` — strict App Group package import on Apple targets where pending iOS Share Extension packages can be surfaced to the containing app.
 
 ## Shared typed application protocol
 
@@ -74,7 +78,7 @@ Core protocol policy is split deliberately:
 - `ProtocolSessionAuthorizer` validates and atomically consumes transfer authorization.
 - `IncomingRequestPolicy` contains shared identity/nonce/code/transfer-ID/item-order rules.
 - `TransferResponsePolicy` validates resume/completion/text acknowledgement offsets.
-- `FrameProtocol` enforces bounded length, strict JSON, duplicate-property rejection, unknown-member rejection, truncation handling, cancellation, and idle timeouts.
+- `FrameProtocol` enforces bounded length, strict UTF-8/JSON, duplicate-property rejection, unknown-member rejection, truncation handling, cancellation, and idle timeouts.
 
 This structure allows full application conversation tests without loading MAUI.
 
@@ -83,15 +87,15 @@ This structure allows full application conversation tests without loading MAUI.
 For file/batch/text requests:
 
 1. TLS session is accepted.
-2. a bounded typed request frame is read;
-3. request schema/type/metadata is validated;
-4. authenticated TLS client certificate must exist;
-5. sender fingerprint is derived from that authenticated certificate;
-6. one-time transfer nonce is consumed;
-7. receiver consent/trust policy is evaluated;
-8. transfer plan/data path begins.
+2. A bounded typed request frame is read.
+3. Request schema/type/metadata, including canonical file paths, is validated.
+4. Authenticated TLS client certificate must exist.
+5. Sender fingerprint is derived from that authenticated certificate.
+6. One-time transfer nonce is consumed.
+7. Receiver consent/trust policy is evaluated.
+8. Transfer plan/data path begins.
 
-Malformed requests and missing sender certificates do not consume authorization. Reused nonces are rejected.
+Malformed requests, noncanonical manifest paths, and missing sender certificates do not consume authorization. Reused nonces are rejected.
 
 Pair requests follow separate sender-certificate rate limiting, optional one-time code, receiver approval, and pairing-response flow; they do not consume file-transfer nonces.
 
@@ -99,29 +103,31 @@ Pair requests follow separate sender-certificate rate limiting, optional one-tim
 
 ## Single-file transfer flow
 
-1. Sender builds/validates a manifest with canonical name/path, length, timestamp, and SHA-256.
-2. Sender creates a typed `file` request.
-3. Receiver validates/authorizes/gets consent.
-4. Receiver reserves a collision-safe destination and preflights storage.
-5. Receiver negotiates a bounded partial-file resume offset.
-6. Sender streams exactly the remaining manifest bytes.
-7. Receiver stages to `.swiftdrop.part` in bounded chunks.
-8. Receive-root confinement/reparse checks are repeated around directory creation/staging/promotion.
-9. Receiver computes SHA-256 of complete staging and compares in constant time.
-10. Staging is promoted with non-overwrite semantics only after successful integrity verification.
+1. Sender validates the selected source as a regular non-link/non-reparse file.
+2. Sender builds/validates a manifest with canonical name/path, length, timestamp, and SHA-256.
+3. Sender creates a typed `file` request.
+4. Receiver validates/authorizes/gets consent.
+5. Receiver reserves a collision-safe destination and preflights storage.
+6. Receiver negotiates a bounded partial-file resume offset.
+7. Sender revalidates the regular source at the stream-open boundary and streams exactly the remaining manifest bytes.
+8. Receiver stages to `.swiftdrop.part` in bounded chunks.
+9. Receive-root confinement/reparse checks are repeated around directory creation/staging/promotion.
+10. Receiver computes SHA-256 of complete staging and compares in constant time.
+11. Staging is promoted with non-overwrite semantics only after successful integrity verification.
+12. Optional final timestamp metadata is best-effort after verified promotion and cannot turn verified content into a false transfer failure.
 
 ## Batch transfer and idempotent resume
 
 A new explicit batch gets a random stable `transferId`. Pause/failure retains that ID; resume/retry reuses it with **fresh pairing authorization**.
 
-The sender rebuilds the source manifest from the current sources using the same transfer ID. The receiver can negotiate per-file partial offsets.
+The sender rebuilds the source manifest from the current regular/link-safe sources using the same transfer ID. Folder traversal is explicit, bounded, link-safe, deterministic, and canonicalizes protocol relative paths to `/`. Portable case/Unicode/sanitation collisions are deconflicted before hashing. The receiver can negotiate per-file partial offsets.
 
 ### Completed-file resume state
 
 SQLite schema v3 contains `completed_batch_items`. After an item is fully verified/finalized, receiver records metadata **before** sending that item's completion acknowledgement:
 
 - stable transfer ID;
-- source relative path;
+- canonical source relative path;
 - SHA-256 identity key of normalized receive root;
 - effective destination relative path;
 - length/hash;
@@ -138,22 +144,27 @@ This is not authorization. On retry, `BatchCompletionVerifier` requires:
 - destination exists at expected length;
 - fresh SHA-256 matches.
 
-Only then can the receiver offer `ResumeOffset == Length`. Sender still emits the normal `BatchItemStart`; zero raw payload bytes are needed; receiver sends the normal full-length item acknowledgement. If verification fails, stale metadata is removed and the item follows normal transfer/collision behavior.
+Only then can the receiver offer `ResumeOffset == Length`. Sender still emits the normal `BatchItemStart`; zero raw payload bytes are needed. **Immediately before** the zero-byte completion acknowledgement, the receiver verifies the completed destination again. Mutation/removal/reparse/root/hash mismatch during the retry-plan-to-ACK interval therefore fails closed.
 
 A brand-new user send receives a new transfer ID, preserving intentional duplicate-send collision semantics.
 
 Resume metadata persistence is best-effort. Failure of that optimization does not change the success of an already verified file transfer.
 
-## Filesystem safety
+## Canonical path and filesystem safety
 
 Core owns portable path policy:
 
+- `/` is the only protocol manifest separator;
 - rooted path rejection, including Windows drive/UNC/device syntax on non-Windows hosts;
-- `/` and `\\` traversal separator normalization;
+- empty/repeated/trailing separator rejection;
 - `.` / `..` rejection;
-- Unicode Form-C filename normalization;
-- invalid/control-character sanitation;
+- maximum 64 relative-path segments;
+- incoming manifest path must already equal SwiftDrop's canonical sanitized representation before authorization;
+- Unicode Form-C filename normalization during canonical source construction;
+- invalid/control-character sanitation for locally constructed filenames;
 - Windows reserved-device neutralization;
+- filename segments bounded by UTF-16 code units and UTF-8 bytes;
+- collision names retain bounded unique markers even at the segment limit;
 - batch collision checks after portable normalization;
 - receive-root lexical confinement;
 - existing receive-root symlink/reparse component rejection;
@@ -166,25 +177,31 @@ Core owns portable path policy:
 
 All platform intake paths end at `ExternalInputInbox`, and no external input automatically sends.
 
+Core `TransferStagingBudget` centralizes staged file-count, per-file, aggregate-byte, and commit-after-success accounting for Android shares, the iOS Share Extension, and Mac native drop.
+
 ### Android
 
-`MainActivity` accepts Android share intents, stages content URIs into bounded cache with provider-length/runtime-byte/capacity checks and portable sanitation, then performs one atomic inbox handoff.
+`MainActivity` accepts Android share intents, stages content URIs into bounded per-share cache directories with provider-length/runtime-byte/capacity checks, shared staging-budget accounting, portable sanitation, exact staged-length validation, and cleanup on failure, then performs one atomic inbox handoff. Unknown/negative provider sizes are treated as unknown and runtime bytes are capped to remaining aggregate budget while storage reserve is rechecked during streaming.
 
 ### Windows
 
-WinUI protocol activation and native drag/drop provide explicit paths/text/pairing links to the inbox. Actual files/folders still go through normal source manifest/hash validation before send.
+WinUI protocol activation and native drag/drop provide explicit paths/text/pairing links to the inbox. Actual files/folders still go through normal regular-source/link-safe manifest/hash validation before send. WinUI activation/drag types and WinRT data-package operations are explicitly qualified to avoid namespace collisions.
+
+Focused hosted Windows compilation uses a single-TFM override and skips the iOS extension restore edge. It also uses `WindowsPackageType=None` so source/XAML/WinUI compilation is not conflated with signed MSIX packaging. Signed MSIX creation/install/update remains a separate release gate.
 
 ### Mac Catalyst drop
 
-A `UIDropInteraction` is attached to the MAUI native host view. File/folder representations are copied while security-scoped access is valid, with symlink rejection, count/aggregate bounds, capacity checks, and portable collision-safe staging.
+A `UIDropInteraction` is attached to the MAUI native host view. File/folder representations are copied while security-scoped access is valid, with symlink rejection, shared count/per-file/aggregate staging budget, bounded provider-response waits, capacity checks, and portable collision-safe staging.
 
-### Apple Share Extension
+### iOS Share Extension
 
 `SwiftDrop.ShareExtension` processes bounded provider representations, copies them while access is valid, validates a Core `ExternalSharePackageManifest`, and atomically moves a package from `.staging-*` to `pending-*` inside App Group:
 
 `group.in.sanskar.swiftdrop`
 
-The containing app later imports a package through `AppleShareContainerImporter`, using strict/unmapped-member-rejecting JSON validation, age/path/size/symlink checks, then re-stages accepted files into ordinary app cache before sending a single review-inbox event.
+Provider response waits are bounded; once a provider responds and a legitimate local copy starts, the response timer is not misused as a file-copy timeout. Extension-lifetime cancellation still bounds active work.
+
+The containing app later imports a package through `AppleShareContainerImporter`, using strict/unmapped-member-rejecting JSON validation, age/path/size/symlink checks, exact physical file-set validation, aggregate app-cache preflight, and app-cache re-staging before a single review-inbox event. One pending package is surfaced for review at a time; later packages are retained rather than silently merged/deleted.
 
 The Share Extension never receives SwiftDrop private keys or reusable transfer authorization and never starts a peer transfer.
 
@@ -204,7 +221,7 @@ See `docs/storage/database-schema.md`.
 
 ## Localization/accessibility
 
-English and Hindi use `.resx` catalogs. XAML resolves localized values through shared app text/localize infrastructure. Runtime strings used by major transfer/history/queue/devices/trust/diagnostics/settings/consent surfaces have catalog equivalents.
+English and Hindi use `.resx` catalogs. XAML resolves localized values through shared app text/localize infrastructure. `LocalizeExtension` is marked service-provider-independent for XAML compilation. Runtime strings used by major transfer/history/queue/devices/trust/diagnostics/settings/consent surfaces have catalog equivalents.
 
 CI validates:
 
@@ -218,20 +235,25 @@ Physical layout/screen-reader validation remains a release step.
 
 ## Build/release architecture
 
-Portable verification runs Core tests, localization validation, Apple App Group/Share Extension metadata validation, and benchmark compilation.
+The application currently uses .NET 10 with `Microsoft.Maui.Controls` 10.0.90. Portable verification runs Core tests, localization validation, Apple App Group/iOS Share Extension metadata validation, and benchmark compilation.
 
 Apple integration validation statically checks:
 
-- app/extension App Group consistency;
+- app/iOS extension App Group consistency;
 - bundle IDs and version/build parity;
-- sandbox/entitlements wiring;
+- iOS extension target and entitlements wiring;
+- Mac Catalyst containing-app sandbox/App Group wiring;
 - extension point/principal class/activation bounds;
-- project reference/`IsAppExtension` metadata;
+- iOS project reference/`IsAppExtension` metadata;
 - Core App Group constant;
 - canonical solution inclusion.
 
-Apple CI/release jobs explicitly build both Share Extension and containing app for Mac Catalyst and unsigned iOS Simulator targets.
+Apple CI builds the Mac Catalyst containing app, then performs certificate-independent iOS Simulator restore/build of the iOS Share Extension and containing app. The project files retain their real entitlements for signed/device builds.
+
+Android CI compiles the Release app target.
+
+Windows CI compiles a focused unpackaged Windows target; signed MSIX packaging remains release-validation evidence rather than a hosted source-compile claim.
 
 ## Verification boundary
 
-Source implementation is not production certification. Release readiness still requires observed successful CI on the exact candidate, signed package/extension installation, Apple App Group provisioning, physical peer/network/resume tests, accessibility/localization validation, dependency-license review, and store-policy checks.
+Source implementation and hosted compilation are not production certification. Release readiness still requires observed successful CI on the exact candidate, signed package/extension installation, Apple App Group provisioning, signed Windows MSIX validation, physical peer/network/provider/resume/filesystem tests, accessibility/localization validation, dependency-license review, and store-policy checks.
