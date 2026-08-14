@@ -18,7 +18,7 @@ public sealed class DiagnosticEventStore
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS diagnostic_events (
                 id TEXT PRIMARY KEY,
@@ -38,7 +38,7 @@ public sealed class DiagnosticEventStore
         Validate(entry);
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO diagnostic_events(id,timestamp_utc,level,code,message)
             VALUES($id,$timestamp,$level,$code,$message);
@@ -57,7 +57,7 @@ public sealed class DiagnosticEventStore
         var entries = new List<DiagnosticEvent>();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id,timestamp_utc,level,code,message
             FROM diagnostic_events
@@ -79,7 +79,7 @@ public sealed class DiagnosticEventStore
         if (maximumRows is < 10 or > 10000) throw new ArgumentOutOfRangeException(nameof(maximumRows));
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             DELETE FROM diagnostic_events WHERE timestamp_utc < $cutoff;
             DELETE FROM diagnostic_events
@@ -96,7 +96,7 @@ public sealed class DiagnosticEventStore
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM diagnostic_events;";
         await command.ExecuteNonQueryAsync(ct);
     }
