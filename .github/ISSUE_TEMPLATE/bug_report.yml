@@ -1,26 +1,75 @@
 name: Bug report
-description: Report a reproducible SwiftDrop defect
+description: Report a reproducible non-security SwiftDrop defect
 title: "[Bug]: "
 body:
   - type: markdown
     attributes:
-      value: "Do not include private files, pairing links, secrets, or vulnerability details. Security reports belong at sanskarin@outlook.in."
+      value: |
+        Do not include private files, pairing links/codes/capabilities, private keys, signing material, credentials, or vulnerability details.
+        Security-sensitive reports belong at sanskarin@outlook.in under SECURITY.md. For safe diagnostics, see docs/diagnostics-and-bug-reports.md.
   - type: input
-    id: platform
+    id: version
     attributes:
-      label: Platform and version
+      label: SwiftDrop version and exact commit
+      description: Include the published build/version and Git commit SHA when known.
+      placeholder: "1.0.0 / abcdef1234..."
     validations:
       required: true
   - type: input
-    id: commit
+    id: sender
     attributes:
-      label: SwiftDrop version or commit
+      label: Sender platform / OS / device
+      placeholder: "Android 16 / Pixel ..."
     validations:
       required: true
+  - type: input
+    id: receiver
+    attributes:
+      label: Receiver platform / OS / device
+      placeholder: "Windows 11 / ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Main affected area
+      options:
+        - Discovery / networking
+        - Pairing / identity / trust
+        - Single-file transfer
+        - Multi-file / folder batch
+        - Text transfer
+        - Pause / cancel / retry / resume
+        - Android share / notification / foreground service
+        - iOS Share Extension / App Group
+        - Mac Catalyst file or drag/drop intake
+        - Windows drag/drop / protocol / receive folder
+        - Settings / history / queue / diagnostics
+        - Accessibility / localization / UI
+        - Build / CI / packaging
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: network
+    attributes:
+      label: Network environment
+      description: For transfer/connectivity bugs, describe home LAN, guest Wi-Fi, hotspot, enterprise, VPN, firewall profile, etc. Redact sensitive network identifiers.
+      placeholder: "Home Wi-Fi, same LAN, no VPN"
+  - type: input
+    id: pairing
+    attributes:
+      label: Pairing method
+      placeholder: "Nearby discovery / QR / one-time code / manual local IP / not applicable"
   - type: textarea
     id: steps
     attributes:
       label: Reproduction steps
+      description: Use non-sensitive test data where possible and make the steps minimal/repeatable.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
     validations:
       required: true
   - type: textarea
@@ -32,6 +81,23 @@ body:
   - type: textarea
     id: actual
     attributes:
-      label: Actual behavior
+      label: Actual behavior and exact error
     validations:
       required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics
+      description: Paste only non-sensitive logs/errors. Do not include transferred contents, secrets, pairing capabilities/nonces, private keys, signing material, or unrelated personal data.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed private files, secrets, pairing capabilities/codes/nonces, credentials, signing material, and unnecessary personal data.
+          required: true
+        - label: This is not a vulnerability/security-sensitive disclosure; otherwise I will use SECURITY.md/private reporting.
+          required: true
