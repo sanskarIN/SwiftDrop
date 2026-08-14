@@ -43,7 +43,7 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnNewIntent(intent);
         if (intent is null) return;
-        SetIntent(intent);
+        Intent = intent;
         _ = ProcessExternalIntentAsync(intent);
     }
 
@@ -104,10 +104,10 @@ public class MainActivity : MauiAppCompatActivity
                 Add(clip.GetItemAt(i)?.Uri);
         }
 
-#pragma warning disable CS0618
+#pragma warning disable CS0618, CA1422
         Add(intent.GetParcelableExtra(Intent.ExtraStream) as Android.Net.Uri);
         var multiple = intent.GetParcelableArrayListExtra(Intent.ExtraStream);
-#pragma warning restore CS0618
+#pragma warning restore CS0618, CA1422
         if (multiple is not null)
         {
             foreach (var item in multiple)
@@ -123,6 +123,7 @@ public class MainActivity : MauiAppCompatActivity
     private async Task<string?> StageSharedUriAsync(Android.Net.Uri uri, TransferStagingBudget stagingBudget)
     {
         string? path = null;
+        string? stagingDirectory = null;
         try
         {
             var metadata = GetMetadata(uri);
@@ -135,9 +136,10 @@ public class MainActivity : MauiAppCompatActivity
             if (input is null) return null;
 
             var safeName = FileNameSanitizer.SanitizeSegment(metadata.DisplayName);
-            var directory = Path.Combine(FileSystem.CacheDirectory, "shared-input");
-            Directory.CreateDirectory(directory);
-            path = Path.Combine(directory, $"{Guid.NewGuid():N}-{safeName}");
+            var root = Path.Combine(FileSystem.CacheDirectory, "shared-input");
+            stagingDirectory = Path.Combine(root, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(stagingDirectory);
+            path = Path.Combine(stagingDirectory, safeName);
             StorageCapacityGuard.EnsureCapacity(path, metadata.DeclaredLength ?? 0);
 
             await using var output = new FileStream(
@@ -172,11 +174,13 @@ public class MainActivity : MauiAppCompatActivity
             stagingBudget.Commit(total);
             var completed = path;
             path = null;
+            stagingDirectory = null;
             return completed;
         }
         catch
         {
             if (!string.IsNullOrWhiteSpace(path)) DeleteBestEffort(path);
+            if (!string.IsNullOrWhiteSpace(stagingDirectory)) DeleteDirectoryBestEffort(stagingDirectory);
             return null;
         }
     }
@@ -188,14 +192,14 @@ public class MainActivity : MauiAppCompatActivity
         {
             using var cursor = ContentResolver?.Query(
                 uri,
-                new[] { OpenableColumns.DisplayName, OpenableColumns.Size },
+                new[] { IOpenableColumns.DisplayName, IOpenableColumns.Size },
                 null,
                 null,
                 null);
             if (cursor is not null && cursor.MoveToFirst())
             {
-                var displayIndex = cursor.GetColumnIndex(OpenableColumns.DisplayName);
-                var sizeIndex = cursor.GetColumnIndex(OpenableColumns.Size);
+                var displayIndex = cursor.GetColumnIndex(IOpenableColumns.DisplayName);
+                var sizeIndex = cursor.GetColumnIndex(IOpenableColumns.Size);
                 var displayName = displayIndex >= 0 && !cursor.IsNull(displayIndex)
                     ? cursor.GetString(displayIndex)
                     : fallback;
@@ -219,6 +223,17 @@ public class MainActivity : MauiAppCompatActivity
         try
         {
             if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+        }
+    }
+
+    private static void DeleteDirectoryBestEffort(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
         }
         catch
         {
