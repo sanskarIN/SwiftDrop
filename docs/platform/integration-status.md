@@ -1,6 +1,6 @@
 # Platform Integration Status
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 
 This document describes source-level integration currently present in SwiftDrop. It does not replace signed package, store, provider, network, or physical-device validation.
 
@@ -26,6 +26,7 @@ Implemented in source:
 - Optional generic completion/failure notifications where supported/configured.
 - No broad legacy storage permission for ordinary picker/share flows.
 - Application backup disabled for SwiftDrop app-local metadata.
+- Hosted Release compilation is part of the maintained platform gate.
 
 Validation still required:
 
@@ -48,7 +49,7 @@ Implemented in source:
 - Normal system file selection/document URL intake.
 - Containing-app App Group entitlement:
   `group.in.sanskar.swiftdrop`.
-- Dedicated `SwiftDrop.ShareExtension` target for files/images/movies/text/web URLs.
+- Dedicated **iOS-only** `SwiftDrop.ShareExtension` target for files/images/movies/text/web URLs.
 - Share Extension App Group entitlement matching the containing app.
 - Strict versioned App Group package manifest validated by `SwiftDrop.Core`.
 - Shared count/per-file/aggregate staging-budget policy.
@@ -68,6 +69,7 @@ Implemented in source:
 - Re-staging accepted package files into the app's normal bounded cache before review.
 - One pending package is surfaced for review at a time; later pending packages are not silently merged/deleted.
 - No automatic send after extension import.
+- Hosted iOS simulator restore/build is configured to be certificate-independent at CI command scope while real project entitlements remain present for signed/device builds.
 
 Conservative lifecycle boundary:
 
@@ -98,8 +100,7 @@ Implemented in source:
 - MAUI file selection/document URL intake.
 - App sandbox entitlement.
 - Network client/server entitlements for local LAN transport.
-- Same App Group entitlement as the Apple Share Extension.
-- Dedicated Share Extension target for bounded file/text/URL handoff.
+- App Group entitlement shared with the Apple handoff model where configured.
 - Native `UIDropInteraction` on the main MAUI surface.
 - Finder files/folders, text, and pairing-link drop support.
 - Temporary security-scoped access during native staging.
@@ -109,13 +110,14 @@ Implemented in source:
 - Symlink/reparse rejection for dropped files/folders.
 - Portable filename sanitation plus bounded collision deconfliction for staged files/directories.
 - Common review-inbox handoff; no automatic transfer.
+- Mac Catalyst uses the containing desktop app/native-drop path; there is **no Mac Catalyst Share Extension target** in the maintained source tree.
+- Hosted Mac Catalyst Release compilation is part of the maintained Apple platform gate.
 
 Validation still required:
 
-- Signed sandbox/App Group entitlement acceptance.
+- Signed sandbox/App Group entitlement acceptance where used by the containing app.
 - Mac firewall prompts and inbound server behavior.
 - Bonjour discovery across supported macOS versions.
-- Share Extension embedding/activation under release signing.
 - Finder file/folder drops under release sandbox.
 - Real provider response timeout behavior.
 - Security-scoped URL behavior for external volumes/providers.
@@ -135,6 +137,8 @@ Implemented in source:
 - Direct local TLS transfer using the same Core protocol as other platforms.
 - Sender folder manifests are canonical `/` protocol paths even though local Windows paths use `\\`.
 - Direct selected/dropped file/folder sources still pass shared regular-source/link-safe source construction before send.
+- Focused CI target-matrix controls prevent the Windows compile job from traversing unrelated Android/iOS/Mac Catalyst workloads.
+- WinUI launch/drag event types are explicitly qualified to avoid MAUI/WinUI/legacy Windows namespace ambiguity.
 
 Validation still required:
 
@@ -180,16 +184,16 @@ Implemented consistently in shared code/services:
 - SHA-256 integrity verification.
 - Queue/history/diagnostics/resume metadata only; transfer contents excluded from SQLite.
 - UTF-8-byte-bounded external text intake.
-- Shared external staging budget used by Android share, Apple Share Extension, and Mac native drop.
+- Shared external staging budget used by Android share, iOS Share Extension, and Mac native drop.
 
 ## Source-complete vs release-validated
 
-The current master-prompt source scope includes the Apple Share Extension, Mac Catalyst native drop, stable batch resume, canonical cross-platform manifest paths, source-link safety, strict pairing representation, and external staging-budget controls. Those items are **implemented in source**, not yet **release-validated**.
+The current master-prompt source scope includes the iOS Share Extension, Mac Catalyst native drop, stable batch resume, canonical cross-platform manifest paths, source-link safety, strict pairing representation, and external staging-budget controls. Those items are **implemented in source**, not yet **release-validated**.
 
 A platform is release-validated only after:
 
 1. the exact candidate commit passes configured automated jobs;
-2. release workloads compile the app and any extension;
+2. release workloads compile the app and any applicable extension;
 3. real signing/provisioning/package identity succeeds;
 4. signed package install/upgrade works;
 5. provider/App Group/ContentResolver behavior works under real platform conditions;
