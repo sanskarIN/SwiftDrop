@@ -2,6 +2,16 @@
 
 ## Unreleased - 2026-08-14
 
+
+### Workflow/runtime and dependency-audit hardening
+
+- Upgraded maintained GitHub Actions to checkout v7, setup-dotnet v6, and CodeQL v4.
+- Made repository-wide direct/transitive NuGet auditing explicit at low-or-higher severity under warnings-as-errors.
+- Added machine-readable dependency/vulnerability JSON evidence to release readiness and continuously validate the vulnerable-package JSON command in portable CI.
+- Updated the .NET 10 test runner/tooling stack to Microsoft.NET.Test.Sdk 18.8.1, xunit.runner.visualstudio 3.1.5, and coverlet.collector 10.0.1.
+- Revalidated 511/511 Core tests, benchmark compilation, CodeQL, security hygiene, and the Android/Windows/Mac Catalyst/iOS Simulator compile matrix after the continuation hardening.
+- Synchronized third-party notices, release-audit instructions, and contributor guidance with the maintained `.slnx`, audit, and release-validation gates.
+
 ### Dependency and portable-gate recovery
 
 - Upgraded `Microsoft.Data.Sqlite` to 10.0.10 and pinned `SQLitePCLRaw.bundle_e_sqlite3` 2.1.12 so restore no longer selects the vulnerable `SQLitePCLRaw.lib.e_sqlite3` 2.1.11 dependency that was blocked by warnings-as-errors/security auditing.
