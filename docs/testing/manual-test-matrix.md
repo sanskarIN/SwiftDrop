@@ -1,6 +1,6 @@
 # SwiftDrop Manual Test Matrix
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 
 Use synthetic disposable test files only. Never use secrets or irreplaceable personal files while validating development/release candidates.
 
@@ -177,7 +177,9 @@ Use signed builds with real App Group provisioning.
 - Verify extension cancellation/dismissal does not continue indefinite staging.
 - Queue two pending valid packages before app activation; confirm one is presented for review and the later package is not silently merged/deleted.
 
-## Mac Catalyst native drop / Share Extension
+## Mac Catalyst native drop
+
+The maintained Mac Catalyst architecture uses the containing desktop app and native drop; it does not include a Mac Catalyst Share Extension target.
 
 - Drop one Finder file.
 - Drop multiple files.
@@ -192,8 +194,8 @@ Use signed builds with real App Group provisioning.
 - Delay native-drop provider file/text response beyond configured timeout; confirm bounded failure/cleanup.
 - Return provider before timeout but let copy continue longer; confirm response timer does not terminate valid active copy.
 - Confirm native drop integration detaches when main page is disposed.
-- Repeat Share Extension tests under Mac sandbox/App Group signing.
-- Verify Share Extension and native drop remain review-before-send surfaces.
+- Verify signed Mac Catalyst sandbox/App Group behavior used by the containing app.
+- Verify native drop remains a review-before-send surface.
 
 ## Windows native drop / picker
 
@@ -286,10 +288,10 @@ Every failure must be bounded, must not freeze UI thread, must not silently repl
 For each test set retain:
 
 - exact commit/tag;
-- app and extension version/build;
+- app and applicable iOS extension version/build;
 - signed package identifiers;
 - OS/device versions;
-- App Group/provisioning profile identifiers for Apple tests;
+- App Group/provisioning profile identifiers for iOS Share Extension tests;
 - network type;
 - synthetic file sizes/SHA-256;
 - pass/fail result;
