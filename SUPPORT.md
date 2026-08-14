@@ -17,13 +17,15 @@ For general product support, contact **supportramsandesh@gmail.com**.
 
 Contact **sanskarin@outlook.in**.
 
-## Support development
+## ☕ Support SwiftDrop on Buy Me a Coffee
 
-If you want to support continued open-source development of SwiftDrop, you can use:
+[![Buy Me a Coffee](src/SwiftDrop.App/Resources/Images/bmc_support.svg)](https://buymeacoffee.com/sanskarIN)
 
-https://buymeacoffee.com/sanskarIN
+**Buy Me a Coffee:** https://buymeacoffee.com/sanskarIN
 
-Support is optional. It does not unlock application features, priority support, privileged security handling, or access to user transfer data.
+If you want to support continued open-source development of SwiftDrop, use the highlighted logo or link above.
+
+Support is completely optional. It does not unlock application features, priority support, privileged security handling, or access to user transfer data.
 
 ## Security issues
 
