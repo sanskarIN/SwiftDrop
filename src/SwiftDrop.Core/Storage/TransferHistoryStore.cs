@@ -80,7 +80,7 @@ public sealed class TransferHistoryStore
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    public async Task PruneOlderThanAsync(DateTimeOffset cutoffUtc, CancellationToken ct = default)
+    public async Task<int> PruneBeforeAsync(DateTimeOffset cutoffUtc, CancellationToken ct = default)
     {
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
@@ -88,8 +88,11 @@ public sealed class TransferHistoryStore
         var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_history WHERE timestamp_utc < $cutoff;";
         command.Parameters.AddWithValue("$cutoff", cutoffUtc.UtcDateTime.ToString("O"));
-        await command.ExecuteNonQueryAsync(ct);
+        return await command.ExecuteNonQueryAsync(ct);
     }
+
+    public async Task PruneOlderThanAsync(DateTimeOffset cutoffUtc, CancellationToken ct = default)
+        => _ = await PruneBeforeAsync(cutoffUtc, ct);
 
     public async Task ClearAsync(CancellationToken ct = default)
     {
