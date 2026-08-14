@@ -293,7 +293,7 @@ Portable verification evidence for the August 14 source head:
 - Focused Windows Release compile is green on the same source head with `WindowsPackageType=None`/`GenerateAppxPackageOnBuild=false`, producing the Windows application assembly with 0 errors.
 - Windows CI uses `SwiftDropTargetFrameworksOverride` plus `SkipIosShareExtensionProjectReference` only for focused Windows validation so it does not traverse unrelated mobile workloads.
 - Signed MSIX creation/install/update remains a separate release gate and is not represented by the unpackaged compile job.
-- Apple jobs compile the Mac Catalyst containing app plus the iOS Simulator Share Extension and iOS containing app; an earlier repaired .NET 10 Apple run was fully green, and the current MAUI 10.0.90 Apple revalidation run remains in progress at the time of this status write.
+- Apple jobs compile the Mac Catalyst containing app plus the iOS Simulator Share Extension and iOS containing app; the maintained MAUI 10.0.90 platform run is fully green for Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app compilation.
 - Apple metadata validator checks App Group, app/extension IDs, versions, iOS extension target, entitlements, Mac sandbox, activation rule, project reference, Core constant, and solution inclusion.
 - Release-readiness captures the iOS Share Extension dependency inventory and mirrors the maintained platform compile boundaries.
 - Obsolete one-time self-edit workflows and the duplicate stale platform smoke workflow were removed.
