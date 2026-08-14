@@ -23,7 +23,7 @@ public sealed class TrustStore
     {
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
-        var cmd = db.CreateCommand();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = """
             CREATE TABLE IF NOT EXISTS trusted_peers(
                 device_id TEXT PRIMARY KEY,
@@ -42,7 +42,7 @@ public sealed class TrustStore
         var normalized = NormalizePeer(peer);
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
-        var cmd = db.CreateCommand();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = """
             INSERT INTO trusted_peers(device_id,device_name,fingerprint,trusted_utc,last_seen_utc)
             VALUES($id,$name,$fp,$trusted,$seen)
@@ -64,7 +64,7 @@ public sealed class TrustStore
         ValidateDeviceId(deviceId);
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
-        var cmd = db.CreateCommand();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = "SELECT device_name,fingerprint,trusted_utc,last_seen_utc FROM trusted_peers WHERE device_id=$id";
         cmd.Parameters.AddWithValue("$id", deviceId.Trim());
         await using var r = await cmd.ExecuteReaderAsync(ct);
@@ -77,7 +77,7 @@ public sealed class TrustStore
         var peers = new List<TrustedPeer>();
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
-        var cmd = db.CreateCommand();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = "SELECT device_id,device_name,fingerprint,trusted_utc,last_seen_utc FROM trusted_peers ORDER BY last_seen_utc DESC";
         await using var r = await cmd.ExecuteReaderAsync(ct);
         while (await r.ReadAsync(ct))
@@ -93,7 +93,7 @@ public sealed class TrustStore
         ValidateDeviceId(deviceId);
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
-        var cmd = db.CreateCommand();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = "DELETE FROM trusted_peers WHERE device_id=$id";
         cmd.Parameters.AddWithValue("$id", deviceId.Trim());
         await cmd.ExecuteNonQueryAsync(ct);
@@ -103,7 +103,7 @@ public sealed class TrustStore
     {
         await using var db = new SqliteConnection(_connectionString);
         await db.OpenAsync(ct);
-        var cmd = db.CreateCommand();
+        using var cmd = db.CreateCommand();
         cmd.CommandText = "DELETE FROM trusted_peers";
         await cmd.ExecuteNonQueryAsync(ct);
     }
