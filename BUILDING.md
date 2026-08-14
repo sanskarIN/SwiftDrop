@@ -1,5 +1,7 @@
 # Building SwiftDrop
 
+Updated: 2026-08-14
+
 SwiftDrop targets .NET 10 and .NET MAUI.
 
 ## Canonical solution
@@ -38,17 +40,25 @@ Windows PowerShell:
 These verify:
 
 - .NET environment;
+- Python validation-helper regression tests;
 - canonical documentation files and local Markdown link integrity;
 - English/Hindi localization catalogs and placeholder parity;
 - Apple App Group/iOS Share Extension project/entitlement/version invariants;
 - Core restore/build;
 - portable tests;
-- benchmark-project compilation.
+- benchmark-project compilation;
+- machine-readable Core direct/transitive vulnerable-package JSON using schema version 1;
+- explicit rejection of any vulnerability entries or malformed vulnerability-report structure.
 
-The documentation check can also be run independently:
+The Unix verifier uses a temporary audit file with automatic cleanup. The PowerShell verifier explicitly checks native-command exit codes so a nonzero `dotnet`/Python result cannot be mistaken for success merely because the host shell did not convert it into a terminating exception.
+
+Individual validation helpers can also be run directly:
 
 ```bash
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 python3 scripts/validate_documentation.py
+python3 scripts/validate_localization.py
+python3 scripts/validate_apple_integration.py
 ```
 
 ## Stable compiler policy
@@ -59,16 +69,40 @@ MAUI/Apple platform projects keep platform SDK availability/obsolete warnings vi
 
 ## Dependency security policy
 
-Repository-wide restore explicitly enables NuGet auditing for direct and transitive dependencies with `NuGetAudit=true`, `NuGetAuditMode=all`, and `NuGetAuditLevel=low`. Because warnings are treated as errors, a known low/moderate/high/critical NuGet vulnerability blocks normal verification rather than being silently accepted.
+Repository-wide restore explicitly enables NuGet auditing for direct and transitive dependencies with `NuGetAudit=true`, `NuGetAuditMode=all`, and `NuGetAuditLevel=low`. Because warnings are treated as errors, qualifying NuGet vulnerability audit warnings block normal verification rather than being silently accepted.
 
-For a machine-readable local dependency review with the .NET 10 SDK:
+Machine-readable evidence uses the .NET 10 package-list command with an explicit JSON schema version:
 
 ```bash
-dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --format json
-dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json
+dotnet package list \
+  --project src/SwiftDrop.Core/SwiftDrop.Core.csproj \
+  --include-transitive \
+  --format json \
+  --output-version 1 > core-packages.json
+
+dotnet package list \
+  --project src/SwiftDrop.Core/SwiftDrop.Core.csproj \
+  --include-transitive \
+  --vulnerable \
+  --format json \
+  --output-version 1 > core-vulnerabilities.json
+
+python3 scripts/validate_nuget_vulnerability_report.py core-vulnerabilities.json
 ```
 
-The release-readiness workflow captures equivalent JSON dependency and vulnerability reports for Core, tests, benchmarks, and the iOS Share Extension as release evidence. These reports supplement restore-time audit enforcement; they do not replace license/provenance review of the exact signed candidate.
+`validate_nuget_vulnerability_report.py` fails when the report contains vulnerability entries and also fails for malformed/unexpected report structure. A successfully generated JSON file is not treated as sufficient evidence by itself.
+
+## Dependency evidence manifests
+
+Audit bundles can be given a deterministic file manifest:
+
+```bash
+python3 scripts/create_dependency_evidence_manifest.py artifacts artifacts/manifest.json
+```
+
+The generated manifest records the relative path, exact byte count, and SHA-256 digest of each dependency-evidence JSON report under the selected root. It is an integrity aid for retained evidence, not a digital signature or proof that a separately built signed binary used the same graph.
+
+See `docs/release/dependency-evidence.md` for artifact names, target coverage, manifest schema, review steps, and evidence limitations.
 
 ## Android
 
@@ -77,6 +111,8 @@ dotnet workload install maui-android
 dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
 dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
 ```
+
+The maintained platform/release workflows additionally capture and validate the `net10.0-android` containing-app direct/transitive dependency graph and upload its package/vulnerability JSON plus hash manifest.
 
 Android production release still requires a private release keystore, signing configuration, AAB/APK generation, install/upgrade testing, and Play Console/store checks.
 
@@ -107,7 +143,9 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release `
   -p:GenerateAppxPackageOnBuild=false
 ```
 
-The override properties narrow this validation command to the Windows TFM; normal product builds still retain the full target matrix. `WindowsPackageType=None` and `GenerateAppxPackageOnBuild=false` intentionally validate source/XAML/WinUI compilation without claiming MSIX readiness. Production packaging requires the real signing certificate/package identity, signed MSIX generation, install/update validation, protocol activation, and capability checks.
+The override properties narrow this validation command to the Windows TFM; normal product builds still retain the full target matrix. `WindowsPackageType=None` and `GenerateAppxPackageOnBuild=false` intentionally validate source/XAML/WinUI compilation without claiming MSIX readiness.
+
+Maintained hosted validation also captures/validates the focused Windows target dependency graph and uploads its JSON reports plus SHA-256 evidence manifest. Production packaging still requires the real signing certificate/package identity, signed MSIX generation, install/update validation, protocol activation, capability checks, and final dependency review of the actual signed package.
 
 ## Apple prerequisites
 
@@ -150,6 +188,8 @@ dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=$RI
 dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore -p:RuntimeIdentifier=$RID
 ```
 
+Maintained hosted validation captures/validates Mac Catalyst containing-app dependency/vulnerability JSON as part of the Apple dependency evidence bundle.
+
 Mac Catalyst external intake uses the containing app's normal document/file flows and native `UIDropInteraction`. Release validation must confirm sandbox/network/App Group entitlements used by the containing app, native drop, signing, notarization, and store packaging.
 
 ## iOS Simulator app + Share Extension
@@ -169,7 +209,9 @@ dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=$RI
 dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier=$RID $COMMON_SIM_SIGNING
 ```
 
-Simulator compilation checks source/API compatibility only. Physical iOS devices, archives, TestFlight and App Store distribution require Apple signing, provisioning, App Group configuration and extension runtime validation.
+The maintained Apple job generates separate direct/transitive package and vulnerable-package JSON reports for the iOS containing app and iOS Share Extension, validates both vulnerable-package reports, and includes them with Mac Catalyst reports beneath one hashed Apple evidence manifest.
+
+Simulator compilation checks source/API compatibility only. Physical iOS devices, archives, TestFlight and App Store distribution require Apple signing, provisioning, App Group configuration, extension runtime validation, and final dependency comparison against the actual signed archive/package.
 
 ## Apple runtime validation
 
@@ -198,6 +240,7 @@ See `docs/testing/performance-benchmarks.md`.
 
 GitHub Actions is configured for:
 
+- validation-helper regression tests;
 - documentation integrity validation;
 - localization validation;
 - Apple integration metadata validation;
@@ -205,25 +248,27 @@ GitHub Actions is configured for:
 - benchmark compile;
 - CodeQL/security hygiene;
 - direct/transitive NuGet vulnerability auditing on restore;
-- Android app compile;
-- focused Windows app compile;
-- Mac Catalyst containing-app compile;
-- certificate-independent iOS Simulator Share Extension + containing-app compile;
-- machine-readable release dependency/vulnerability inventories, including the iOS Share Extension graph;
+- explicit machine-readable vulnerability-report finding validation;
+- Android app compile plus Android dependency evidence;
+- focused Windows app compile plus Windows dependency evidence;
+- Mac Catalyst containing-app compile plus Mac Catalyst dependency evidence;
+- certificate-independent iOS Simulator Share Extension + containing-app compile plus separate iOS app/extension dependency evidence;
+- deterministic SHA-256 manifests for retained dependency-report bundles;
+- release-readiness self-validation when its workflow/helper inputs change;
 - aggregate release-readiness gate.
 
 A configured workflow is not proof it passed. Confirm the exact release-candidate run before publishing.
 
 ## Release boundary
 
-Successful source compilation does not replace:
+Successful source compilation and dependency-audit evidence do not replace:
 
 - signed install/upgrade checks;
 - Apple App Group provisioning;
 - physical-device iOS Share Extension/native-drop behavior;
 - real peer-to-peer transfer/network/resume tests;
 - accessibility/localization validation;
-- exact release dependency/license review;
+- exact final signed-artifact dependency/license/provenance review;
 - store declarations/screenshots/metadata.
 
-Follow `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, and `docs/release/release-checklist.md`.
+Follow `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, `docs/release/release-checklist.md`, and `docs/release/dependency-evidence.md`.
