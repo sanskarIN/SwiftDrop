@@ -17,7 +17,7 @@ The solution contains:
 
 - `SwiftDrop.Core`;
 - `SwiftDrop.App`;
-- `SwiftDrop.ShareExtension`;
+- the iOS-only `SwiftDrop.ShareExtension`;
 - portable tests;
 - synthetic benchmarks.
 
@@ -39,7 +39,7 @@ These verify:
 
 - .NET environment;
 - English/Hindi localization catalogs and placeholder parity;
-- Apple App Group/Share Extension project/entitlement/version invariants;
+- Apple App Group/iOS Share Extension project/entitlement/version invariants;
 - Core restore/build;
 - portable tests;
 - benchmark-project compilation.
@@ -62,15 +62,28 @@ Android production release still requires a private release keystore, signing co
 
 ## Windows
 
-Run on Windows with current .NET MAUI Windows workload and Windows App SDK prerequisites:
+Run on Windows with the current .NET MAUI Windows workload and Windows App SDK prerequisites. For a focused Windows-only restore/build of this multi-target project, use the repository target-matrix override:
 
 ```powershell
 dotnet workload install maui-windows
-dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-windows10.0.19041.0
-dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-windows10.0.19041.0 -c Release --no-restore
+
+dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj `
+  -p:SwiftDropTargetFrameworksOverride=net10.0-windows10.0.19041.0 `
+  -p:TargetFramework=net10.0-windows10.0.19041.0 `
+  -p:RuntimeIdentifier=win-x64 `
+  -p:RuntimeIdentifierOverride=win-x64 `
+  -p:SkipIosShareExtensionProjectReference=true
+
+dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=win-x64
+
+dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release `
+  -p:SwiftDropTargetFrameworksOverride=net10.0-windows10.0.19041.0 `
+  -p:TargetFramework=net10.0-windows10.0.19041.0 `
+  -p:RuntimeIdentifierOverride=win-x64 `
+  -p:SkipIosShareExtensionProjectReference=true
 ```
 
-Production packaging requires the real signing certificate/package identity and install/update validation.
+The override properties narrow this validation command to the Windows TFM; normal product builds still retain the full target matrix. Production packaging requires the real signing certificate/package identity and install/update validation.
 
 ## Apple prerequisites
 
@@ -80,18 +93,18 @@ Run Apple builds on macOS with current Xcode and .NET MAUI iOS/Mac Catalyst work
 dotnet workload install maui-ios maui-maccatalyst
 ```
 
-SwiftDrop contains a dedicated Share Extension:
+SwiftDrop contains a dedicated **iOS-only** Share Extension:
 
 `src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj`
 
-The containing app and extension must share App Group:
+The iOS containing app and extension must share App Group:
 
 `group.in.sanskar.swiftdrop`
 
 Bundle IDs:
 
 - containing app: `in.sanskar.swiftdrop`;
-- Share Extension: `in.sanskar.swiftdrop.share`.
+- iOS Share Extension: `in.sanskar.swiftdrop.share`.
 
 The repository validator checks that source metadata stays synchronized:
 
@@ -99,48 +112,53 @@ The repository validator checks that source metadata stays synchronized:
 python3 scripts/validate_apple_integration.py
 ```
 
-That source check cannot create Apple Developer App Group capabilities or provisioning profiles. The real signing environment must configure the same App Group for both identifiers.
+That source check cannot create Apple Developer App Group capabilities or provisioning profiles. The real iOS signing environment must configure the same App Group for both identifiers.
 
-## Mac Catalyst app + Share Extension
+## Mac Catalyst containing app
+
+Select a Mac Catalyst RID matching the host and build the containing desktop app. There is no Mac Catalyst Share Extension target in the maintained architecture.
 
 ```bash
-dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:TargetFramework=net10.0-maccatalyst
-dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-maccatalyst -c Release --no-restore
+RID=maccatalyst-arm64   # use maccatalyst-x64 on x64 hosts
 
-dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
-dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
+dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst -p:RuntimeIdentifier=$RID
+dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=$RID
+dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore -p:RuntimeIdentifier=$RID
 ```
 
-The app project references the extension as `IsAppExtension=true`; build/package validation must confirm the extension is embedded in the signed app and the sandbox/App Group entitlements are accepted.
+Mac Catalyst external intake uses the containing app's normal document/file flows and native `UIDropInteraction`. Release validation must confirm sandbox/network/App Group entitlements used by the containing app, native drop, signing, notarization, and store packaging.
 
 ## iOS Simulator app + Share Extension
 
-Select the simulator RID matching the macOS runner:
+Select the simulator RID matching the macOS runner. Hosted CI deliberately clears signing/provisioning inputs only for simulator compilation; the project files retain their real entitlements for signed/device builds.
 
 ```bash
 RID=iossimulator-arm64   # use iossimulator-x64 on x64 hosts
 
-dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier=$RID
-dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier=$RID
+COMMON_SIM_SIGNING="-p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements="
 
-dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier=$RID
-dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier=$RID
+dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:RuntimeIdentifier=$RID $COMMON_SIM_SIGNING
+dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier=$RID $COMMON_SIM_SIGNING
+
+dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier=$RID $COMMON_SIM_SIGNING
+dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=$RID
+dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier=$RID $COMMON_SIM_SIGNING
 ```
 
-Unsigned simulator compilation checks source/API compatibility only. Physical iOS devices, archives, TestFlight and App Store distribution require Apple signing, provisioning, App Group configuration and extension runtime validation.
+Simulator compilation checks source/API compatibility only. Physical iOS devices, archives, TestFlight and App Store distribution require Apple signing, provisioning, App Group configuration and extension runtime validation.
 
-## Apple Share Extension runtime validation
+## Apple runtime validation
 
 Before a signed release verify:
 
-1. extension appears for its declared file/text/image/movie/web-URL activation types;
+1. the iOS Share Extension appears for its declared file/text/image/movie/web-URL activation types;
 2. provider representations stage while their access is valid;
-3. extension publishes only bounded validated packages;
-4. containing app imports packages on cold/warm activation;
+3. the extension publishes only bounded validated packages;
+4. the iOS containing app imports packages on cold/warm activation;
 5. imported content is shown for review and never automatically sent;
 6. stale/malformed/symlinked App Group packages are rejected/pruned;
-7. App Group works in iOS and Mac Catalyst release sandboxes;
-8. Mac native drag/drop remains independent of the Share Extension and works under sandbox rules.
+7. the App Group works in the signed iOS app/extension configuration;
+8. Mac Catalyst native drag/drop remains independent of the iOS Share Extension and works under signed sandbox rules.
 
 ## Synthetic performance harness
 
@@ -162,10 +180,10 @@ GitHub Actions is configured for:
 - benchmark compile;
 - CodeQL/security hygiene;
 - Android app compile;
-- Windows app compile;
-- Mac Catalyst **Share Extension + app** compile;
-- unsigned iOS Simulator **Share Extension + app** compile;
-- release dependency inventories, including both Apple extension frameworks;
+- focused Windows app compile;
+- Mac Catalyst containing-app compile;
+- certificate-independent iOS Simulator Share Extension + containing-app compile;
+- release dependency inventories, including the iOS Share Extension graph;
 - aggregate release-readiness gate.
 
 A configured workflow is not proof it passed. Confirm the exact release-candidate run before publishing.
@@ -176,7 +194,7 @@ Successful source compilation does not replace:
 
 - signed install/upgrade checks;
 - Apple App Group provisioning;
-- physical-device Share Extension/native-drop behavior;
+- physical-device iOS Share Extension/native-drop behavior;
 - real peer-to-peer transfer/network/resume tests;
 - accessibility/localization validation;
 - exact release dependency/license review;
