@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: security-hygiene-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   repository-hygiene:
     runs-on: ubuntu-latest
