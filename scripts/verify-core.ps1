@@ -4,15 +4,17 @@ Push-Location $repoRoot
 try {
     dotnet --info
     if (Get-Command python -ErrorAction SilentlyContinue) {
+        python scripts/validate_documentation.py
         python scripts/validate_localization.py
         python scripts/validate_apple_integration.py
     }
     elseif (Get-Command py -ErrorAction SilentlyContinue) {
+        py -3 scripts/validate_documentation.py
         py -3 scripts/validate_localization.py
         py -3 scripts/validate_apple_integration.py
     }
     else {
-        throw 'Python 3 is required to validate localization and Apple integration metadata.'
+        throw 'Python 3 is required to validate documentation, localization, and Apple integration metadata.'
     }
     dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
     dotnet restore tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj
