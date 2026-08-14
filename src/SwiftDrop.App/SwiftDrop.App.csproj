@@ -28,7 +28,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
   </ItemGroup>
-  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+  <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios' and '$(SkipIosShareExtensionProjectReference)' != 'true'">
     <ProjectReference Include="../SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj">
       <IsAppExtension>true</IsAppExtension>
     </ProjectReference>
