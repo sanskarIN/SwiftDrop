@@ -21,7 +21,7 @@ public static class FileNameSanitizer
 
     public static string SanitizeSegment(string segment)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(segment);
+        ArgumentNullException.ThrowIfNull(segment);
         if (segment is "." or "..") throw new InvalidDataException("Traversal path segments are not allowed.");
 
         var invalid = Path.GetInvalidFileNameChars().Concat(AdditionalInvalid).ToHashSet();
@@ -30,7 +30,7 @@ public static class FileNameSanitizer
             .Trim()
             .Where(ch => !char.IsControl(ch) && !invalid.Contains(ch))
             .ToArray();
-        var result = new string(chars).TrimEnd('.', ' ');
+        var result = new string(chars).Normalize(NormalizationForm.FormC).TrimEnd('.', ' ');
         if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
 
         result = AvoidReservedWindowsDeviceName(result);
