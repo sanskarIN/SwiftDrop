@@ -62,7 +62,7 @@ Android production release still requires a private release keystore, signing co
 
 ## Windows
 
-Run on Windows with the current .NET MAUI Windows workload and Windows App SDK prerequisites. For a focused Windows-only restore/build of this multi-target project, use the repository target-matrix override:
+Run on Windows with the current .NET MAUI Windows workload and Windows App SDK prerequisites. For a focused Windows-only **source compile** of this multi-target project, use the same target isolation and unpackaged build boundary used by maintained CI:
 
 ```powershell
 dotnet workload install maui-windows
@@ -72,7 +72,9 @@ dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj `
   -p:TargetFramework=net10.0-windows10.0.19041.0 `
   -p:RuntimeIdentifier=win-x64 `
   -p:RuntimeIdentifierOverride=win-x64 `
-  -p:SkipIosShareExtensionProjectReference=true
+  -p:SkipIosShareExtensionProjectReference=true `
+  -p:WindowsPackageType=None `
+  -p:GenerateAppxPackageOnBuild=false
 
 dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=win-x64
 
@@ -80,10 +82,12 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release `
   -p:SwiftDropTargetFrameworksOverride=net10.0-windows10.0.19041.0 `
   -p:TargetFramework=net10.0-windows10.0.19041.0 `
   -p:RuntimeIdentifierOverride=win-x64 `
-  -p:SkipIosShareExtensionProjectReference=true
+  -p:SkipIosShareExtensionProjectReference=true `
+  -p:WindowsPackageType=None `
+  -p:GenerateAppxPackageOnBuild=false
 ```
 
-The override properties narrow this validation command to the Windows TFM; normal product builds still retain the full target matrix. Production packaging requires the real signing certificate/package identity and install/update validation.
+The override properties narrow this validation command to the Windows TFM; normal product builds still retain the full target matrix. `WindowsPackageType=None` and `GenerateAppxPackageOnBuild=false` intentionally validate source/XAML/WinUI compilation without claiming MSIX readiness. Production packaging requires the real signing certificate/package identity, signed MSIX generation, install/update validation, protocol activation, and capability checks.
 
 ## Apple prerequisites
 
