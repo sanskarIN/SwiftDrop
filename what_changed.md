@@ -1,35 +1,46 @@
 # What changed
 
-Date: 2026-08-12
+Date: 2026-08-14
 Repository: https://github.com/sanskarIN/SwiftDrop
 Branch: `main`
 Master prompt: `07_SwiftDrop_Local_File_Transfer_Master_Prompt.md`
 
-This is the complete SwiftDrop engineering ledger for the current repository source scope. It intentionally records implementation boundaries, security/privacy decisions, platform integration, tests, CI/release gates, focused continuation work, and external validation that cannot honestly be completed from repository source alone.
+This file is the detailed SwiftDrop engineering ledger for the current repository source scope. It records the cumulative implementation, the August 12 protocol/filesystem hardening, the August 14 dependency/build/platform completion pass, source and CI evidence, release boundaries, and the work that still requires signing credentials, physical devices, real providers, real networks, or store infrastructure.
+
+It deliberately distinguishes:
+
+- **implemented in source**;
+- **portable-tested**;
+- **hosted-platform compiled**;
+- **signed/device validated**;
+- **production verified**.
+
+A successful hosted source compile is not treated as a signed-package or physical-device validation result.
 
 ---
 
 # 1. Product and repository alignment
 
-SwiftDrop remains:
+SwiftDrop is an open-source, account-free, local-network file and text transfer application built with .NET 10, .NET MAUI, and C#.
 
-- an open-source local-network file/text transfer application;
-- .NET 10 / .NET MAUI / C#;
-- Apache-2.0 licensed;
-- account-free for the current local-transfer workflow;
-- designed without a SwiftDrop-operated cloud relay/upload path for transfer payloads;
-- branded `Made by the Sanskar`;
+Current product/repository identity:
+
+- application name: **SwiftDrop**;
 - repository: `https://github.com/sanskarIN/SwiftDrop`;
-- creator profile: `https://www.github.com/sanskarIN`;
+- GitHub profile: `https://www.github.com/sanskarIN`;
+- license: Apache-2.0;
 - business/security email: `sanskarin@outlook.in`;
 - support email: `supportramsandesh@gmail.com`;
-- optional development support: `https://buymeacoffee.com/sanskarIN`.
+- optional development support: `https://buymeacoffee.com/sanskarIN`;
+- watermark/branding: `Made by the Sanskar`.
 
-Optional financial support does not unlock transfer features, privileged support, priority security handling, private data access, or hidden application capabilities.
+Transfer payloads are designed to stay on the local peer-to-peer path. The current product does not depend on a SwiftDrop-operated cloud upload or relay service for file/text transfer.
+
+Optional financial support does not unlock transfer features, privileged security handling, hidden capabilities, private data access, or special transfer limits.
 
 ---
 
-# 2. Repository/project architecture
+# 2. Canonical repository projects
 
 Canonical solution:
 
@@ -38,23 +49,39 @@ Canonical solution:
 Projects:
 
 - `src/SwiftDrop.Core`
-  - reusable protocol, networking, cryptography-adjacent policy, path safety, transfer logic, storage policy, source validation, external-staging policy;
+  - portable protocol, security, pairing, path, filesystem, transfer, staging, hashing, TLS, discovery, SQLite, and metadata policy;
 - `src/SwiftDrop.App`
-  - .NET MAUI containing app and platform integration;
+  - .NET MAUI containing application and platform-specific integration for Android, iOS, Mac Catalyst, and Windows;
 - `src/SwiftDrop.ShareExtension`
-  - dedicated iOS/Mac Catalyst Share Extension;
+  - dedicated **iOS-only** Share Extension targeting `net10.0-ios`;
 - `tests/SwiftDrop.Core.Tests`
-  - portable xUnit regression/security/integration tests;
+  - portable xUnit regression/security/integration coverage;
 - `benchmarks/SwiftDrop.Benchmarks`
-  - bounded synthetic benchmark harness.
+  - synthetic bounded benchmark harness.
 
-Repository-wide compiler policy uses stable `LangVersion=latest`, nullable reference types, deterministic builds, analyzers, and warnings-as-errors for portable projects. Platform projects keep SDK availability/obsolete diagnostics visible while retaining strict nullable/common compiler behavior.
+Mac Catalyst does **not** use a Share Extension in the maintained architecture. Mac external intake is implemented by the containing desktop application, normal file/document flows, and native `UIDropInteraction`.
 
 ---
 
-# 3. UI/MVVM architecture
+# 3. Compiler and repository policy
 
-Dedicated presentation view models back:
+Repository-wide source policy includes:
+
+- .NET 10 target baseline;
+- stable C# `LangVersion=latest`, not preview;
+- nullable reference types;
+- deterministic builds;
+- current analyzers;
+- warnings-as-errors on portable code;
+- platform SDK availability/obsolete diagnostics retained where the MAUI/Apple SDK requires platform-specific warning handling.
+
+The August 14 continuation did not weaken analyzers to make CI green. Compiler, analyzer, nullable, test, XAML, and platform errors were corrected at source/workflow level.
+
+---
+
+# 4. UI and MVVM architecture
+
+Dedicated presentation view models currently back:
 
 - Main dashboard → `MainViewModel`;
 - History → `HistoryViewModel`;
@@ -67,30 +94,28 @@ Dedicated presentation view models back:
 
 The UI/platform boundary intentionally retains:
 
-- confirmation/consent dialogs;
+- user consent dialogs;
 - navigation;
 - file/folder pickers;
-- clipboard calls;
-- native activation;
-- Android share intents;
-- Windows/Mac native drag/drop;
-- Apple Share Extension/App Group handoff;
-- window/page lifecycle.
+- clipboard operations;
+- Android share intent handling;
+- Windows native activation/drop;
+- Mac native drop;
+- iOS Share Extension/App Group handoff;
+- platform lifecycle integration.
 
-Networking, TLS, certificates, hashing, SQLite, path policy, source safety, integrity, protocol validation, authorization, and transfer engines remain in services/Core instead of view models.
-
-Main transfer work is split into partials so stable batch resume, external input, folder selection, platform integration, and lifecycle do not accumulate into one monolithic source file.
+Reusable networking, TLS, cryptographic identity policy, hashing, SQLite, path validation, transfer authorization, source validation, resume validation, staging budgets, and protocol logic remain outside the view models in services/Core.
 
 ---
 
-# 4. Local device identity and certificate lifecycle
+# 5. Local identity
 
 SwiftDrop creates a local identity consisting of:
 
 - random local device ID;
-- user-visible device name;
+- user-visible local device name;
 - self-signed P-256 ECDSA certificate;
-- private key persisted through platform `SecureStorage`.
+- private key stored through platform `SecureStorage`.
 
 Certificate profile includes:
 
@@ -101,1230 +126,753 @@ Certificate profile includes:
 - subject-key identifier;
 - bounded validity.
 
-`IdentityCertificatePolicy` verifies:
+Identity policy checks:
 
-- private key presence;
-- supported ECDSA key type;
-- not-before tolerance;
-- expiry;
-- renewal window.
+- private-key presence;
+- expected key type;
+- certificate timing;
+- expiration;
+- renewal window;
+- corrupt/unusable identity recovery.
 
-Corrupt, expired, unusable, or renewal-required identity material is not silently reused. SwiftDrop generates a new device ID/certificate, clears active one-time authorization, and surfaces a re-pair notice. Explicit identity reset also clears local trusted-device state.
+When identity cannot safely be reused, SwiftDrop generates a fresh identity and requires deliberate re-pairing instead of silently continuing old trust.
 
-Certificate private-key material is not stored in:
-
-- SQLite;
-- pairing links;
-- transfer history;
-- diagnostics;
-- App Group share packages;
-- source code.
+Private keys are not stored in SQLite, pairing links, diagnostics, history, App Group share packages, or source code.
 
 ---
 
-# 5. Certificate fingerprint handling
+# 6. Certificate fingerprint policy
 
-SHA-256 fingerprint policy is centralized.
+Peer certificate identity uses SHA-256 fingerprints.
 
-Implemented behavior:
+Current behavior:
 
 - exactly 32 SHA-256 bytes;
-- canonical uppercase 64-hex storage representation;
-- compact/colon-separated input normalization where appropriate;
-- constant-time equality for trust/pinning comparisons;
-- malformed persisted trust fingerprints ignored;
-- human-readable colon formatting rejects malformed values instead of formatting arbitrary strings.
+- canonical uppercase 64-hex internal representation where textual storage is needed;
+- normalized compact/colon input where appropriate;
+- constant-time equality for security comparisons;
+- malformed persisted trust fingerprints ignored/rejected rather than treated as valid;
+- human-readable colon formatting validates input first.
 
-Trusted-device matching requires:
+Trusted-device matching requires both:
 
 - device ID; and
-- exact canonical certificate fingerprint.
+- exact certificate fingerprint.
 
-A display name never establishes cryptographic trust.
+A display name alone never establishes cryptographic trust.
 
 ---
 
-# 6. Discovery
+# 7. Discovery
 
 SwiftDrop includes:
 
-- internal mDNS/DNS-SD codec/service;
+- internal mDNS/DNS-SD discovery;
 - bounded UDP IPv4 fallback;
-- discovery registry with deduplication, expiry, self-filtering, and stable sorting;
-- Android Wi-Fi multicast-lock manager;
+- peer registry deduplication;
+- expiry;
+- self-filtering;
+- stable peer sorting;
+- Android multicast-lock integration;
 - Apple Bonjour declarations;
 - Nearby Devices UI/service integration.
 
-Discovery parser hardening/tests cover:
+Discovery parsing is tested against truncation, malformed DNS structures, compression pointer loops, impossible record counts, duplicate metadata, deterministic random packets, and bounded registry behavior.
 
-- truncated packets;
-- deterministic random packets;
-- DNS compression pointer loops;
-- impossible record counts;
-- duplicate TXT metadata keys;
-- every truncated prefix of a valid announcement;
-- bounded peer registry behavior.
-
-Discovery metadata is not authentication. Pairing/TLS/certificate verification remains required.
-
-SwiftDrop does not attempt to bypass:
-
-- guest Wi-Fi/client isolation;
-- multicast filtering;
-- host firewall policy;
-- Apple local-network permission;
-- enterprise/MDM policy.
+Discovery metadata is not authentication. Transfer trust still depends on pairing, TLS, certificate identity, and one-time authorization.
 
 ---
 
-# 7. Pairing methods
+# 8. Pairing methods
 
 Supported local pairing methods:
 
 - QR/deep-link pairing;
-- Nearby request pairing;
+- Nearby pairing request;
 - short-lived one-time 8-digit code;
 - manual numeric local-IP + code fallback.
 
-Pairing invitations are short-lived capabilities containing connection metadata only; they never contain the private key.
+Pairing invitations contain short-lived connection metadata/capability information only and never contain private-key material.
 
-Manual-IP bootstrap:
-
-- uses a fresh 8-digit code;
-- requires receiver approval;
-- observes the server certificate during bootstrap TLS;
-- requires the returned invitation fingerprint/address/port to match the observed bootstrap connection;
-- still asks the user to verify the fingerprint before transfer.
+Manual bootstrap observes the remote certificate, validates returned address/port/fingerprint against the actual connection, and still requires explicit user fingerprint verification.
 
 ---
 
-# 8. Canonical pairing capability representation — August 12 hardening
+# 9. Canonical pairing capability representation
 
-Pairing transport now accepts one strict textual representation.
+Pairing capability text has one accepted protocol-v1 representation.
 
-`PairingCodec.Decode` rejects:
+Decoder rejects:
 
-- surrounding whitespace instead of trimming it;
-- wrong scheme/host;
-- unexpected user-info;
-- unexpected authority port;
+- leading/trailing whitespace;
+- wrong scheme or host;
+- unexpected user info;
+- unexpected outer authority port;
 - unexpected path;
 - fragment;
 - missing query;
-- missing `=` after the query key;
+- malformed query segments;
+- missing `=` after `p`;
 - empty query segments;
 - unknown query keys;
 - duplicate `p` fields;
-- standard Base64 `+`;
-- standard Base64 `/`;
-- padding `=`;
-- percent-encoded aliases;
+- standard Base64 `+` or `/`;
+- Base64 padding `=`;
+- percent-encoded payload aliases;
 - invalid Base64URL length;
-- any decoded payload whose bytes do not re-encode to exactly the same unpadded Base64URL text.
+- decoded payloads that do not re-encode to the exact same canonical unpadded Base64URL text.
 
-The raw `p` value must contain only:
+Decoded pairing JSON also rejects:
 
-- ASCII letters;
-- ASCII digits;
-- `-`;
-- `_`.
-
-Decoded pairing JSON remains strict:
-
-- bounded depth;
-- invalid JSON rejected;
-- comments rejected;
-- trailing commas rejected;
-- duplicate properties rejected case-insensitively;
-- unknown/unmapped members rejected;
-- exact protocol version;
-- bounded device ID/name;
-- numeric loopback/private/link-local/unique-local address only;
-- valid port;
-- canonical SHA-256 fingerprint;
-- bounded nonce syntax;
-- future expiration within protocol lifetime.
-
-This removes alternate textual aliases for the same short-lived authorization capability and makes logs/tests/comparisons reason about one accepted representation.
+- malformed JSON;
+- comments;
+- trailing commas;
+- case-insensitive duplicate members;
+- unknown members;
+- wrong protocol version;
+- invalid device identity fields;
+- invalid local address;
+- invalid port;
+- malformed fingerprint;
+- malformed nonce;
+- invalid expiry/lifetime.
 
 ---
 
-# 9. TLS and peer authentication
+# 10. TLS peer authentication
 
-SwiftDrop uses .NET/platform TLS 1.2/1.3 and does not implement custom encryption/key exchange.
+SwiftDrop uses .NET/platform TLS 1.2/1.3 rather than a custom cryptosystem.
 
 Sender:
 
-- pins receiver SHA-256 certificate fingerprint learned from validated pairing;
-- presents its own local client certificate.
+- pins the receiver certificate fingerprint learned during pairing;
+- presents its own client certificate.
 
 Receiver:
 
 - requires a TLS client certificate;
-- derives sender fingerprint from the authenticated TLS channel;
-- never trusts a sender fingerprint supplied in application JSON;
-- applies consent/trust only after authenticated identity is available.
+- derives sender identity/fingerprint from the authenticated TLS connection;
+- does not trust a sender fingerprint supplied inside ordinary application JSON.
 
-Inbound connection/pairing attempts are bounded/rate-limited with stale-key pruning and bounded cardinality.
+Pairing/connection attempts are bounded/rate-limited.
 
 ---
 
-# 10. One-time authorization store
+# 11. One-time authorization
 
-`OneTimeAuthorizationStore` provides reusable bounded one-time authorization behavior:
+`OneTimeAuthorizationStore` provides bounded, expiring, thread-safe, one-use authorization tokens.
 
-- bounded token count;
+Behavior includes:
+
 - syntax validation;
 - exact expiration;
 - expired-entry pruning;
+- bounded store capacity;
 - duplicate-active token rejection;
-- thread-safe atomic consume;
-- only one concurrent consumer can win;
-- replay fails;
-- clear support for identity reset/regeneration/disposal.
+- atomic consume;
+- exactly one winner under concurrent consume;
+- replay rejection;
+- clear/reset behavior.
 
-Tests cover:
-
-- one successful consume followed by replay rejection;
-- expiry including sub-second boundary behavior;
-- concurrent consumers with exactly one winner;
-- duplicate registration;
-- capacity bounds;
-- pruning reclaiming capacity;
-- malformed tokens;
-- clear behavior.
+Malformed requests and invalid canonical paths are rejected before valid transfer authorization is consumed.
 
 ---
 
-# 11. Shared typed application protocol
+# 12. Shared typed protocol
 
-Production sender, nearby/manual pairing client, receiver, and portable tests use shared Core wire records including:
+Production sender, receiver, pairing paths, and portable tests share Core wire records and validation policies.
+
+Important records/policies include:
 
 - `ProtocolRequest`;
 - `TransferAcknowledgement`;
 - `BatchItemStart`;
 - `PairingResponse`;
 - `BatchTransferResponse`;
-- `BatchItemPlan`.
+- `BatchItemPlan`;
+- `ProtocolRequestFactory`;
+- `ProtocolRequestValidator`;
+- `ProtocolSessionAuthorizer`;
+- `IncomingRequestPolicy`;
+- `TransferResponsePolicy`;
+- `BatchTransferPlanValidator`.
 
-Shared Core policy includes:
-
-- `ProtocolRequestFactory` — validated outgoing construction;
-- `ProtocolRequestValidator` — type-specific incoming validation;
-- `ProtocolSessionAuthorizer` — request validation + one-time authorization consumption;
-- `IncomingRequestPolicy` — envelope, sender identity, nonce/code, transfer-ID, item-order rules;
-- `TransferResponsePolicy` — receiver rejection/resume/completion/text-ack rules;
-- `BatchTransferPlanValidator` — sender validation of receiver batch plan.
-
-This prevents app-private anonymous DTO drift and makes complete protocol conversations portable-testable without MAUI UI code.
+This prevents anonymous app-private DTO drift and allows full protocol conversations to be portable-tested without MAUI UI dependencies.
 
 ---
 
-# 12. Strict framed JSON
+# 13. Strict framed JSON
 
-`FrameProtocol` uses:
+`FrameProtocol` uses a bounded four-byte signed big-endian frame length followed by UTF-8 JSON metadata.
 
-- four-byte signed big-endian length;
-- UTF-8 JSON metadata payload.
+Current protections:
 
-Current strict rules:
-
-- positive frame length;
-- size bounded before allocation;
-- bounded JSON depth;
-- invalid UTF-8 rejected;
-- malformed JSON rejected;
-- comments rejected;
-- trailing commas rejected;
-- duplicate members rejected case-insensitively at every nested level;
-- unknown/unmapped members rejected with `JsonUnmappedMemberHandling.Disallow`;
+- frame length must be positive and bounded before allocation;
+- strict UTF-8 decoding occurs before JSON deserialization;
+- malformed UTF-8 is rejected rather than replacement-decoded;
+- JSON depth is bounded;
+- comments/trailing commas rejected;
+- duplicate members rejected case-insensitively at every object depth;
+- unknown/unmapped members rejected;
 - truncated headers/payloads fail;
-- reads/writes/flushes use idle timeout plus caller cancellation.
+- read/write/flush paths use cancellation and idle timeout handling.
 
-Protocol v1 is therefore closed-schema. Adding fields is a compatibility/versioning decision, not an assumption that old peers will ignore them.
+Protocol v1 is therefore intentionally closed-schema.
 
 ---
 
-# 13. Type-specific request safety
+# 14. Type-specific request validation
 
-`ProtocolRequestValidator` rejects cross-type field smuggling.
+Protocol request types cannot smuggle fields from another request type.
 
 Examples:
 
-- file request cannot carry text/batch/pair fields;
-- batch request requires transfer ID, files, declared total, and transfer authorization;
-- text request requires bounded text + expiry and cannot carry file/batch/pair fields;
-- pair request cannot carry transfer authorization.
+- file requests cannot carry batch/text/pair-only fields;
+- batch requests require transfer ID, manifest, totals, and transfer authorization;
+- text requests require bounded text + expiry and cannot carry file/batch/pair fields;
+- pair requests cannot carry transfer authorization.
 
-Malformed identity, nonce/code, file metadata, text expiry, batch total, transfer ID, and cross-type fields are rejected before transfer negotiation.
+Malformed identity, nonce/code, file metadata, text expiry, batch totals, transfer IDs, and cross-type fields are rejected before transfer negotiation.
 
 ---
 
-# 14. Canonical portable relative paths — August 12 hardening
+# 15. Canonical portable relative paths
 
-New shared `PortableRelativePath` policy provides one path grammar across operating systems.
+Shared `PortableRelativePath` defines one path grammar across all sender/receiver operating systems.
 
-Protocol path rules now reject:
+Rejected:
 
-- OS-rooted paths;
+- rooted OS paths;
 - leading `/`;
 - leading `\\`;
-- Windows drive prefixes such as `C:`;
-- UNC/device-style roots;
-- empty segments;
+- Windows drive prefixes;
+- UNC/device path syntax;
 - repeated separators;
+- empty path segments;
 - trailing separators;
 - `.` segments;
 - `..` segments;
 - more than 64 segments.
 
-This policy is used by:
+The canonical wire separator is `/` on every platform.
 
-- `FileNameSanitizer.SanitizeRelativePath`;
-- `PathGuard.ResolveUnderRoot`;
-- `ManifestValidator`;
-- sender batch construction;
-- receiver validation paths.
+Windows local paths are converted into canonical wire paths before transfer. Incoming backslash aliases are rejected instead of rewritten after authorization.
 
 ---
 
-# 15. Canonical `/` wire path representation — cross-platform bug fix
+# 16. Canonical manifest validation before nonce consumption
 
-A significant cross-platform bug was closed.
+`ManifestValidator` checks canonical path identity before one-time transfer authorization can be consumed.
 
-Previously, `FileNameSanitizer.SanitizeRelativePath` returned `Path.Combine(...)`, meaning Windows could advertise:
-
-`folder\\file.txt`
-
-while an Android/iOS/Mac receiver would sanitize the same logical path to:
-
-`folder/file.txt`
-
-Because receiver batch plans and sender manifests use exact relative-path identity, this could break Windows→non-Windows batch/folder negotiation/resume.
-
-Now:
-
-- `/` is the only wire separator;
-- sender manifests always use `/` regardless of local OS;
-- incoming peer paths containing `\\` are rejected as noncanonical rather than rewritten after authorization;
-- local filesystem conversion occurs only after canonical protocol validation.
-
-Batch sender deconfliction also operates directly on canonical `/` strings instead of host-dependent `Path.GetDirectoryName` output.
-
----
-
-# 16. Canonical manifest validation before authorization
-
-`ManifestValidator.ValidateEntry` now validates full path identity before one-time authorization can be consumed.
-
-It enforces:
+Checks include:
 
 - nonempty path;
-- maximum 1,024-character relative path metadata;
+- maximum metadata length;
 - no control characters;
-- strict portable structure from `PortableRelativePath`;
-- maximum 64 segments;
-- path must equal `FileNameSanitizer.SanitizeRelativePath(path)` exactly;
+- strict portable structure;
+- maximum depth;
+- exact equality with SwiftDrop canonical sanitation;
 - file length bounds;
-- valid SHA-256 text;
-- bounded timestamp policy.
+- valid SHA-256;
+- timestamp bounds.
 
-Therefore incoming paths are rejected if they would change during sanitation, including:
-
-- backslash aliases;
-- invalid filename characters;
-- reserved Windows device-name aliases;
-- unsafe trailing dot/space representations;
-- decomposed Unicode aliases whose normalized form differs;
-- traversal/rooted/empty-segment forms.
-
-`ProtocolSessionAuthorizer` validation runs before nonce consumption, so malformed/noncanonical path metadata does not burn a valid one-time capability.
-
-Direct tests prove the authorization callback is not invoked for malformed paths.
+Paths that would change through sanitation/Unicode normalization/reserved-name handling are rejected as noncanonical wire input.
 
 ---
 
 # 17. Filename sanitation
 
-`FileNameSanitizer` provides portable segment safety:
+`FileNameSanitizer` applies:
 
-- Unicode NFC normalization;
-- trim outer whitespace;
+- Unicode NFC;
+- outer whitespace cleanup;
+- portable invalid-character filtering;
 - control-character removal;
-- invalid filename-character removal;
-- explicit portable invalid characters `/`, `\\`, `<`, `>`, `:`, `"`, `|`, `?`, `*`;
+- Windows reserved-device-name neutralization;
 - unsafe trailing dot/space cleanup;
-- Windows reserved device-name neutralization (`CON`, `PRN`, `AUX`, `NUL`, `CLOCK$`, `COM1..9`, `LPT1..9`);
-- deterministic `unnamed` fallback.
+- deterministic fallback name;
+- post-filter normalization;
+- post-filter whitespace canonicalization.
+
+August 14 fixed an idempotence boundary where removing an invalid/control character could expose new leading/trailing whitespace after the initial trim.
 
 ---
 
-# 18. UTF-8 filename byte bounds — August 12 hardening
+# 18. UTF-8 and UTF-16 filename limits
 
-The previous 180-character cap alone was not enough for byte-limited filesystems because a Unicode-heavy filename can exceed common 255-byte component limits.
+Canonical filename segments are bounded by both:
 
-Now each SwiftDrop sanitized segment is bounded by both:
+- 180 UTF-16 code units; and
+- 180 UTF-8 bytes.
 
-- `MaximumSegmentLength = 180` UTF-16 code units; and
-- `MaximumSegmentUtf8Bytes = 180` UTF-8 bytes.
+Truncation does not split Unicode scalar values/surrogate pairs.
 
-Truncation:
-
-- does not split a UTF-16 surrogate pair;
-- does not split a Unicode scalar/rune in UTF-8;
-- preserves the extension where practical;
-- handles pathological very-long extensions safely;
-- reapplies reserved-name safety after truncation.
-
-The 180-byte cap intentionally leaves headroom for receive staging suffix:
-
-`.swiftdrop.part`
-
-on common 255-byte component filesystems.
-
-Tests cover:
-
-- ASCII long names;
-- extreme extensions;
-- surrogate boundary;
-- CJK-heavy names;
-- emoji-heavy names;
-- staging suffix byte headroom.
+The byte cap leaves headroom for `.swiftdrop.part` on common byte-limited filesystems.
 
 ---
 
-# 19. Bounded collision naming — August 12 hardening
+# 19. Collision naming
 
-A subtle filename-collision bug was closed.
+`FileNameSanitizer.CreateCollisionSegment` ensures a collision marker survives even when the original filename is already at the segment limit.
 
-Simply appending ` (1)` to an already maximum-sized filename and then sanitizing can truncate the suffix away, collapsing the candidate back to the original name.
+Used by:
 
-New `FileNameSanitizer.CreateCollisionSegment` ensures the uniqueness marker survives limits.
+- destination reservations;
+- generic collision-safe path construction;
+- sender batch deconfliction;
+- Apple external staging/package naming.
 
-Behavior:
-
-- use conventional `name (n).ext` when it fits;
-- if the suffix would be lost, use prefix fallback such as `(n) name...`;
-- enforce UTF-16 and UTF-8 segment caps;
-- preserve distinct markers across repeated attempts.
-
-The shared collision helper is now used by:
-
-- `DestinationReservationSet`;
-- `PathGuard.GetCollisionFreePath`;
-- batch sender portable deconfliction;
-- Apple Share package filename deconfliction.
-
-Tests cover:
-
-- conventional suffix;
-- maximum-length ASCII base;
-- Unicode byte-bound base;
-- repeated markers;
-- concurrent/max-length receive reservations.
+Conventional `name (n).ext` is used when possible; a bounded prefix strategy is available when appending a suffix would be truncated away.
 
 ---
 
-# 20. Receive path/filesystem safety
+# 20. Receive path and filesystem safety
 
 Receive path policy includes:
 
-- strict portable rooted/path grammar rejection;
-- canonical wire path validation;
-- receive-root lexical confinement;
-- existing symlink/reparse components beneath receive root rejected;
-- reparse checks repeated around parent creation/staging/hash/final promotion;
-- concurrent destination reservation;
-- deterministic bounded collision naming;
+- strict canonical wire path validation;
+- lexical confinement to receive root;
+- existing receive-root symlink/reparse component rejection;
+- repeated reparse checks around staging/hash/promotion;
+- atomic concurrent destination reservation;
+- collision-safe paths;
 - non-overwrite final promotion.
 
-A malicious/fully compromised OS remains outside the application security boundary, but these checks provide defense-in-depth against ordinary local redirection/race cases.
+If another process creates a final destination after reservation and before promotion, SwiftDrop preserves that external file and fails closed rather than overwriting it.
 
 ---
 
-# 21. Final destination race protection
+# 21. Single-file source safety
 
-Final promotion uses non-overwrite `File.Move` semantics.
+`TransferSourceSafety` validates regular non-link/non-reparse source files/directories.
 
-If another process creates the final destination after SwiftDrop reserved it but before promotion:
+Single-file flow validates the selected file before manifest creation and repeats regular-source validation at the actual stream-open boundary.
 
-- the external file is preserved;
-- SwiftDrop fails safely;
-- SwiftDrop does not overwrite that completed destination.
-
-A deterministic regression test covers this race.
+This narrows a race where a regular source path could be replaced with a symlink/reparse object between selection/hashing and streaming.
 
 ---
 
-# 22. Destination reservations
-
-`DestinationReservationSet` atomically reserves candidate paths across concurrent incoming sessions.
-
-Coverage includes:
-
-- first reservation uses requested path when available;
-- second reservation gets collision path;
-- 64 concurrent reservations remain unique;
-- existing completed destination is skipped;
-- disposal releases reservation;
-- max-length base names still produce distinct byte-bounded collision candidates.
-
----
-
-# 23. Single-file sender source safety — August 12 hardening
-
-New reusable `TransferSourceSafety` centralizes regular source validation.
-
-`GetRegularFile`:
-
-- resolves full path;
-- requires file to exist;
-- refreshes filesystem metadata;
-- rejects reparse/symlink source.
-
-`TransferCoordinator` uses this before single-file manifest construction.
-
-`TransferEngine.SendFileAsync` repeats the same regular-source validation at the actual stream-open boundary.
-
-This narrows a race where a selected regular path could be replaced with a symbolic link between manifest construction and streaming.
-
-Tests cover:
-
-- normal regular file;
-- symbolic-link file rejection where platform permits link creation;
-- send-boundary link rejection with zero payload written.
-
----
-
-# 24. Single-file transfer integrity
+# 22. Single-file transfer integrity
 
 Sender:
 
 - validates regular source;
-- checks file-size bound;
-- creates canonical safe filename;
+- validates size bounds;
+- canonicalizes name/path;
 - hashes SHA-256;
 - validates manifest;
-- sends strict typed request;
+- sends typed request;
 - revalidates source at stream open;
-- requires current length to equal manifest length;
-- streams exactly declared remaining bytes;
-- checks source length again after streaming.
+- streams exactly declared bytes;
+- confirms length remains compatible with manifest.
 
 Receiver:
 
-- validates canonical manifest before authorization;
-- obtains user/trusted consent;
+- validates request/manifest before authorization;
+- obtains consent;
 - reserves destination;
-- preflights free space;
-- returns bounded resume offset;
+- preflights storage;
+- negotiates bounded resume offset;
 - stages `.swiftdrop.part`;
-- receives exact remaining bytes;
-- SHA-256 hashes complete staging;
-- constant-time compares expected/actual hash bytes;
-- deletes invalid staging on integrity failure;
-- promotes only after verification;
-- uses non-overwrite final promotion.
+- receives exactly expected bytes;
+- hashes complete staging;
+- constant-time compares expected/actual hash;
+- removes invalid staging;
+- promotes only after verification.
 
-Same-length source content changes after hashing cannot become false success because receiver SHA-256 must still match the manifest hash.
-
----
-
-# 25. Best-effort final timestamp metadata — August 12 reliability fix
-
-After verified promotion, SwiftDrop attempts to apply the manifest last-write timestamp.
-
-This is optional metadata, not payload integrity.
-
-`File.SetLastWriteTimeUtc` failures caused by supported filesystem/permission/platform exceptions are now best-effort and do not falsely convert already-verified/promoted file content into a transfer failure.
-
-Payload verification/final promotion remain strict.
+Optional last-write timestamp is best-effort metadata after verified promotion and cannot convert verified content into a false transfer failure.
 
 ---
 
-# 26. Bounded link-safe deterministic folder enumeration — August 12 hardening
+# 23. Bounded deterministic folder traversal
 
-The previous recursive source enumeration used `Directory.EnumerateFiles(..., SearchOption.AllDirectories)`.
-
-That can be problematic because platform/filesystem behavior around linked/reparse directories can cause traversal outside the selected logical source tree and filesystem enumeration order is not a stable resume identity.
-
-New `TransferSourceEnumerator` performs explicit bounded traversal.
+`TransferSourceEnumerator` replaces unrestricted recursive enumeration.
 
 It:
 
 - validates selected root as regular non-link directory;
-- rejects linked/reparse root;
-- walks directories explicitly;
-- rejects linked/reparse descendant directories;
-- rejects linked/reparse descendant files;
-- bounds traversed directory count;
-- bounds traversed file count;
-- gathers regular source files;
-- sorts by normalized relative path using ordinal ordering.
+- rejects linked/reparse roots;
+- explicitly walks directories;
+- rejects linked/reparse descendants;
+- bounds directory count;
+- bounds file count;
+- gathers regular files;
+- sorts by normalized relative path for deterministic manifests.
 
-Tests cover:
-
-- deterministic relative-path order;
-- file count overflow;
-- directory count overflow;
-- symlinked file rejection;
-- symlinked directory rejection.
+This prevents traversal outside the intended source tree through linked directories and stabilizes retry manifest identity.
 
 ---
 
-# 27. Batch/folder source builder
+# 24. Batch source building
 
 `BatchTransferSourceBuilder` supports:
 
-- directly selected files;
+- selected files;
 - selected folders;
-- recursive folder files;
-- caller-provided stable transfer ID;
-- new random transfer ID for new explicit send convenience overload;
-- count/per-file/aggregate preflight;
-- canonical relative paths;
-- deterministic source ordering;
+- recursive folder contents;
+- caller-supplied stable transfer ID for retry;
+- fresh transfer ID for a new explicit send;
+- file-count/per-file/aggregate preflight;
+- canonical `/` relative paths;
+- deterministic order;
+- portable path collision deconfliction;
 - hash construction;
-- final `BatchManifestValidator` validation.
+- final manifest validation.
 
-Current maximums are sourced from protocol constants, including 2,048 files and 1 TiB aggregate transfer limit.
-
----
-
-# 28. Sender pre-hash portable deconfliction — August 12 hardening
-
-Sender destination naming now deconflicts portable collisions before expensive hashing instead of waiting for request construction to reject them later.
-
-The builder uses case-insensitive canonical path identity and canonical sanitation.
-
-It handles:
-
-- duplicate top-level filenames;
-- case-only collisions;
-- Unicode normalization-equivalent collisions;
-- sanitation-equivalent names such as portable invalid-character aliases;
-- duplicate folder-root names;
-- nested collisions.
-
-After construction, `BatchManifestValidator` still revalidates the complete final manifest.
-
-Tests cover:
-
-- duplicate top-level names;
-- case-only names;
-- sanitation-equivalent names;
-- deterministic retry manifests.
+Known source/path/size constraints are preflighted before expensive hashing where practical.
 
 ---
 
-# 29. Batch source preflight before hashing — August 12 reliability hardening
+# 25. Stable batch transfer IDs
 
-Known limits are checked before expensive SHA-256 work where possible:
+A new explicit batch gets a new random transfer ID.
 
-- transfer ID syntax;
-- source existence;
-- regular source/link policy;
-- file count;
-- per-file length;
-- aggregate bytes;
-- canonical sanitized relative path;
-- maximum relative-path length.
+Pause/failure retains the same ID.
 
-If selecting a filesystem root yields an empty `DirectoryInfo.Name`, the source builder uses safe fallback root label:
+Retry uses:
 
-`Folder`
+- same stable transfer ID;
+- fresh pairing invitation/authorization.
 
-rather than constructing an unusable transfer root name.
+Transfer IDs accept bounded ASCII letters, digits, `-`, and `_` only.
+
+Obsolete duplicate UI handlers and the compatibility overload that could silently generate a fresh ID for retry have been removed.
 
 ---
 
-# 30. Stable batch IDs
+# 26. Paused source retention
 
-A new explicit batch send creates a fresh random transfer ID.
+`TransferSourcePathPolicy` keeps only still-existing regular non-link/non-reparse files/folders.
 
-Pause/failure retry preserves the same ID so receiver-side staged/completed metadata belongs to one interrupted batch lineage.
+It provides:
 
-Success/cancel clears the paused resume lineage.
-
-Transfer ID is validated by `IncomingRequestPolicy`.
-
----
-
-# 31. Canonical batch transfer ID syntax — August 12 hardening
-
-Batch transfer ID is now a bounded ASCII token:
-
-Allowed:
-
-- `A-Z`;
-- `a-z`;
-- `0-9`;
-- `-`;
-- `_`.
-
-Maximum length:
-
-- 128 characters.
-
-Rejected:
-
-- whitespace;
-- control characters;
-- punctuation outside `-`/`_`;
-- slash/path syntax;
-- non-ASCII text;
-- oversized values.
-
-This avoids treating a persistent resume/database key as arbitrary free-form text.
-
----
-
-# 32. Active batch UI stable-ID cleanup — August 12
-
-XAML already used the stable batch handlers in `MainPage.BatchResume.cs`.
-
-However, `MainPage.xaml.cs` still contained a second obsolete unbound implementation:
-
-- `SendBatchClicked`;
-- `ResumeBatchClicked`;
-- `RunBatchSendAsync`;
-- `PauseBatchClicked`;
-- `CancelBatchClicked`.
-
-That dead path called a compatibility overload that generated a fresh batch ID implicitly.
-
-This was removed to prevent future UI rewiring from accidentally reintroducing non-idempotent retries.
-
-Also deleted:
-
-- `src/SwiftDrop.App/Services/TransferCoordinatorCompatibilityExtensions.cs`
-
-The active app batch workflow now has one coordinator API path:
-
-- caller supplies the stable transfer ID explicitly.
-
----
-
-# 33. File/folder resume source retention — August 12
-
-New `TransferSourcePathPolicy` centralizes local paused-source retention.
-
-Behavior:
-
-- preserve existing regular files;
-- preserve existing regular directories;
-- use platform-aware local path comparison for deduplication;
-- drop missing sources;
-- drop symlink/reparse sources;
-- return normalized full local paths;
-- provide safe history metadata for both files and folders.
-
-This fixed a folder-resume UI/history bug where a paused folder source could previously be treated like a `FileInfo` or discarded by file-only checks.
-
-Tests cover:
-
-- file + folder retention;
+- normalized full paths;
+- platform-aware deduplication;
 - missing-source removal;
-- duplicate removal;
-- history metadata;
-- source replaced with symlink after pause.
+- symlink/reparse replacement rejection;
+- safe history metadata for files and folders.
+
+Single-file resume applies this validation before consuming a fresh remote pairing capability.
 
 ---
 
-# 34. Single-file resume source hardening — August 12
-
-Single-file Send and Resume now filter through regular-source policy before taking the fresh remote pairing capability.
-
-Consequences:
-
-- missing source fails before consuming pairing invitation;
-- source replaced by symlink/reparse point is rejected/dropped;
-- paused source is retained only if still regular;
-- Resume button availability corresponds to a currently valid source candidate.
-
-`RunSingleSendAsync` also obtains `TransferSourceSafety.GetRegularFile` metadata before starting transfer UI state.
-
----
-
-# 35. Batch receive consent and selective receive
+# 27. Batch receive decisions
 
 Receiver supports:
 
-- reject whole batch;
+- reject batch;
 - accept all;
-- accept selected files.
+- accept selected items.
 
-Sender validates receiver plan:
+Sender validates receiver plan against source manifest, including:
 
-- every path must exist in source manifest;
-- duplicate plan paths rejected;
-- accepted overall response cannot omit required plan semantics;
-- rejected plan item cannot advertise nonzero resume offset;
-- resume offset must be within source length;
-- reordered/unknown item-start path fails.
+- no unknown paths;
+- no duplicate paths;
+- valid accepted/rejected semantics;
+- resume offsets within source length;
+- item ordering;
+- final batch totals.
 
-Receiver preflights accepted aggregate remaining bytes before payload streaming.
+Accepted aggregate remaining bytes are preflighted before payload transfer.
 
 ---
 
-# 36. SQLite schema version 3
+# 28. SQLite schema v3
 
-`DatabaseSchemaManager.CurrentVersion = 3`.
+Current SQLite schema version: **3**.
 
-Migrations:
+Tables cover:
 
-- 0→1: trust/history/diagnostics;
-- 1→2: privacy-minimal queue metadata;
-- 2→3: completed-batch resume metadata.
+- trusted peers;
+- transfer history;
+- bounded diagnostics;
+- privacy-minimal queue state;
+- completed-batch resume metadata.
 
-`completed_batch_items` stores:
+`completed_batch_items` stores metadata only:
 
-- `transfer_id`;
+- stable transfer ID;
 - canonical source relative path;
-- `receive_root_key`;
+- hashed receive-root identity;
 - effective local destination relative path;
-- length;
-- SHA-256;
-- completion time.
-
-Primary identity includes:
-
-- transfer ID;
-- source path;
-- receive-root key.
-
-`receive_root_key` is SHA-256 of normalized receive-root identity rather than the absolute root path.
-
-Rows are bounded/pruned.
-
----
-
-# 37. Completed-batch verifier
-
-`BatchCompletionVerifier` requires:
-
-- matching transfer lineage metadata;
-- matching receive-root key;
-- exact canonical source relative path;
 - expected length;
 - expected SHA-256;
-- destination path confinement;
-- no reparse/symlink destination path;
-- destination exists;
-- destination length matches;
-- fresh SHA-256 of destination matches.
+- completion timestamp.
 
-Completion metadata is an optimization, never authorization.
+It does not store transfer contents or reusable authorization.
 
 ---
 
-# 38. Idempotent completed-file retry
+# 29. Idempotent completed-file batch resume
 
-After a batch item is fully verified/finalized, receiver records completion metadata before sending the normal item completion ACK.
+After a batch item is fully verified/finalized, completion metadata may be recorded before normal item completion acknowledgement.
 
-On retry with the same stable ID:
+On retry, `BatchCompletionVerifier` requires:
 
-- completion record is located;
-- final destination is re-confined;
-- reparse/link policy is applied;
-- length is checked;
-- SHA-256 is freshly computed;
-- only then can receiver offer protocol-v1 full-length resume offset.
+- same stable transfer ID;
+- same receive-root key;
+- same canonical source path;
+- same length/hash;
+- destination still confined beneath current receive root;
+- no symlink/reparse redirection;
+- destination still exists at expected length;
+- freshly computed SHA-256 still matches.
 
-Sender still emits normal `BatchItemStart` for the item and sends zero additional raw bytes when resume offset equals source length.
-
-A new explicit send has a fresh transfer ID, preserving intentional duplicate-send collision semantics.
-
----
-
-# 39. Second completed-file verification before zero-byte ACK
-
-A remaining TOCTOU window was closed.
-
-Previously the completed destination was re-hashed while the receiver constructed the retry plan. A local process could potentially modify/delete the destination after the plan but before the zero-byte item ACK.
-
-Now, after the sender returns the matching `BatchItemStart`, receiver invokes completed-file verification again immediately before sending the item completion acknowledgement.
-
-If the destination is:
-
-- missing;
-- changed;
-- different length;
-- different SHA-256;
-- redirected through reparse/link state;
-- outside expected root;
-- no longer matching completion record;
-
-then the shortcut fails closed instead of falsely acknowledging completion.
-
-Regression test covers:
-
-1. verify completion;
-2. mutate destination at same length;
-3. verify again;
-4. expect rejection.
-
-A fully compromised local OS can still race application-level checks at finer granularity; repeated checks narrow but do not eliminate that external trust boundary.
+Only then can receiver offer `ResumeOffset == Length`.
 
 ---
 
-# 40. Text snippet transfer and clipboard behavior
+# 30. Second completed-item verification
 
-Text transfer uses paired TLS path.
+A retry-plan-to-ACK TOCTOU window was closed.
 
-Controls:
+After sender returns the matching `BatchItemStart`, receiver verifies the completed destination **again immediately before** the zero-byte completion ACK.
 
-- UTF-8 byte limit;
-- expiration/lifetime validation;
+Mutation, deletion, changed length/hash, root mismatch, completion-record mismatch, or reparse redirection fails closed.
+
+A new explicit send has a new transfer ID and therefore preserves normal collision-safe duplicate-send semantics.
+
+---
+
+# 31. Text transfer
+
+Text transfer uses the same paired TLS path.
+
+Behavior includes:
+
+- UTF-8 byte bounds;
+- expiry validation;
 - receiver Reject / Accept / Accept-and-Copy;
-- text acknowledgement requires offset exactly zero;
+- zero-offset acknowledgement rule;
 - clipboard read only after explicit user action;
 - no continuous clipboard monitoring;
-- history stores text metadata only, not snippet contents.
+- history stores text metadata, not text contents.
 
-External text intake uses rune-safe UTF-8 truncation.
-
----
-
-# 41. Rune-safe UTF-8 text limiter
-
-Shared `Utf8TextLimiter` is used by external text paths.
-
-Coverage includes:
-
-- ASCII boundary;
-- multi-byte runes;
-- surrogate-pair emoji;
-- zero limit;
-- invalid negative limit.
-
-This prevents a byte-bound truncation from splitting a Unicode scalar.
+External text truncation is rune-safe and does not split Unicode scalar values.
 
 ---
 
-# 42. External input inbox
+# 32. External input inbox
 
-`ExternalInputInbox` supports atomic `AddSharedBatch(text, paths)` handoff.
+`ExternalInputInbox` provides atomic review handoff for external pairing/text/path input.
 
-Behavior:
+Controls include:
 
-- bounded pairing link storage;
+- bounded pairing-link storage;
 - UTF-8-bounded text;
-- maximum shared path count;
-- local full-path normalization;
+- path-count limit;
+- full local-path normalization;
 - existence checks;
 - platform-aware duplicate suppression;
-- one Changed event per batch handoff;
-- recursive stale cache pruning;
-- explicit drain into MainPage review state.
+- recursive stale cache cleanup;
+- one review inbox event per accepted batch handoff.
 
-External content is never automatically transferred.
+External content is never automatically sent.
 
 ---
 
-# 43. Shared TransferStagingBudget — August 12
+# 33. Shared external staging budget
 
-New Core `TransferStagingBudget` centralizes external-input copy limits.
+`TransferStagingBudget` centralizes:
 
-Tracks:
-
-- maximum files;
-- maximum aggregate bytes;
+- maximum staged file count;
 - maximum per-file bytes;
-- committed file count;
-- committed bytes;
-- remaining files;
-- remaining aggregate bytes;
-- maximum bytes allowed for next file.
+- maximum aggregate bytes;
+- remaining count/bytes;
+- maximum allowed next-file bytes;
+- preflight without consumption;
+- commit only after successful exact staging.
 
-Important semantics:
+Zero-byte items still consume file-count budget.
 
-- `EnsureCanStage(length)` validates without consuming budget;
-- `Commit(length)` consumes budget only after a file was copied/verified successfully;
-- zero-byte files still consume file-count budget;
-- checked arithmetic prevents overflow;
-- failed copies do not falsely consume count/bytes.
-
-Tests cover:
-
-- committed accounting;
-- per-file limit;
-- aggregate limit;
-- file count including zero-byte files;
-- non-consuming preflight;
-- invalid constructor limits.
+August 14 fixed an exhaustion boundary so a fully consumed positive aggregate byte budget is closed to further files instead of incorrectly accepting an extra zero-byte item.
 
 Used by:
 
-- Apple Share Extension;
 - Android share intake;
-- Mac Catalyst native drop.
+- iOS Share Extension;
+- Mac native drop.
 
 ---
 
-# 44. Android share-sheet intake
+# 34. Android share intake
 
-Android handles:
+Android supports:
 
 - `ACTION_SEND`;
 - `ACTION_SEND_MULTIPLE`;
 - shared text;
 - shared content URIs.
 
-Baseline hardening includes:
+Staging protections include:
 
 - URI deduplication;
-- protocol max attachment count;
+- protocol attachment count limits;
 - provider display-name lookup;
-- declared-length lookup where available;
-- portable filename sanitation;
-- app-cache staging;
-- storage preflight;
-- bounded streaming;
-- exact declared/staged length checks;
+- provider declared-size handling;
+- negative size treated as unknown;
+- portable UTF-8-bounded filename sanitation;
+- bounded app-cache staging;
+- aggregate staging budget;
+- runtime byte cap for unknown-size providers;
+- repeated free-space reserve checks during unknown-size copy;
+- exact staged length verification;
 - cleanup on failure;
-- atomic inbox handoff;
-- no startup crash if external share fails.
-
-Android application backup is disabled.
+- atomic review-inbox handoff.
 
 ---
 
-# 45. Android aggregate budget + unknown-size hardening — August 12
+# 35. Android lifecycle integration
 
-Android share intake now uses `TransferStagingBudget` across the whole share action.
+Android active user-initiated transfers use a foreground data-sync service.
 
-If provider declares size:
+The August 14 compile pass hardened:
 
-- declared size must fit remaining file/count/aggregate budget before copy.
+- API-level service/channel handling;
+- Android application-context qualification;
+- nullable notification builder bindings;
+- nullable notification instances;
+- launch `PendingIntent` creation;
+- optional notification failure isolation.
 
-If provider reports negative size:
-
-- it is treated as unknown rather than trusted negative metadata.
-
-If provider size is unknown:
-
-- runtime bytes are capped to `stagingBudget.MaximumBytesForNextFile`;
-- this includes remaining aggregate budget, not only per-file limit;
-- storage safety reserve is rechecked while streaming each chunk;
-- copy stops/fails/cleans staging before intentionally exhausting the volume.
-
-After successful exact staging:
-
-- budget commits actual copied bytes.
-
-Failure:
-
-- partial output deleted;
-- no budget commit.
-
-This closes an aggregate-bypass scenario where multiple unknown-size provider files could individually stay under per-file limit while cumulatively exceeding the batch staging cap.
+Notification permission/platform policy cannot cause the underlying transfer itself to fail.
 
 ---
 
-# 46. Windows activation/drop integration
+# 36. Android multicast integration
 
-Windows includes:
+`AndroidMulticastLockManager` is reference-counted.
 
-- `swiftdrop` protocol activation;
-- `privateNetworkClientServer` capability;
-- no general `internetClient` capability for protocol-v1 local-only transfer;
-- native receive-folder picker;
-- native files/folders/text/pair-link drag/drop;
-- atomic external-input handoff.
+August 14 fixed nullable binding/service conditions so:
 
-Dropped file/folder paths remain explicit local sources and still go through:
-
-- regular source/link checks;
-- bounded deterministic folder enumeration;
-- canonical `/` manifest construction;
-- hash/integrity/receiver authorization pipeline.
-
-Windows folder sender now interoperates with non-Windows receivers using identical forward-slash wire paths.
+- missing application context is handled;
+- unavailable Wi-Fi service is handled;
+- nullable multicast-lock creation is handled;
+- failed acquisition does not leave the reference count falsely elevated;
+- release/dispose remains safe.
 
 ---
 
-# 47. Apple document/file intake
+# 37. Android intent/binding update
 
-Apple containing app can stage file/document URLs into app cache with:
+August 14 updated Android share/activation code to current bindings:
 
-- temporary security-scoped access where available;
-- per-file limits;
-- portable filename sanitation;
-- exact source length checks;
-- storage capacity preflight;
-- cancellation;
-- cleanup on failure;
-- common review-inbox handoff.
+- current Activity `Intent` property;
+- current openable-column binding use;
+- bounded shared URI collection;
+- per-share staging directory;
+- sanitized original filename retained inside that directory;
+- declared/unknown length handling;
+- failed file/directory cleanup;
+- shared staging budget commit only after successful exact copy.
 
-External content is never auto-sent.
+This removed Android compiler errors previously hidden behind the restore gate.
 
 ---
 
-# 48. Dedicated iOS/Mac Catalyst Share Extension
+# 38. iOS Share Extension architecture
 
-Project:
+`SwiftDrop.ShareExtension` is now intentionally **iOS-only**:
 
-- `src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj`
+- target framework: `net10.0-ios`;
+- application ID: `in.sanskar.swiftdrop.share`;
+- containing application ID: `in.sanskar.swiftdrop`;
+- shared App Group: `group.in.sanskar.swiftdrop`.
 
-Targets:
+The extension handles bounded user-provided:
 
-- `net10.0-ios`;
-- `net10.0-maccatalyst`.
-
-Bundle ID:
-
-- `in.sanskar.swiftdrop.share`
-
-Containing app bundle ID:
-
-- `in.sanskar.swiftdrop`
-
-Shared App Group:
-
-- `group.in.sanskar.swiftdrop`
-
-Extension supports bounded activation for:
-
-- text;
 - files;
 - images;
 - movies;
+- text;
 - web URLs.
 
-It does not perform peer transfer itself. It stages a bounded local package for containing-app review.
+It stages a package for later containing-app review and does not perform a peer transfer itself.
 
 ---
 
-# 49. Apple Share Extension provider lifetime hardening
+# 39. Mac Catalyst architecture correction
 
-Share Extension provider callbacks can arrive asynchronously and may stall or outlive the view lifecycle.
+The original source history included an attempted Mac Catalyst Share Extension target.
 
-Current controls:
+August 14 corrected the maintained architecture because the current .NET 10 Mac Catalyst SDK does not provide the required app-extension CSharp target used by `IsAppExtension` in that configuration.
 
-- 20-second provider **response** timeout;
-- extension-lifetime cancellation token;
-- cancellation registration around the awaited provider result;
-- late timed-out/cancelled callbacks cannot start a new staging copy;
-- provider file-copy loop checks extension cancellation between chunks;
-- temporary security-scoped access released in `finally`.
+Current Mac Catalyst path:
 
-A critical refinement separates provider response time from legitimate local copy duration:
+- containing MAUI desktop app;
+- normal file/document intake;
+- native `UIDropInteraction`;
+- security-scoped source access;
+- shared staging budget;
+- bounded provider waits;
+- link/reparse rejection;
+- review-before-send.
 
-- provider must respond within timeout;
-- once provider has responded and copy begins, the response timer does not incorrectly cancel a large legitimate copy;
-- extension-lifetime cancellation still applies to active copy.
+There is no maintained Mac Catalyst Share Extension target.
 
-This avoids both indefinite provider waits and accidental rejection of large-but-valid local staging that simply takes longer than the provider response threshold.
-
----
-
-# 50. Apple Share Extension aggregate staging budget
-
-Share Extension uses shared `TransferStagingBudget`.
-
-Before a provider file is copied:
-
-- source length is checked against remaining file/count/aggregate budget.
-
-After exact successful copy:
-
-- budget commits length.
-
-Therefore the file that would exceed aggregate package size is rejected before SwiftDrop spends time/disk copying that over-limit item.
-
-The final package manifest validator still independently enforces count/per-file/aggregate limits.
+The stale Mac Catalyst Share Extension entitlement file was removed.
 
 ---
 
-# 51. Apple App Group package format
+# 40. Apple App Group package model
 
-Share Extension writes into App Group using:
+The iOS Share Extension publishes into App Group storage using:
 
 - `.staging-<id>` temporary directory;
-- `files/` payload staging;
+- `files/` payload directory;
 - strict versioned manifest;
-- manifest file size bound;
-- atomic directory rename to `pending-<id>` only after complete staging/validation.
+- atomic rename to `pending-<id>` only after complete staging/validation.
 
-Package manifest contains:
+Manifest contains bounded metadata only:
 
 - version;
 - package ID;
 - creation time;
-- optional bounded text;
-- list of file names/lengths.
+- optional text;
+- file names/lengths.
 
-It never contains:
-
-- private key;
-- pairing nonce/code;
-- reusable transfer authorization;
-- trusted-device secret.
+No private keys, pairing nonces, pairing codes, reusable transfer authorization, or trust secrets are included.
 
 ---
 
-# 52. Exact Apple package physical file-set validation
+# 41. Apple provider lifecycle
 
-Containing app treats App Group package as untrusted.
+The iOS extension provider callbacks are bounded by a provider-response timeout and extension-lifetime cancellation.
 
-Beyond validating every declared manifest file, it now enumerates physical top-level `files/` entries and requires exact set equality.
+Late callbacks after response timeout/cancellation cannot begin a new copy.
 
-Rejects:
+The response timeout is separated from local copy duration: once a provider responds in time and a legitimate local copy starts, the response timer does not incorrectly terminate that active copy.
 
-- missing declared file;
-- extra undeclared file;
-- nested undeclared directory;
-- symlink/reparse entry;
-- portable duplicate/colliding names;
-- noncanonical name.
-
-Shared Core `ExternalSharePackageFileSetValidator` performs host-independent portable exact matching.
-
-Tests cover:
-
-- exact match;
-- missing file;
-- extra file;
-- duplicate physical name;
-- nested/path-like filename;
-- case/canonical portability behavior.
+Security-scoped access is released in `finally` where provided.
 
 ---
 
-# 53. Apple containing-app import serialization
+# 42. Apple containing-app importer
 
-`AppleShareContainerImporter` uses a static `SemaphoreSlim` gate.
+`AppleShareContainerImporter` treats App Group packages as untrusted input.
 
-Warm/cold activation cannot concurrently import the same App Group package.
+It validates:
 
-Current behavior intentionally surfaces one imported external bundle per pass so a later pending package cannot silently overwrite/merge the user's current review selection.
+- strict JSON and unknown fields;
+- version/package ID/time bounds;
+- canonical filenames;
+- item count/per-file/aggregate limits;
+- package/manifest/files/file symlink/reparse state;
+- exact declared file lengths;
+- exact physical file set;
+- no undeclared top-level files;
+- no nested undeclared directories;
+- aggregate app-cache capacity before recopy.
 
-Later pending packages remain for subsequent activation/import instead of being deleted as if reviewed.
-
----
-
-# 54. Apple containing-app aggregate cache capacity preflight — August 12
-
-After strict package validation and exact physical file-set/length validation, importer sums all validated source bytes.
-
-Before creating/recopying the app-cache review staging directory:
-
-- `StorageCapacityGuard.EnsureCapacity(stagingRoot, aggregateBytes)` is called.
-
-This prevents a large valid App Group package from partially recopying many files into app cache before discovering the volume cannot safely hold the whole validated package.
-
-Transient I/O failure can leave the pending App Group package for later retry; malformed/invalid packages are discarded.
+Import is serialized and exposes one pending package for review at a time rather than silently merging/deleting later pending packages.
 
 ---
 
-# 55. Native Mac Catalyst drag/drop
+# 43. Mac native drop
 
-Mac Catalyst uses native `UIDropInteraction` attached to MAUI host view.
+Mac Catalyst native drop supports:
 
-Supports:
-
-- Finder files;
+- files;
 - folders;
 - text;
 - pairing links.
@@ -1332,147 +880,139 @@ Supports:
 Controls include:
 
 - temporary security-scoped access;
-- file/folder link/reparse rejection;
-- portable filename sanitation;
-- collision-safe staging;
+- regular-source/link validation;
+- shared count/per-file/aggregate budget;
+- bounded provider-response waits;
+- capacity checks;
+- portable collision-safe bounded staging;
 - review-inbox handoff;
-- interaction detached/disposed with MainPage platform integration;
-- no auto-send.
+- no automatic send.
 
 ---
 
-# 56. Mac native drop shared staging budget — August 12
+# 44. Windows integration
 
-Mac file/folder staging now uses `TransferStagingBudget` instead of separate ad-hoc counters.
+Windows source includes:
 
-Each regular file:
+- `swiftdrop` protocol registration/activation;
+- private-network client/server capability;
+- native system receive-folder picker;
+- files/folders/text/pair-link drag/drop;
+- local path → canonical `/` wire path conversion;
+- regular-source/link checks before send;
+- atomic external-input handoff.
 
-- validates source;
-- checks remaining count/per-file/aggregate budget;
-- checks storage capacity;
-- stages exact bytes;
-- validates source/destination length;
-- commits budget only after success.
-
-Recursive folders reuse the same budget across all descendant files, so aggregate/count limits apply across the whole drop action.
-
----
-
-# 57. Mac provider response timeout — August 12
-
-Native Mac drop file/text `NSItemProvider` calls now have bounded response waits.
-
-For file URL, file representation, and text:
-
-- callback must arrive before timeout;
-- duplicate/late callback ignored;
-- timeout completes task with bounded failure;
-- provider invocation exceptions complete task safely.
-
-As with Share Extension:
-
-- response timeout is only for provider response;
-- once file callback has arrived, the local staging copy is not incorrectly killed by that response timer.
-
-Platform runtime/provider behavior still requires signed Mac validation.
+August 14 compiler fixes explicitly qualified WinUI/WinRT types to remove namespace ambiguity between MAUI, WinUI, and legacy Windows APIs.
 
 ---
 
-# 58. Transfer history and privacy
+# 45. Windows focused target isolation
 
-Transfer history stores metadata only.
+The multi-target MAUI project normally contains Android, iOS, Mac Catalyst, and Windows targets.
 
-Privacy mode protects:
+Hosted Windows validation must not accidentally traverse unrelated mobile workloads or the iOS extension graph.
 
-- peer device name;
-- filename/description.
+August 14 added:
 
-New private rows use language-neutral marker. Older rows are redacted at read time without destructive rewrite.
+- `SwiftDropTargetFrameworksOverride` for focused single-TFM validation;
+- `SkipIosShareExtensionProjectReference` for the Windows validation path only;
+- explicit Windows `TargetFramework` values in CI;
+- explicit `win-x64` runtime restore/override where required.
 
-History storage validates writes and skips malformed local rows where corruption tolerance is intended.
-
-Retention supports pruning and zero-day clear behavior.
-
-History presentation localizes direction/status/size/time/private markers.
+Normal product configuration still retains the full platform target matrix and iOS extension reference on the iOS build.
 
 ---
 
-# 59. Diagnostic privacy and resilience
+# 46. Windows compile versus MSIX boundary
 
-`DiagnosticPrivacyRedactor` redacts common:
+Hosted Windows CI now intentionally compiles with:
+
+- `WindowsPackageType=None`;
+- `GenerateAppxPackageOnBuild=false`.
+
+This validates source/XAML/WinUI compilation without pretending an unsigned hosted compile is a signed MSIX release test.
+
+Signed MSIX generation, certificate signing, install, update, package identity, protocol registration, and capability behavior remain explicit release gates.
+
+`BUILDING.md` now mirrors this maintained green CI command boundary.
+
+---
+
+# 47. Local metadata/privacy
+
+SQLite schema v3 remains metadata-only.
+
+It does not store:
+
+- transferred file bytes;
+- transferred text contents;
+- private keys;
+- reusable transfer authorization;
+- pairing invitations/nonces;
+- absolute receive-root path for completed-item reuse.
+
+Privacy mode redacts peer/file identifiers in history and common privacy-sensitive identifiers in diagnostics.
+
+Android app-local backup is disabled.
+
+---
+
+# 48. History maintenance
+
+August 14 restored/extended history pruning behavior through a compatibility-safe API:
+
+- `PruneBeforeAsync` returns the number of removed rows for maintenance callers;
+- existing `PruneOlderThanAsync` compatibility behavior remains available.
+
+This fixed a compile/test mismatch without breaking existing callers.
+
+---
+
+# 49. Diagnostics
+
+Diagnostic redaction covers common:
 
 - paths;
 - email addresses;
 - IP addresses;
 - endpoints;
 - GUIDs;
-- SHA-256 fingerprints;
-- SwiftDrop pairing URIs.
+- fingerprints;
+- pairing URIs.
 
-Redaction applies at record/read/export time when privacy mode requires it.
+Diagnostic persistence is bounded and corruption-tolerant where intended.
 
-Diagnostic persistence validates bounded single-line events and skips malformed local rows rather than making the whole diagnostic history unusable.
-
-Safe export excludes:
-
-- transfer content;
-- private keys;
-- nonces;
-- full reusable pairing capabilities.
+Safe export excludes transfer contents, private keys, nonces, and reusable pairing capabilities.
 
 ---
 
-# 60. Trusted-device store hardening
+# 50. Trusted devices
 
-Trust persistence enforces canonical valid SHA-256 fingerprints at storage boundary.
-
-Coverage includes:
-
-- canonicalization;
-- malformed direct write rejection;
-- malformed persisted row ignored;
-- same device ID with certificate change behavior;
-- revoke;
-- clear-all.
+Trust persistence is certificate-bound and validates canonical SHA-256 fingerprints at storage boundaries.
 
 Trusted auto-accept:
 
 - disabled by default;
 - opt-in;
 - requires exact device ID + certificate fingerprint;
-- applies only to normal-risk content;
-- high/caution risk still requires explicit handling.
+- limited to normal-risk content;
+- does not bypass warning/consent for higher-risk content.
 
 ---
 
-# 61. Queue/concurrency/restart metadata
+# 51. Queue/restart behavior
 
-Queue uses cancellation-aware concurrency gate and configurable parallelism.
+Queue uses bounded cancellation-aware concurrency.
 
-SQLite queue persistence remains privacy-minimal:
+Persisted restart metadata contains only privacy-minimal transfer state, not file paths, content, pairing authorization, or peer credentials.
 
-- generic `Transfer` label;
-- state;
-- created/started/finished timestamps;
-- bounded machine-oriented error code.
-
-It does not persist:
-
-- source paths;
-- filenames;
-- transferred text;
-- peer addresses;
-- pairing invitations/nonces;
-- credentials/private keys;
-- free-form exception messages.
-
-Stale persisted `Queued`/`Running` becomes `Interrupted` after restart and is not automatically retried with stale authorization.
+Previously `Queued`/`Running` records become interrupted after restart and are not automatically replayed with stale authorization.
 
 ---
 
-# 62. Settings
+# 52. Settings
 
-Settings cover:
+Settings include:
 
 - device name;
 - identity reset;
@@ -1481,774 +1021,1124 @@ Settings cover:
 - history retention;
 - privacy mode;
 - trusted-device auto-accept;
-- theme system/light/dark;
+- theme;
 - notifications preference;
 - reduce motion;
 - larger interface;
 - English/Hindi language;
-- developer options.
+- developer diagnostics.
 
-Receive-folder changes restart/re-resolve receiver listener instead of silently continuing to old location.
-
----
-
-# 63. Notifications/background boundaries
-
-Android includes:
-
-- foreground data-sync lifecycle for active user-initiated queued transfers;
-- required generic foreground notification;
-- optional generic completion/failure notifications where supported/configured.
-
-Unsupported targets disable the optional preference rather than pretending notifications work.
-
-SwiftDrop does not claim arbitrary mobile sockets survive OS suspension. Additional continuation must use supported store-compliant platform mechanisms and remains optional post-v1 work.
+Receive-folder changes cause the receiver path/listener state to be re-resolved rather than silently continuing to the old location.
 
 ---
 
-# 64. Localization
+# 53. Buy Me a Coffee support UI
 
-English/Hindi resource catalogs cover primary/secondary XAML and major runtime/dialog/status surfaces.
+August 14 source also includes the optional support-card work that preceded the platform hardening pass:
 
-CI localization validator checks:
+- custom support logo asset;
+- highlighted support card;
+- localization-safe UI treatment;
+- settings support link/action;
+- README/support documentation alignment.
+
+Relevant commits include:
+
+- `54b8257ecec89d4cc552430e8a2854935fc3b7e6` — custom support logo asset;
+- `f49c5bec238cbbeccdb52cc0104ed6e158af36d0` — highlighted support card;
+- `de0f539936360dd8060e1db4be36538c723b254e` — localization-safe highlight;
+- `b956bb039c2803201af359d5ee16b243358167dc` — settings support link;
+- `19f6c706d2e4040703219d4c1188fa8b3d899bcd` — support action wiring;
+- `9b91d828632d3a0738cac1e5c90b39b974175a02` — support documentation.
+
+---
+
+# 54. Localization
+
+English/Hindi resource catalogs cover primary UI and major runtime/dialog/status surfaces.
+
+CI validates:
 
 - XML well-formedness;
 - nonempty values;
-- duplicate keys rejected;
+- duplicate keys;
 - exact English/Hindi key parity;
-- formatted-placeholder index parity.
+- formatted placeholder index parity.
 
-Runtime resources include:
-
-- pairing dialogs/status;
-- incoming consent;
-- transfer progress/failure/resume;
-- batch risk/selection;
-- settings reset/save/permission;
-- diagnostics export/clear;
-- About link errors;
-- History/Queue/Nearby/Trusted dynamic values.
-
-Physical Hindi layout/wrapping remains a release-validation gate.
+August 14 marked `LocalizeExtension` service-provider-independent for XAML compilation, removing repeated `XC0103` warnings without changing localization behavior.
 
 ---
 
-# 65. Accessibility
+# 55. XAML portability repair
 
-Source includes:
+A real cross-platform XAML compiler error was exposed only after platform builds reached the application project.
 
-- semantic headings/descriptions on important UI;
-- larger-interface resources;
-- theme/accessibility preferences;
-- reduced-motion preference;
-- keyboard/focus-aware desktop surfaces;
-- manual accessibility checklist.
+`SettingsPage.xaml` used `Entry.LineBreakMode`, but MAUI `Entry` is a single-line control and does not expose that property.
 
-Release still requires real:
+Commit:
 
-- TalkBack;
-- VoiceOver iOS;
-- VoiceOver Mac Catalyst;
-- Narrator;
-- keyboard-only navigation;
-- largest text scaling;
-- high contrast;
-- reduced motion;
-- responsive layout;
-- Hindi layout validation.
+- `ebb94f8fc427a417cba788b51027439940e64773` — removed unsupported `Entry.LineBreakMode`.
+
+The same XAML source now compiles across Android, Windows, iOS, and Mac Catalyst gates.
 
 ---
 
-# 66. Portable protocol conversation tests
+# 56. Multi-file picker nullability
 
-Portable conversation tests use exact production wire records/policies for:
+The serviced MAUI API exposes a nullable/cancelled multi-file result contract.
 
-- file request authorization;
-- file resume offset;
-- file completion acknowledgement;
-- authorization replay rejection;
-- selective batch plan;
-- batch item ordering;
-- per-item completion;
-- final batch total;
-- reordered item-start rejection;
-- text request/zero-offset acknowledgement;
-- pair request/response without transfer nonce consumption.
+The app now treats a cancelled/null result as an empty selection and filters to non-null `FileResult` values before reading paths.
 
-This improves hostability without MAUI UI dependencies.
+Relevant commits:
+
+- `3d5ce81fae53f52313c4579b6fd006ea0dc2d82d` — normalize nullable picker results;
+- `addb068add8b18d4ea2ec05b2eb695c3c632e39d` — handle null/cancelled collection itself under the serviced API contract.
 
 ---
 
-# 67. Strict JSON tests
+# 57. .NET MAUI servicing refresh
 
-Coverage includes:
+Application dependency was updated:
 
-- invalid frame sizes;
-- malformed UTF-8/JSON;
-- comments/trailing commas;
-- duplicate top-level members;
-- case-variant duplicates;
-- nested duplicates;
-- unknown top-level members;
-- unknown nested members;
-- exact known nested manifest;
-- every truncated prefix of valid framed JSON.
+- `Microsoft.Maui.Controls` from 10.0.0 → **10.0.90**.
+
+Commit:
+
+- `21a7b68a9a5de8ff41c49acd3b3b0e7807d42be4`.
+
+The source was then recompiled through Android, Windows, Mac Catalyst, and iOS Simulator gates rather than assuming the servicing update was harmless.
 
 ---
 
-# 68. Pairing codec tests — current coverage
+# 58. SQLite security dependency recovery
 
-Coverage includes:
+The August 14 continuation began with CI restore blocked by security auditing/warnings-as-errors because the dependency graph selected vulnerable `SQLitePCLRaw.lib.e_sqlite3` 2.1.11.
 
-- round trip/canonical fingerprint;
-- expired payload;
-- excessive lifetime;
-- public/DNS host rejection;
-- valid local IPv4/IPv6;
-- invalid fingerprint;
-- invalid nonce;
-- wrong protocol version;
-- wrong scheme;
-- surrounding whitespace rejection;
-- duplicate `p`;
-- unknown query;
-- unexpected path;
-- explicit outer authority port;
-- standard Base64 aliases;
-- Base64 padding;
-- percent-encoded payload alias;
-- missing `=`;
-- empty query segments;
-- duplicate JSON property;
-- case-variant duplicate JSON property;
-- unknown JSON property;
-- comments/trailing commas;
-- random nonce uniqueness/syntax.
+Fix:
+
+- `Microsoft.Data.Sqlite` → 10.0.10;
+- explicit `SQLitePCLRaw.bundle_e_sqlite3` → 2.1.12.
+
+Commit:
+
+- `2114c0f8a3d6a52dc705c576984b34e401406cd5` — `security(deps): patch bundled SQLite dependency`.
+
+This allowed restore to proceed and expose previously hidden compile/test defects rather than suppressing the advisory.
 
 ---
 
-# 69. Manifest/path tests — current coverage
+# 59. Core compile defects exposed after restore recovery
 
-Coverage includes:
+Once dependency restore was healthy, real compile errors became visible.
 
-- valid canonical path;
-- invalid hash;
-- future/pre-Unix timestamp;
-- unsafe length;
-- max file length;
-- control characters;
-- oversized relative path metadata;
-- traversal;
-- rooted path;
-- Windows drive/UNC forms;
-- repeated separators;
-- trailing separator;
-- dot segment;
-- backslash wire alias;
-- invalid filename sanitation alias;
-- Windows reserved name alias;
-- trailing-space alias;
-- decomposed Unicode alias;
-- excessive path depth.
+Focused fixes included:
 
-Authorization-order tests prove malformed paths do not consume nonce.
+- `595c814ac70b6131f616e7eb00b3532dc1150587` — use canonical text snippet byte limit;
+- `508957cc029fadead36447a9e2b6749e7345086d` — import transfer manifest validators in request factory;
+- `03bd8ae7e00ec7268e077a714df2ceec12fc72c5` — import transfer manifest validators in request validation;
+- `c07f41a804e46abd462da3600d11510961b92fcb` — supported SHA-256 hex parsing API in security code;
+- `47b592e8577de3826442a877d53f65bb67761ada` — supported completion-hash hex parsing.
+
+No duplicate validator implementations were introduced; the missing namespace wiring was repaired instead.
 
 ---
 
-# 70. Source safety tests — current coverage
+# 60. Test-project recovery
 
-`TransferSourceSafetyTests` cover:
+The test source intentionally relied on project/global xUnit namespace wiring.
 
-- normal regular file;
-- normal regular directory;
-- symlink file rejection;
-- symlink directory rejection.
+August 14 restored that project-level import rather than adding repetitive `using Xunit` lines to every test file.
 
-`TransferSourceEnumeratorTests` cover:
+Commit:
 
-- deterministic relative order;
-- file-count overflow;
-- directory-count overflow;
-- symlinked file rejection;
-- symlinked directory rejection.
+- `dedfab99afd085ac3922edba60bee30da5752030`.
 
-`TransferEngineSourceSafetyTests` cover:
+Additional focused test/analyzer repairs:
 
-- exact regular-file streaming;
-- symlink rejection at actual send boundary;
-- no payload emitted before rejection.
+- `2757f21cdb4e16eae3fa1683d8fcdb796deff4d3` — text snippet test uses protocol source-of-truth constant;
+- `43687ae8a20ab0757b47bf1203cd0167e2e7f3d6` — xUnit suffix assertion in reservation tests;
+- `405d560c8c993115b4ff4d76ae4dbaf2f25d0d86` — xUnit suffix assertion in filename tests;
+- `4c6af0950d291eccf879028d159de011e5965ee2` — tests assert `JsonException` contract rather than exact subclass implementation detail.
 
-`TransferSourcePathPolicyTests` cover:
-
-- file/folder resume candidates;
-- missing entries;
-- duplicate suppression;
-- file/folder history metadata;
-- symlink replacement removed from resume candidates.
+Analyzer enforcement was retained.
 
 ---
 
-# 71. Batch builder tests — current coverage
+# 61. Strict UTF-8 repair
 
-Coverage includes:
+Runtime tests exposed that protocol frame decoding needed an explicit strict UTF-8 boundary before JSON parsing.
 
-- direct file + recursive folder paths;
-- caller transfer ID preserved across rebuild;
-- deterministic repeated folder manifest order;
-- invalid transfer ID before hashing;
-- duplicate top-level file names;
-- case-only portable collision;
-- sanitation-equivalent collision;
-- symlink top-level file rejection;
-- symlink top-level directory rejection;
-- cancellation before hashing;
-- missing source;
-- empty selection;
-- protocol max file count source-of-truth.
+Commit:
+
+- `46428536f80469e63645009e934976b285af4d4e` — reject malformed UTF-8 before JSON parsing.
+
+Invalid byte sequences can no longer be replacement-decoded into a JSON string before deserialization.
 
 ---
 
-# 72. Transfer integrity/resume tests
+# 62. Filename idempotence repair
 
-Coverage includes:
+Runtime tests exposed sanitation stability issues.
 
-- source length mutation;
-- source becomes shorter;
-- invalid resume offset;
-- staged partial shorter than offset;
-- unexpected staged tail truncation;
-- same-length staged corruption;
-- interrupted receive leaves partial;
-- SHA-256 mismatch cleanup;
-- successful full transfer;
-- real TLS file transfer;
-- real TLS staged resume;
-- non-overwrite final promotion race;
-- completed-file revalidation;
-- completed-file same-length mutation;
-- repeated completed-file verification after mutation.
+Commits:
+
+- `99c35c6c2ffd03307da74a9435f00ab6a2855f22` — normalize again after invalid-character removal and allow deterministic `unnamed` fallback;
+- `28a551247c172d2cbc0bcf7cc6992fcb72113531` — trim whitespace exposed after invalid-character filtering/bounding.
+
+The sanitation function is now stable across repeated application for these boundary cases.
 
 ---
 
-# 73. Path/fuzz/collision tests
+# 63. Staging-budget exhaustion repair
 
-Coverage includes:
+Runtime testing exposed a boundary after all positive aggregate bytes had already been consumed.
 
-- traversal/rooted rejection;
-- portable Windows-root syntax on non-Windows hosts;
-- randomized portable path fuzzing;
-- Windows reserved names;
-- Unicode normalization;
-- portable collision equivalence;
-- destination reservation pressure;
-- receive-root symlink/reparse rejection;
-- completed-file traversal/reparse rejection;
-- UTF-8 filename bounds;
-- max-length collision-marker preservation.
+Commit:
+
+- `665bd051d52b1bfd29f7cca2fd32234c08ac2118`.
+
+A consumed positive aggregate budget is now closed to additional files, while an intentionally configured zero-byte aggregate budget can still represent zero-byte-only staging under its own semantics.
 
 ---
 
-# 74. TLS tests
+# 64. Portable test result
 
-Portable loopback tests use real `TlsPeerServer` / `TlsPeerClient` streams and cover:
+After dependency, compile, analyzer, UTF-8, filename, and staging repairs:
 
-- mutual TLS;
-- exact server pin success;
-- pin mismatch failure;
-- bootstrap observed fingerprint;
-- complete file-byte transfer;
-- final hash equality;
-- staged resume.
+- Core Release restore/build succeeded;
+- **511/511 portable tests passed**;
+- synthetic benchmark project compiled;
+- localization validation passed;
+- Apple integration metadata validation passed.
 
-These are protocol/transport evidence, not signed physical-platform evidence.
+The benchmark compile is a source/build gate, not a claim of representative real-device throughput.
 
 ---
 
-# 75. External share package tests
+# 65. Android compile closure
 
-Portable Core coverage includes:
+After portable code was green, maintained platform CI exposed Android-specific compiler errors that had been hidden by earlier failures.
 
-- version/package ID/time boundaries;
-- item count/per-file/aggregate/text limits;
-- canonical file names;
-- collision handling;
-- exact physical file set;
-- missing/extra files;
-- duplicate portable names;
-- path-like filenames;
-- stale/future package boundaries.
+Focused commits:
 
-Platform-specific `NSItemProvider`, App Group sandbox, and Android `ContentResolver` behavior still requires real target validation.
+- `128a0e218c26cba5d00b14f37387e1d811f6aa09` — multicast lock nullability;
+- `16ef00079a6a1636388a1dce8669648b57fd0374` — foreground-service API/nullability;
+- `40bb8b712cf461a528db0bf0f7a5bb2e3380cba8` — current Android intent/openable-column bindings and bounded shared-content staging;
+- `3d5ce81fae53f52313c4579b6fd006ea0dc2d82d` / `addb068...` — multi-file picker nullable contract;
+- `ebb94f8...` — shared XAML compile fix.
+
+Android Release compile subsequently passed in the maintained platform matrix.
 
 ---
 
-# 76. CI/build verification configuration
+# 66. Apple target correction commits
 
-Regular CI is configured for:
+Key Apple architecture commits:
 
-- localization validation;
-- Apple integration metadata validation;
-- Core restore/build;
-- portable tests;
-- benchmark-project compile.
+- `8a3eb2ae23576c602709993c2162ca45f8021f06` — scope Share Extension to iOS;
+- `9d2b209918cb2fe233f4732b6a972865bca393ed` — embed extension only in iOS app;
+- `c96ceb8eca84efdb518a8b79256997b7148986d9` — remove stale Mac Catalyst extension entitlements;
+- `af23c301c23b87f62e4e002aa88c8c9626e1a6e2` — align Apple validator with iOS-only extension.
 
-Platform workflows are configured for:
+Mac Catalyst remains a first-class application target, but its external intake is implemented through the containing desktop app/native drop rather than an unsupported extension target.
 
-- Android app compile;
-- Windows app compile;
-- Mac Catalyst Share Extension compile;
-- Mac Catalyst containing-app compile;
-- unsigned iOS Simulator Share Extension compile;
-- unsigned iOS Simulator containing-app compile.
+---
 
-Release-readiness includes:
+# 67. Apple simulator signing isolation
 
-- portable verification;
-- Apple metadata validation;
+Hosted iOS simulator compilation must not require a private Apple Developer certificate/provisioning profile.
+
+At the same time, real project entitlements must remain present for signed/device builds and static validation.
+
+The final maintained approach confines signing/provisioning overrides to simulator CI command scope.
+
+Relevant commits include:
+
+- `e52593619eb2104ea83225c15166df4f21e0bfd7` — simulator extension signing handling;
+- `5d5d982110b0ae532c3753ecbd2cca6e828ef48b` — simulator containing-app signing handling;
+- `29375df8b7718e0ef8b7b77bb0b1883e3ee64dc3` — certificate-independent hosted simulator gate;
+- `84e6b3e0c6f9fc4bf871e11d6691866ce1ca9a9d` — same release-readiness boundary.
+
+Real App Group entitlements remain in source.
+
+---
+
+# 68. Windows compile closure
+
+Windows required several layers of correction after the first true Windows source compile:
+
+- runtime restore consistency;
+- target-matrix isolation;
+- iOS extension graph isolation;
+- WinUI namespace disambiguation;
+- WinRT data-package enum disambiguation;
+- compile-versus-MSIX boundary.
+
+Key commits:
+
+- `7c1db757f8cb1d8daf9a9d06739f0881ddfc0a7b` — runtime identifier override mapping;
+- `255451f8195116ae47bd73aecd742582679cca3b` — explicit `win-x64` restore/build;
+- `786f2904b4e6f070d99616509dcac30fd29aefa0` — allow matching Windows runtime restore at final MAUI build;
+- `46bc975f9832f748725436f16ab6fa5dbc8edff0` — optional iOS extension graph skip for non-Apple focused restore;
+- `a5ee2e496664e284a7aecdab78c569c549923d23` — apply graph skip in Windows platform job;
+- `efac3b490ba1beab1a0f49e72ee9bea1c3a31ca3` — mirror in release readiness;
+- `f8a062b0b7d1ecf7cacb196a30a999f3f623f674` — single-TFM override hook;
+- `d6ff6ff611147ab5bc1a5c1c23e0ab9f5fa4affc` / `41e20eb...` — force Windows-only target matrix;
+- `18a41cd9e10adf23a2daf1057c39e738fcc4f9d3` — qualify WinUI activation/drag event types;
+- `af4dfda0e5629a9c5ad9d52e33152102cd7a283e` — qualify WinRT data package operations;
+- `a40aec014e9bad900ec0667293401f8478fb25d2` — separate hosted compile from MSIX packaging;
+- `50c34fd445c10a283ddbc69eb6fbc04d1e2a912c` — mirror that boundary in release readiness.
+
+Focused Windows Release compilation is green.
+
+---
+
+# 69. Platform workflow runtime isolation
+
+Earlier platform-specific restores could overwrite shared Core assets with incompatible platform target state.
+
+Commit:
+
+- `7a4449fc2e517de05dc6a6a88dfe1f14b9af5718` — restore platform runtimes/shared Core explicitly.
+
+Later commits refined Windows and Apple RIDs until the final platform matrix was stable.
+
+---
+
+# 70. Maintained platform workflow
+
+The maintained `.github/workflows/platform-builds.yml` covers:
+
+- Android Release app compile;
+- focused unpackaged Windows Release app compile;
+- Mac Catalyst containing-app Release compile;
+- certificate-independent iOS Simulator Share Extension compile;
+- certificate-independent iOS Simulator containing-app compile.
+
+Mac Catalyst Share Extension compile is intentionally absent because there is no maintained Mac extension target.
+
+---
+
+# 71. Obsolete workflow retirement
+
+The repository contained one-shot/self-modifying migration workflows that had already completed their purpose and could continue producing duplicate or invalid checks.
+
+They were removed in focused commits:
+
+- `8f2fd845a88bb98bfa67a053caef48c4707bc02d` — retire completed platform hardening workflow;
+- `b28c24d16958745af0c18aa8e8f6149f6be331f7` — retire completed hardening workflow;
+- `b275c0bb41737ff7c92fc2b04853ac49b1cbcfa7` — retire continuation finalizer;
+- `ed67533dc65cc1cc9205215ac70b97005aeb4618` — retire script-mode migration workflow;
+- `0c9166b2cc402361fd58a78e2017da7aa1bfe732` — remove duplicate platform smoke workflow.
+
+Platform compilation now has one maintained workflow rather than duplicated stale variants.
+
+---
+
+# 72. Release-readiness workflow alignment
+
+`.github/workflows/release-readiness.yml` mirrors maintained platform compile boundaries:
+
+- portable Core/tests/localization/Apple metadata/benchmark;
 - dependency inventories;
-- platform compile gates;
-- Apple extension dependency graph for iOS;
-- Apple extension dependency graph for Mac Catalyst;
-- aggregate result gate.
+- Android compile;
+- focused unpackaged Windows compile;
+- Mac Catalyst containing-app compile;
+- iOS Simulator extension/app compile with signing disabled at command scope;
+- iOS Share Extension dependency graph;
+- aggregate gate requiring each compile/test job to succeed.
 
-Configured workflows are not proof the exact final commit passed.
+Signed MSIX, signed Android packages, Apple device signing/App Group provisioning, notarization, and physical-device tests are deliberately not mislabeled as hosted CI passes.
 
 ---
 
-# 77. Apple source-invariant validator
+# 73. Apple metadata validator
 
-`scripts/validate_apple_integration.py` checks source consistency including:
+`scripts/validate_apple_integration.py` now validates the maintained architecture:
 
-- exact App Group across entitlement files;
+- exact App Group values;
 - containing/extension bundle IDs;
 - version/build parity;
-- extension target frameworks;
+- extension target exactly `net10.0-ios`;
 - `IsAppExtension=true`;
-- app project references extension correctly;
-- correct entitlements wiring;
-- Mac sandbox network entitlements;
+- extension `Info.plist`;
+- iOS extension entitlements;
+- containing iOS entitlements;
+- Mac Catalyst containing-app sandbox/App Group entitlement wiring;
 - extension point/principal class;
-- activation rules;
+- activation rule;
+- iOS project reference;
 - Core App Group constant;
 - solution inclusion.
 
-This cannot create or validate real Apple Developer provisioning profiles.
+It does not pretend to create or validate Apple Developer provisioning profiles.
 
 ---
 
-# 78. Release/dependency/license engineering
+# 74. Automated platform evidence
 
-`THIRD_PARTY_NOTICES.md` documents direct dependency surfaces and requires exact final release-candidate dependency/license audit.
+Maintained Platform builds run:
 
-Current direct runtime package surface includes project-specific packages such as:
+- workflow run ID: **31768420086**;
+- source/workflow head: `a40aec014e9bad900ec0667293401f8478fb25d2`;
+- conclusion: **success**.
 
-- `Microsoft.Data.Sqlite`;
-- logging abstractions/debug providers;
-- `Microsoft.Maui.Controls`;
-- `QRCoder`.
+That run completed:
 
-Tests include:
+- Android job: success;
+- focused Windows job: success;
+- Apple job: success, including Mac Catalyst containing app, iOS Simulator Share Extension, and iOS Simulator containing app.
 
-- Microsoft.NET.Test.Sdk;
-- xUnit;
-- runner;
-- coverlet collector.
-
-Share Extension references `SwiftDrop.Core` and Apple platform SDK APIs rather than introducing a separate arbitrary runtime NuGet package.
-
-Final signed/restored graph determines actual redistribution notice obligations.
+Later commits through the current ledger write are documentation-only; exact final release-candidate validation must still be run/frozen before a production tag.
 
 ---
 
-# 79. Documentation synchronized before final ledger write
+# 75. Portable CI evidence
 
-Current-state documentation updated in this continuation includes:
+A later normal CI run on documentation/architecture head `b7eca57bf4020c35d500512028aa17863d528ccc` completed successfully:
 
-- `README.md`;
-- `PROJECT_STATUS.md`;
-- `NEXT_STEPS.md`;
-- `CHANGELOG.md`;
-- `docs/protocol/wire-format.md`;
-- `docs/protocol/security.md`;
-- `docs/security/THREAT_MODEL.md`;
+- workflow run ID: **31769091180**;
+- conclusion: **success**.
+
+That gate includes:
+
+- localization validation;
+- Apple integration metadata validation;
+- Core restore;
+- Core Release build;
+- full portable xUnit suite;
+- benchmark-project compile.
+
+The portable suite evidence remains **511/511 passing tests**.
+
+---
+
+# 76. CodeQL/security-hygiene evidence
+
+On head `b7eca57bf4020c35d500512028aa17863d528ccc`:
+
+- CodeQL workflow run **31769091211** — **success**;
+- repository security-hygiene workflow run **31769091218** — **success**.
+
+These are automated source/security checks, not a substitute for signed-binary review or physical platform testing.
+
+---
+
+# 77. Current dependencies and notices
+
+Current direct runtime dependency surface documented in `THIRD_PARTY_NOTICES.md` includes:
+
+`SwiftDrop.Core`:
+
+- `Microsoft.Data.Sqlite` 10.0.10;
+- `Microsoft.Extensions.Logging.Abstractions` 10.0.0;
+- `SQLitePCLRaw.bundle_e_sqlite3` 2.1.12.
+
+`SwiftDrop.App`:
+
+- `Microsoft.Maui.Controls` 10.0.90;
+- `Microsoft.Extensions.Logging.Debug` 10.0.0;
+- `QRCoder` 1.6.0.
+
+The iOS Share Extension declares no arbitrary direct NuGet package of its own but references Core and uses the .NET/iOS target/runtime graph.
+
+Exact transitive licenses/notices must still be reviewed against the restored signed release candidate.
+
+---
+
+# 78. Portable test coverage
+
+Portable tests cover, among other areas:
+
+- strict/canonical pairing query/Base64URL/whitespace behavior;
+- identity/fingerprint/certificate policy;
+- one-time authorization consume/replay/concurrency;
+- strict UTF-8 and strict JSON;
+- duplicate/unknown framed JSON members;
+- typed request construction/validation;
+- canonical manifest path validation;
+- malformed path rejection before authorization consumption;
+- transfer ID token syntax;
+- complete file/batch/text/pair conversations;
+- mutual-TLS loopback pinning/file/resume;
+- source length/content mutation;
+- staged corruption/integrity cleanup;
+- regular source/symlink rejection;
+- deterministic bounded folder enumeration;
+- portable sender path deconfliction;
+- UTF-8 filename bounds;
+- collision marker preservation;
+- stable batch IDs;
+- completed-file retry validation;
+- repeated completed-file verification after mutation;
+- SQLite v0/v1/v2→v3 migrations;
+- receive-root link/reparse rejection;
+- destination reservation/final-promotion races;
+- staging count/per-file/aggregate budgets;
+- exact Apple package physical file sets;
+- discovery fuzz/truncation/pointer loops;
+- session drain/fault/cancellation races;
+- privacy redaction;
+- rune-safe UTF-8 text truncation.
+
+---
+
+# 79. Manual/security validation documents
+
+Current release/testing documents include:
+
 - `docs/testing/security-test-plan.md`;
 - `docs/testing/manual-test-matrix.md`;
 - `docs/release/release-checklist.md`;
-- `docs/platform/integration-status.md`.
+- `docs/testing/performance-benchmarks.md`.
 
-Previously aligned docs retained because their underlying scope did not change materially:
+The manual matrix explicitly covers all supported cross-device directions and separately covers:
 
-- `BUILDING.md`;
-- `PRIVACY.md`;
-- `THIRD_PARTY_NOTICES.md`;
-- `docs/architecture.md`;
-- `docs/platform-permissions.md`;
-- `docs/storage/database-schema.md`;
+- pairing aliases/replay;
+- canonical paths;
+- source links;
+- single-file integrity;
+- stable batch resume;
+- completed-item retry race;
+- Android provider metadata/staging budgets;
+- iOS Share Extension/App Group;
+- Mac native drop;
+- Windows activation/drop/picker;
+- low storage;
+- lifecycle/network changes;
+- accessibility/localization.
+
+---
+
+# 80. Platform documentation synchronization
+
+Current `docs/platform/integration-status.md` correctly states:
+
+- Android share and foreground service are implemented in source;
+- iOS has the dedicated Share Extension;
+- Mac Catalyst uses containing-app/native drop and has no Share Extension target;
+- Windows uses focused CI target isolation and native platform integration;
+- release validation still requires signed/device testing.
+
+No stale current-state Mac Catalyst Share Extension claim remains in this platform document.
+
+---
+
+# 81. Build documentation synchronization
+
+`BUILDING.md` now documents:
+
+- canonical solution and portable verification;
+- Android build commands;
+- focused Windows source-compile commands matching green CI;
+- exact `WindowsPackageType=None` / `GenerateAppxPackageOnBuild=false` boundary;
+- iOS-only Share Extension;
+- Mac Catalyst containing app build;
+- certificate-independent iOS simulator commands;
+- Apple signed-device/App Group requirements;
+- production validation boundary.
+
+Commit:
+
+- `7f8004c8446c689d9bf5cae53c7b49e9c3318ad0`.
+
+---
+
+# 82. Project-status synchronization
+
+`PROJECT_STATUS.md` is updated to the fully green maintained platform matrix rather than the earlier temporary “Apple revalidation in progress” wording.
+
+Commit:
+
+- `33680cefa5a75acc28e62a8b8cb4e9d5cd9ffbec`.
+
+It continues to classify the repository as:
+
+**source-complete release-validation phase for the current master-prompt scope**.
+
+---
+
+# 83. README synchronization
+
+Public README was aligned with:
+
+- iOS-only Share Extension;
+- Mac Catalyst native drop/no Mac extension;
+- canonical pairing/path behavior;
+- stable completed-item resume;
+- staging budgets;
+- current target compile gates;
+- Apple provisioning boundary;
+- source-complete versus production-validated distinction.
+
+Relevant August 14 commit:
+
+- `90e42d523a08d86d28769c4076306bd2c7b33432`.
+
+---
+
+# 84. Architecture/privacy/permissions synchronization
+
+Focused documentation commits include:
+
+- `45912e63af7808a509b44f336f20e452ece8b7ff` — architecture aligned to iOS-only extension and focused platform builds;
+- `3c8cdbf39aa1518b731ac9fc619bfbcd76a474c6` — permissions/entitlements corrected for retired Mac extension;
+- `f72bd0d6f13339a417488d4734fbd440b40070d1` — privacy aligned to external staging and iOS-only extension;
+- `c5d10c701699cdb2e9f38edefc706270d77b3478` — clean architecture/MVVM boundaries refreshed;
+- `b7eca57bf4020c35d500512028aa17863d528ccc` — architectural decisions recorded.
+
+---
+
+# 85. Security/release/license documentation synchronization
+
+Focused commits include:
+
+- `75ed1d6b77b4a83448aae522d8a920dc45fa36f8` — security test plan aligned with current platform architecture;
+- `a60f2cb2fa174014468a34b3003103acc934e5c7` — stale Mac extension release gates removed;
+- `54d3c857afad7d7003fdfa995b753653f1ae9b02` — manual matrix aligned with iOS-only extension;
+- `45f08237601b089e1ae9b90814766d331e779b68` — third-party notice/dependency inventory refreshed;
+- `f9a82a3962ee261936e2b28c1c53435e25805a65` — roadmap aligned with current release-validation architecture;
+- `439c05ac64436306a076cff8ed316c5baa22de58` — August 14 changelog section added.
+
+Historical changelog entries describing the earlier Mac Catalyst extension attempt remain historical records; the August 14 entry explicitly records the maintained iOS-only correction.
+
+---
+
+# 86. Threat/protocol documentation retained
+
+August 12 protocol/security hardening documentation remains current and is not superseded by the August 14 build/platform pass.
+
+Important documents:
+
+- `docs/protocol/wire-format.md`;
+- `docs/protocol/security.md`;
+- `docs/security/THREAT_MODEL.md`;
 - `docs/protocol/compatibility-matrix.md`.
 
-No package dependency, privacy schema, App Group ID, bundle ID, or SQLite schema version changed during August 12 hardening.
+They define/cover:
 
----
-
-# 80. Focused August 12 commit trail — source/security/tests
-
-The continuation intentionally used many focused commits instead of one giant source commit.
-
-Major observed focused commits include:
-
-- `27161b7e57f24b3b61205347ef474150a33da582` — security: require canonical Base64URL pairing query encoding;
-- `57c98c31de55f2e805668796aa83a68269eced22` — test: cover canonical pairing query and Base64URL transport;
-- `f8120cfc2858745bd1a79450cf07f18f3416bbda` — security: reject whitespace-wrapped pairing capabilities;
-- `ce3baeb7c77dda27b8b8304b4094dfdec4211eac` — test: reject whitespace-wrapped pairing links;
-- `fec05363e41ed6e7938bbfc90b0b92955132953c` — security: centralize strict portable relative path parsing;
-- `05e88c7c1fb1eae44bfc3e38b54d4994a48c1425` — security: reject ambiguous empty transfer path segments;
-- `713f010dc47a91d20b3e8d2308c0bada10f386bb` — security: make receive path guard reject ambiguous separators;
-- `a0350e751303f8a461886498c1e1ef5e8c595033` — test: cover strict portable relative path parsing;
-- `a8fca28eb8b2391d9632246654ebe319b7dd6f34` — test: reject ambiguous paths at receive root boundary;
-- `e2c206f34b3920e0f68d1cc65c0133d30b557d32` — test: lock strict relative path sanitation boundaries;
-- `54914b48287397a581617f94007773746ad4c0d3` — security: bound portable relative path nesting depth;
-- `5586d70ba574f9637fd4e600cc083789cec8cc07` — security: validate portable manifest paths before authorization;
-- `6fa77d75a24431b94d28c2c40d58232d0edc7320` — security: require canonical sanitized paths in wire manifests;
-- `67d9439c7a2897ba9a7f3d40bc18c1bb5d146f20` — test: cover strict portable manifest path structure;
-- `bd670076e2ef1c14a4f7382a26b0032f0aecb0a7` — test: prove malformed paths do not consume transfer authorization;
-- `bf8aa7b973a0f394718bbd9e2c60925d215b9193` — test: reject noncanonical sanitized wire manifest paths;
-- `83ebdefd99e71a1ec2e71de032d72ce97a45fc7b` — test: avoid ambiguous join overload in path-depth coverage;
-- `d10835f9617698647dd90e4cb6530c579f946081` — fix: canonicalize transfer relative paths to forward slashes;
-- `23eb74e0832e027b357c68788fc59d32cd2a04d1` — fix: keep sender batch deconfliction wire-path canonical;
-- `c716ba0b4bf35af068e7735c0c4d3a0e8365a059` — test: lock forward-slash canonical relative paths;
-- `629b5f0fadb4d78fd2fb7e144de1bbdbacb1265a` — security: add reusable transfer staging budget policy;
-- `62e305d190eae14c735000e3305483e8dbff3340` — test: cover reusable staging count and byte budgets;
-- `1615480b9c6231c97be4133b08a873d61438b31d` — security: enforce Apple share aggregate budget before provider copy;
-- `7c860aec2b4684a01a55ea8fa97339c01ad6f4c0` — security: enforce Android share aggregate budget during staging;
-- `5a4649ce157b28851b38e2dc362a3ea734d57b30` — refactor: share staging budget policy with Mac drop intake;
-- `8ad3a2cc28faa82a124fc42543a330f9ca41dc5a` — reliability: bound Mac drop provider response waits;
-- `ea80b55d67f1942ee6c3d7381e1c754de8fde91b` — reliability: preflight aggregate Apple share import capacity;
-- `ded8c18e4887ce20ebfea2e7a3b36cbfd960b297` — reliability: centralize existing transfer source path filtering;
-- `becd7e8750b5aa7c2c6d8aa04279bf634ac54894` — test: cover file and folder resume source filtering;
-- `069286577819d84409eb51fd5a0ac2e807f99c35` — fix: preserve folder sources and portable dedup in batch resume;
-- `5baea43ff447c7d15986d0be92baa1dd6c7a002c` — security: drop linked sources from paused resume state;
-- `09e5bd595d128854b8f2578e0033148f80ac79bd` — test: drop swapped symlink sources from resume candidates;
-- `1edaa69dd5fa40c1112b04af7c25e35f5eaa5632` — security: add bounded link-safe deterministic folder enumeration;
-- `8e2a566f47623e423ccb910d2d6cee8db61238d9` — test: cover deterministic bounded link-safe source enumeration;
-- `db57b5b139498b08b6b3eaf4b6833fea231efd86` — security: use link-safe deterministic enumeration for folder transfers;
-- `110ca5a75aa4b08ffe5560889b8b3808eba506c6` — refactor: centralize source link rejection policy;
-- `faced680e74f71eb2140e968a822bab9cd5405c9d` — refactor: reuse central transfer source safety in enumeration;
-- `1f575e286a3052590aca7b21e1ec281025a1e15d` — refactor: reuse regular source validation in batch builder;
-- `56534e6923dfae7ebf68236671151bd1f769ab27` — test: lock deterministic folder manifests and source link rejection;
-- `413d2bee68ab8cbfa0ab803df53db9a260e42508` — security: centralize regular transfer source validation;
-- `6718a9151ba859864e37f050a31302562f55c147` — test: cover regular file and directory source safety;
-- `ce86aaf9d61eefec4c4040c5514430c273e99119` — security: reject linked sources in single-file sends;
-- `5304acf5121cff72a151acd05e479e88520c072b` — security: revalidate regular source file at send boundary;
-- `9c681500143b87122103365768d2743cf487de26` — test: cover transfer engine send-boundary source safety;
-- `86253c4e64ac8bc63c5574771454234c3500719e` — reliability: deconflict portable batch paths before hashing;
-- `416cf8997cba93f17f2820cf81498b2638c0c0b8` — test: cover portable sender path deconfliction before hashing;
-- `445992173c56cd684ad5f8ce7128639924cb9cb8` — security: bound portable filename segments by UTF-8 bytes;
-- `f79676124261da976821906eba7985528dafb8b4` — test: cover UTF-8 byte bounded portable filenames;
-- `5b3610824787ea08aaa6ae454b3d18e3d01afc96` — reliability: preserve collision markers under filename bounds;
-- `4d49f0d6023d65b01ec0893bcfeb950428205284` — reliability: keep receive collision suffixes within filename bounds;
-- `dfc7ec4db7ceca88286454e457592b76deec01e3` — reliability: bound generic collision-free filenames;
-- `ceac9a8cd4ae12565e1f52b60453e4112d5a2e53` — reliability: reuse bounded collision naming in batch sender;
-- `a49bc2e14b77558bbf7cc24300af61874b65d367` — reliability: reuse bounded collision naming in Apple share packages;
-- `46401de21de7bedba8fa81f9b47b195a8a2c4ca3` — test: ensure collision markers survive filename bounds;
-- `b91ec991e7b60d94cf16d8dc5944c5d6c1dd2b30` — test: cover bounded receive collision reservations;
-- `3a51842298ef2b3f49a0716c41442df31d59708d` — reliability: preflight batch path length before hashing;
-- `bbf59e2a122e768debbbcb2ba3c6e55755c1537c` — security: require canonical token syntax for batch transfer IDs;
-- `502288555092614f8e195f9f10fdfbf415bbff34` — test: cover canonical transfer ID token syntax.
-
-Additional focused commits later in the frozen continuation include:
-
-- reliability: preserve storage reserve for unknown Android share sizes;
-- refactor: remove obsolete fresh-ID batch handlers and harden single resume;
-- refactor: remove obsolete fresh-ID batch compatibility overload;
-- reliability: make resume source filtering nullable-safe;
-- documentation synchronization commits for wire protocol, security, threat model, tests, release checklist, platform status, README, project status, roadmap, and changelog.
-
-Every focused commit where commit-message control is available uses the requested Signed-off-by identity. One early filename-byte-bound commit used the same mailbox with case variation in the trailer; subsequent commits use the requested lowercase form.
-
----
-
-# 81. Prior focused hardening retained from August 10–11
-
-Important earlier commits/features remain part of the current source and are not superseded by this continuation:
-
-- strict pairing decoded JSON duplicate/unknown controls;
-- reusable one-time authorization store;
-- incoming/response policy extraction;
-- complete typed protocol models/factories/validators/authorizer;
-- strict unknown-member framed JSON;
-- active receive session tracking/drain;
-- receive-root symlink/reparse rejection;
-- non-overwrite final promotion;
-- stable batch ID workflow;
-- schema-v3 completion persistence;
-- first completed-file fresh rehash while creating retry plan;
-- second completed-file rehash before zero-byte ACK;
-- Apple Share Extension/App Group target;
-- exact App Group file-set validation;
-- Mac native drop;
-- Android share staging;
-- Windows native drop;
-- English/Hindi runtime localization/MVVM;
-- CodeQL/security/release workflows;
-- release/platform/security documentation.
-
-The current source must be evaluated as the cumulative repository state, not only the August 12 commits.
-
----
-
-# 82. Current source-completion assessment
-
-For the current master-prompt scope, the repository contains source implementations for:
-
-- local identity/trust;
-- mDNS + UDP + QR + code + manual pairing;
-- canonical short-lived pairing capabilities;
-- mutual TLS and receiver certificate pinning;
-- strict typed closed-schema protocol;
-- one-time authorization;
-- canonical cross-platform file manifest paths;
-- single/multi/folder/text transfer;
-- selective receive;
-- pause/resume/cancel/retry;
+- canonical pairing representation;
+- strict typed JSON;
+- one-time authorization order;
+- canonical `/` paths;
+- filename bounds;
+- source link/reparse handling;
+- staging budgets;
 - stable batch IDs;
-- idempotent completed-file batch retry;
-- repeated completed-file verification;
-- receive path/collision/capacity/integrity protection;
-- outgoing source link/reparse safety;
-- deterministic folder enumeration;
-- local SQLite metadata/history/privacy/diagnostics/queue;
-- Android share intake/background transfer lifetime;
-- Windows protocol/folder/drop integration;
-- iOS/Mac document URL intake;
-- iOS/Mac Share Extension/App Group source;
-- Mac native drag/drop source;
-- common external staging budgets;
-- settings/about/trust/history/diagnostics/queue UI;
-- English/Hindi localization infrastructure/runtime coverage;
-- portable tests/CI/release docs.
-
-The current phase is therefore:
-
-**source-complete for the current scope and awaiting exact-candidate release validation**
-
-not production-verified.
+- repeated completed-item verification.
 
 ---
 
-# 83. Deliberate non-claims / optional future enhancements
+# 87. Repository completion sweep
 
-SwiftDrop does not falsely claim:
+The maintained repository was swept for unfinished implementation markers.
 
-- arbitrary iOS/Android background sockets survive suspension;
-- file-extension warnings are malware scanning;
-- source App Group entitlements prove real Apple provisioning works;
-- configured CI jobs passed when status evidence is absent;
-- source compile equals signed/store-ready package;
-- local metadata/filesystem checks protect against a fully compromised OS/kernel;
-- optional native completion/failure notifications exist on every target;
-- provider/content-resolver behavior is validated by portable tests alone.
+No maintained-source implementation remained for:
 
-Optional post-v1 enhancements may include:
+- `TODO`;
+- `FIXME`;
+- `NotImplementedException`;
+- placeholder implementation markers;
+- stub implementation markers.
 
-- native optional completion/failure notifications on Apple/Windows;
-- additional store-compliant background continuation;
+The Share Extension tree was also inspected directly and now contains only its iOS platform entitlement directory under `src/SwiftDrop.ShareExtension/Platforms`.
+
+No maintained Mac Catalyst Share Extension target/entitlement file remains.
+
+---
+
+# 88. Repository workflow sweep
+
+The workflow directory was reviewed after retiring one-shot helpers.
+
+Maintained responsibility is now separated into normal CI/security/platform/release workflows rather than migration workflows that edit the repository themselves.
+
+This prevents stale self-edit workflows from producing duplicate failures/check noise after their migration purpose has completed.
+
+---
+
+# 89. Current source-completion assessment
+
+For the current master-prompt scope, repository source contains implementations for:
+
+- local device identity/trust;
+- discovery;
+- QR/deep-link/nearby/code/manual pairing;
+- canonical pairing capability encoding;
+- mutual TLS and certificate pinning;
+- strict closed-schema typed protocol;
+- one-time authorization;
+- single-file transfer;
+- multi-file transfer;
+- recursive folder transfer;
+- explicit text transfer;
+- selective receive;
+- pause/cancel/resume;
+- stable batch IDs;
+- idempotent completed-file retry;
+- second completed-item verification;
+- source link/reparse safety;
+- deterministic folder manifests;
+- canonical cross-platform paths;
+- bounded UTF-8 filenames/collisions;
+- receive path/collision/capacity/integrity safety;
+- SQLite trust/history/diagnostics/queue/resume metadata;
+- Android share/lifecycle integration;
+- Windows activation/folder/drop integration;
+- iOS document intake;
+- iOS Share Extension/App Group handoff;
+- Mac Catalyst containing-app native drop;
+- shared external staging budgets;
+- settings/trust/history/queue/diagnostics/About UI;
+- English/Hindi localization;
+- portable regression/security tests;
+- maintained multi-platform compile CI;
+- release/security/build documentation.
+
+The accurate classification is:
+
+**source-complete for the current scope and undergoing release validation**.
+
+---
+
+# 90. Deliberate non-claims
+
+SwiftDrop does not falsely claim that:
+
+- arbitrary iOS/Android sockets survive OS suspension;
+- extension-risk warnings are malware scanning;
+- source App Group entitlements prove provisioning works;
+- hosted iOS Simulator compile proves device signing/extension runtime works;
+- unpackaged Windows compile proves signed MSIX behavior;
+- source compile proves store readiness;
+- portable provider tests prove every real provider behaves identically;
+- application-level filesystem checks protect against a fully compromised OS/kernel;
+- optional completion/failure system notifications exist on every target;
+- synthetic benchmark compile equals representative real-network performance.
+
+---
+
+# 91. Optional post-v1 enhancements
+
+Optional future work may include:
+
+- native completion/failure notifications on Apple/Windows;
+- additional supported/store-compliant background continuation;
 - broader localization;
-- representative-device performance telemetry/benchmarks;
+- representative-device performance dashboards/evidence;
 - additional property/state-machine fuzzing;
-- trustworthy platform malware-scan integration only where a supported OS API exists.
+- trustworthy platform malware-scanning integration only where a supported OS API exists.
 
-These are optional enhancements, not hidden missing correctness items in the current master-prompt source scope.
+These are optional enhancements rather than hidden missing correctness work for the current master-prompt source scope.
 
 ---
 
-# 84. External validation still required
+# 92. External Android release validation still required
 
-Repository source changes cannot honestly complete these release gates.
+Repository source/hosted compile cannot complete:
 
-## Automated candidate evidence
+- private release keystore setup;
+- signed AAB/APK generation;
+- clean install/upgrade testing;
+- Play Console policy/store validation;
+- physical API/device range;
+- real providers with normal/null/negative/wrong/changing size metadata;
+- low-storage pressure during unknown-size provider copy;
+- foreground-service behavior under real Android restrictions;
+- notification permission transitions;
+- multicast discovery on physical Wi-Fi;
+- vendor battery-management behavior;
+- TalkBack/large-text/Hindi/lifecycle testing.
 
-- Observe all configured GitHub Actions jobs successfully complete for the exact final commit.
-- Verify portable Core restore/build/tests.
-- Verify localization validator.
-- Verify Apple integration metadata validator.
-- Verify benchmark compile.
-- Verify Android/Windows/Mac/iOS Simulator compile jobs.
-- Verify CodeQL/security-hygiene/release-readiness gates.
-- Review dependency inventory artifacts.
+---
 
-## Android
+# 93. External Windows release validation still required
 
-- signed AAB/APK build;
-- install/upgrade;
-- provider URIs with declared/null/negative/wrong/changing size;
-- unknown-size aggregate/runtime cap;
-- low-storage reserve during unknown-size copy;
-- foreground service/notification policy;
-- multicast/discovery on physical Wi-Fi;
-- vendor battery restrictions;
-- backup-disabled behavior;
-- TalkBack/large text/Hindi/background behavior.
+Repository source/hosted compile cannot complete:
 
-## Windows
-
-- signed package build/install/update;
-- firewall behavior;
-- packaged protocol activation;
-- receive FolderPicker persistence;
+- real signing certificate configuration;
+- signed MSIX/package generation;
+- package install/update/uninstall;
+- packaged protocol registration behavior;
+- package capability behavior;
+- Windows Firewall behavior;
+- packaged receive FolderPicker persistence;
 - packaged native drop;
-- regular source/link behavior;
-- Windows→Android/iOS/Mac canonical `/` folder manifest interoperability;
-- max-length Unicode collision behavior;
-- Narrator/keyboard/high-contrast/high-DPI.
+- physical Windows→Android/iOS/Mac canonical folder interoperability;
+- Narrator/keyboard/high-DPI/high-contrast testing.
 
-## Apple
+---
 
-- real Apple Developer App Group configuration;
-- containing app + Share Extension provisioning profiles;
-- signed iOS physical-device build;
-- TestFlight/App Store extension embedding;
-- signed Mac Catalyst sandbox/App Group/Share Extension;
-- provider-response timeout behavior with real `NSItemProvider` sources;
-- extension dismissal/cancellation;
-- App Group cold/warm import;
-- exact physical package rejection cases;
-- aggregate cache capacity behavior;
-- multiple pending packages;
-- native Mac security-scoped drop/provider behavior;
-- notarization/store package.
+# 94. External Apple release validation still required
 
-## Cross-device/network/filesystem
+Repository source/hosted simulator compile cannot complete:
 
-- physical Android/iOS/Mac/Windows directional matrix;
+- Apple Developer App Group creation/configuration;
+- real provisioning profiles for `in.sanskar.swiftdrop` and `in.sanskar.swiftdrop.share`;
+- signed iOS device build;
+- Share Extension appearance/activation on physical devices;
+- TestFlight/App Store embedding;
+- real `NSItemProvider` timeout/cancellation/security-scoped behavior;
+- App Group cold/warm handoff under signed sandbox;
+- signed/notarized Mac Catalyst sandbox/network/App Group/native-drop behavior;
+- macOS firewall/notarization/store checks;
+- VoiceOver/large-text/Hindi behavior.
+
+Mac Catalyst validation concerns the containing app/native drop; no Mac Catalyst Share Extension is expected.
+
+---
+
+# 95. Cross-device/network/filesystem validation still required
+
+Physical matrix still must exercise supported directions between:
+
+- Android;
+- Windows;
+- iOS;
+- Mac Catalyst.
+
+Cases include:
+
 - QR/nearby/code/manual pairing;
-- canonical pairing alias rejection;
-- canonical `/` folder manifest identity;
+- expired/replayed/canonical-alias rejection;
+- certificate pin mismatch;
+- small/zero-byte/large files;
+- large multi/folder batches;
+- canonical `/` paths;
 - source symlink/reparse cases;
 - receive-root symlink/reparse cases;
+- selective receive/reject;
+- pause/cancel/network interruption/resume;
+- completed-item retry without duplicate copy;
+- completed destination mutation between plan and zero-byte ACK;
+- source mutation;
+- staged corruption;
+- collision pressure;
+- low storage;
 - guest Wi-Fi/client isolation;
-- multicast filtered/direct IP;
-- IPv4/IPv6 LANs;
-- firewalls/local-network permission;
+- multicast-filtered LAN;
+- IPv4/IPv6 combinations;
 - network switching;
-- sleep/lock/background;
-- low storage during receive and external staging;
-- multi-gigabyte files;
-- many-file/folder batches;
-- max-length Unicode/collision names;
-- completed destination mutation between retry plan and zero-byte ACK.
-
-## Secure storage/database
-
-- real SecureStorage/keychain/keystore lock/upgrade/restore behavior;
-- real v1/v2 database upgrade to v3;
-- corrupt local metadata recovery on target devices.
-
-## Accessibility/localization
-
-- TalkBack;
-- VoiceOver iOS/Mac;
-- Narrator;
-- keyboard-only navigation;
-- largest text scaling;
-- high contrast;
-- reduced motion;
-- responsive/window/rotation behavior;
-- Hindi wrapping/runtime dialogs/statuses.
-
-## Release/legal/store
-
-- exact signed dependency graph review;
-- final third-party notices;
-- store privacy/data declarations;
-- screenshots/metadata;
-- signing/notarization;
-- final privacy/security review against shipped binaries.
+- sleep/lock/background transitions.
 
 ---
 
-# 85. Connector/environment limitations
+# 96. Secure storage/database physical validation still required
 
-During this implementation session:
+Real target environments still need validation for:
 
-- the active chat runtime does not provide the full .NET/MAUI workloads required to compile/sign all target apps/extensions locally;
-- GitHub connector Contents API writes were used for focused commits;
-- Contents API commit operations do not expose an independent author/committer-email override;
-- focused commit messages therefore use the requested Signed-off-by trailer;
-- GitHub combined status responses for direct-main commits may return no status contexts.
+- SecureStorage/keychain/keystore locked/unavailable cases;
+- operating-system upgrade/restore behavior;
+- identity recovery behavior;
+- real schema-v1/v2 database upgrade to v3;
+- local metadata corruption/recovery;
+- filesystem-specific symlink/reparse semantics on representative platforms.
 
-No status contexts means:
+---
+
+# 97. Accessibility/localization physical validation still required
+
+Manual release validation still needs:
+
+- TalkBack;
+- VoiceOver on iOS;
+- VoiceOver on Mac Catalyst;
+- Narrator;
+- keyboard-only desktop operation;
+- largest supported text scaling;
+- high contrast;
+- reduced motion;
+- rotation/window resizing;
+- Hindi clipping/wrapping/runtime messages;
+- focus order and semantic label behavior.
+
+Source support and catalogs do not replace these checks.
+
+---
+
+# 98. Dependency/legal/store validation still required
+
+For the exact signed candidate:
+
+- restore exact dependency graphs;
+- inspect transitive packages/native components;
+- review current advisories/vulnerabilities;
+- verify package provenance;
+- verify license/notice obligations;
+- compare notices against actual signed binaries/packages;
+- verify privacy declarations;
+- verify local-network/foreground-service/App Group explanations;
+- verify screenshots/descriptions/support links;
+- verify signing/notarization;
+- freeze exact commit/tag/release notes.
+
+---
+
+# 99. Exact-candidate release-readiness rule
+
+The maintained source/platform-changing head has green portable/platform/security evidence.
+
+However, documentation commits occurred after the latest platform-changing commit. Before a production release, identify the exact final candidate and run/observe all configured candidate gates, including `release-readiness`, against that candidate.
+
+Do not infer success from a missing status context.
+
+Missing/unreported status means:
 
 **unknown/unreported**
 
-not success.
-
-This ledger does not claim local or GitHub Actions pass without actual execution evidence.
+not pass.
 
 ---
 
-# 86. Definition used by this ledger
+# 100. August 14 focused commit trail — dependency/Core/test recovery
 
-**Implemented in source** means repository source/tests/docs contain the behavior/policy.
+Key commits:
 
-**Portable-tested in source** means a test exists; it does not mean that test executed successfully for the final commit unless CI/local run evidence exists.
-
-**Automated-validated** means the relevant build/test actually executed successfully for the exact commit in the correct environment.
-
-**Platform-validated** means a signed/packaged target build actually ran successfully on the relevant OS/device/runtime/provider/filesystem.
-
-**Production-ready** requires:
-
-- exact-candidate automated source gates pass;
-- target apps/extensions compile in release environments;
-- signed packages install/upgrade;
-- Apple App Group/provisioning works;
-- real providers/native drop/content resolver behave correctly;
-- cross-device/network/resume/path/link/low-storage tests pass;
-- accessibility/localization checks pass;
-- privacy/security documentation matches binaries;
-- dependency/license review is complete;
-- store declarations/metadata match shipped behavior.
-
-SwiftDrop must not be described as production-verified until those external gates are completed.
+- `2114c0f8a3d6a52dc705c576984b34e401406cd5` — patch SQLite dependency path;
+- `595c814ac70b6131f616e7eb00b3532dc1150587` — canonical text limit;
+- `508957cc029fadead36447a9e2b6749e7345086d` — request-factory manifest validator import;
+- `03bd8ae7e00ec7268e077a714df2ceec12fc72c5` — request-validator manifest validator import;
+- `c07f41a804e46abd462da3600d11510961b92fcb` — security SHA-256 hex parsing;
+- `47b592e8577de3826442a877d53f65bb67761ada` — completion SHA-256 hex parsing;
+- `dedfab99afd085ac3922edba60bee30da5752030` — xUnit global import;
+- `2757f21cdb4e16eae3fa1683d8fcdb796deff4d3` — test constant alignment;
+- `010bed418a8216e388f25547ccd63c0ce47829c1` — history pruning API;
+- `43687ae8a20ab0757b47bf1203cd0167e2e7f3d6` — reservation analyzer assertion;
+- `405d560c8c993115b4ff4d76ae4dbaf2f25d0d86` — filename analyzer assertion;
+- `99c35c6c2ffd03307da74a9435f00ab6a2855f22` — filename sanitation idempotence;
+- `46428536f80469e63645009e934976b285af4d4e` — strict UTF-8;
+- `4c6af0950d291eccf879028d159de011e5965ee2` — JSON exception contract test;
+- `665bd051d52b1bfd29f7cca2fd32234c08ac2118` — staging byte-budget exhaustion;
+- `28a551247c172d2cbc0bcf7cc6992fcb72113531` — post-filter whitespace canonicalization.
 
 ---
 
-# 87. Final engineering boundary after August 12 source freeze
+# 101. August 14 focused commit trail — Apple/platform workflow repair
 
-The highest-value next work is no longer broad feature generation. It is release-candidate evidence and defect closure:
+Key commits:
 
-1. observe exact final CI/release-readiness jobs;
-2. fix any compile/test defect exposed by those jobs and add regression coverage;
-3. configure Apple Developer App Group/provisioning and validate app + Share Extension;
-4. build/sign/install Android, Windows, iOS, and Mac Catalyst packages;
-5. execute cross-device transfer matrix including Windows→non-Windows canonical folder paths;
-6. exercise real Android providers and Apple/Mac `NSItemProvider` timeout/cancellation paths;
-7. execute source/receive symlink-reparse tests on representative filesystems;
-8. execute idempotent batch retry including mutation between plan and zero-byte ACK;
-9. execute low-storage, network, lifecycle, accessibility, and Hindi validation;
-10. review exact dependency/license artifacts;
-11. align store metadata/privacy declarations with signed binaries;
-12. tag/release only after exact-candidate evidence is complete.
+- `8a3eb2ae23576c602709993c2162ca45f8021f06` — iOS-only Share Extension;
+- `9d2b209918cb2fe233f4732b6a972865bca393ed` — iOS-only app extension reference;
+- `7a4449fc2e517de05dc6a6a88dfe1f14b9af5718` — explicit platform/shared-Core restores;
+- `8f2fd845a88bb98bfa67a053caef48c4707bc02d` — remove completed platform hardening workflow;
+- `b28c24d16958745af0c18aa8e8f6149f6be331f7` — remove completed hardening workflow;
+- `b275c0bb41737ff7c92fc2b04853ac49b1cbcfa7` — remove finalizer workflow;
+- `ed67533dc65cc1cc9205215ac70b97005aeb4618` — remove script-mode migration workflow;
+- `0c9166b2cc402361fd58a78e2017da7aa1bfe732` — remove duplicate platform smoke workflow;
+- `7deb57efd63761907833470a064741f7e678ce28` — release gate aligned to maintained platforms;
+- `af23c301c23b87f62e4e002aa88c8c9626e1a6e2` — Apple metadata validator corrected;
+- `c96ceb8eca84efdb518a8b79256997b7148986d9` — stale Mac extension entitlement removed.
 
-See:
+---
 
+# 102. August 14 focused commit trail — Android/UI
+
+Key commits:
+
+- `128a0e218c26cba5d00b14f37387e1d811f6aa09` — Android multicast lock nullability;
+- `16ef00079a6a1636388a1dce8669648b57fd0374` — foreground service API/nullability;
+- `40bb8b712cf461a528db0bf0f7a5bb2e3380cba8` — Android intent/share bindings and staging;
+- `3d5ce81fae53f52313c4579b6fd006ea0dc2d82d` — nullable picker result filtering;
+- `ebb94f8fc427a417cba788b51027439940e64773` — remove invalid Entry line-break property;
+- `d345a9bc49ee1555f996984eb68965e38303ab51` — localization XAML service-provider warning removal;
+- `addb068add8b18d4ea2ec05b2eb695c3c632e39d` — cancelled/null multi-file picker result.
+
+---
+
+# 103. August 14 focused commit trail — Windows
+
+Key commits:
+
+- `7c1db757f8cb1d8daf9a9d06739f0881ddfc0a7b` — Windows RID override mapping;
+- `4cc52b2766d2e7d83f76f8c3aa09e04dfc336906` — exact Windows/Apple runtime targets;
+- `255451f8195116ae47bd73aecd742582679cca3b` — explicit `win-x64` restore/build;
+- `786f2904b4e6f070d99616509dcac30fd29aefa0` — allow final Windows build runtime restore;
+- `46bc975f9832f748725436f16ab6fa5dbc8edff0` — optional iOS extension graph skip;
+- `a5ee2e496664e284a7aecdab78c569c549923d23` — Windows workflow graph skip;
+- `efac3b490ba1beab1a0f49e72ee9bea1c3a31ca3` — release workflow graph skip;
+- `f8a062b0b7d1ecf7cacb196a30a999f3f623f674` — focused target override;
+- `d6ff6ff611147ab5bc1a5c1c23e0ab9f5fa4affc` — Windows-only platform matrix;
+- `41e20eb1bfc20bc8e3ca634bd60d3f6e1f20db5a` — Windows-only release matrix;
+- `18a41cd9e10adf23a2daf1057c39e738fcc4f9d3` — WinUI event type disambiguation;
+- `af4dfda0e5629a9c5ad9d52e33152102cd7a283e` — WinRT data operation disambiguation;
+- `a40aec014e9bad900ec0667293401f8478fb25d2` — unpackaged hosted compile boundary;
+- `50c34fd445c10a283ddbc69eb6fbc04d1e2a912c` — same release-readiness boundary.
+
+---
+
+# 104. August 14 focused commit trail — servicing/docs
+
+Key commits:
+
+- `21a7b68a9a5de8ff41c49acd3b3b0e7807d42be4` — MAUI Controls 10.0.90;
+- `90e42d523a08d86d28769c4076306bd2c7b33432` — public README platform alignment;
+- `358072d9f893473523c8f41450c9046a710a4b85` — build docs platform alignment;
+- `54d3c857afad7d7003fdfa995b753653f1ae9b02` — manual matrix platform alignment;
+- `ffbf4c0260f5107fd8506c9e2db8a8dae706099b` — platform status correction;
+- `a60f2cb2fa174014468a34b3003103acc934e5c7` — release checklist correction;
+- `f9a82a3962ee261936e2b28c1c53435e25805a65` — roadmap correction;
+- `439c05ac64436306a076cff8ed316c5baa22de58` — changelog update;
+- `c07c3a00cce52b47dab27da63b235b45fa8ddc1f` — project status synchronization;
+- `75ed1d6b77b4a83448aae522d8a920dc45fa36f8` — security test documentation;
+- `45f08237601b089e1ae9b90814766d331e779b68` — dependency/license documentation;
+- `45912e63af7808a509b44f336f20e452ece8b7ff` — architecture synchronization;
+- `3c8cdbf39aa1518b731ac9fc619bfbcd76a474c6` — permission/entitlement synchronization;
+- `f72bd0d6f13339a417488d4734fbd440b40070d1` — privacy synchronization;
+- `c5d10c701699cdb2e9f38edefc706270d77b3478` — clean architecture/MVVM documentation;
+- `b7eca57bf4020c35d500512028aa17863d528ccc` — architecture decision record;
+- `33680cefa5a75acc28e62a8b8cb4e9d5cd9ffbec` — replace stale platform status with fully green matrix evidence;
+- `7f8004c8446c689d9bf5cae53c7b49e9c3318ad0` — exact green Windows local-build boundary.
+
+---
+
+# 105. August 12 hardening retained
+
+The August 14 continuation builds on, and does not replace, the August 12 hardening already recorded in history.
+
+Retained major areas include:
+
+- canonical raw pairing query/Base64URL representation;
+- whitespace alias rejection;
+- strict portable relative paths;
+- `/` wire separator on all platforms;
+- path validation before authorization consumption;
+- canonical filename sanitation;
+- UTF-8 filename byte bound;
+- collision marker preservation;
+- regular-source/link rejection;
+- deterministic bounded folder traversal;
+- portable sender deconfliction before hashing;
+- batch path preflight;
+- stable transfer ID syntax;
+- paused file/folder source filtering;
+- obsolete fresh-ID handler/compatibility removal;
+- shared external staging budget;
+- Android unknown-size storage reserve;
+- Apple provider timeout semantics;
+- exact Apple package file-set validation;
+- aggregate Apple import capacity preflight;
+- Mac provider timeout/budget handling;
+- second completed-item verification.
+
+The cumulative repository state must be evaluated, not only the latest commits.
+
+---
+
+# 106. Representative August 12 commit trail retained
+
+Examples of important August 12 commits still forming the current security/correctness baseline:
+
+- `27161b7e57f24b3b61205347ef474150a33da582` — canonical Base64URL pairing query;
+- `f8120cfc2858745bd1a79450cf07f18f3416bbda` — whitespace-wrapped pairing rejection;
+- `fec05363e41ed6e7938bbfc90b0b92955132953c` — strict portable relative path parser;
+- `54914b48287397a581617f94007773746ad4c0d3` — path nesting bound;
+- `5586d70ba574f9637fd4e600cc083789cec8cc07` — manifest path validation before authorization;
+- `6fa77d75a24431b94d28c2c40d58232d0edc7320` — canonical sanitized wire paths;
+- `d10835f9617698647dd90e4cb6530c579f946081` — forward-slash canonical relative paths;
+- `23eb74e0832e027b357c68788fc59d32cd2a04d1` — canonical batch deconfliction;
+- `629b5f0fadb4d78fd2fb7e144de1bbdbacb1265a` — shared staging budget;
+- `1615480b9c6231c97be4133b08a873d61438b31d` — Apple aggregate pre-copy budget;
+- `7c860aec2b4684a01a55ea8fa97339c01ad6f4c0` — Android aggregate staging budget;
+- `5a4649ce157b28851b38e2dc362a3ea734d57b30` — Mac shared staging budget;
+- `1edaa69dd5fa40c1112b04af7c25e35f5eaa5632` — bounded link-safe deterministic folder enumeration;
+- `413d2bee68ab8cbfa0ab803df53db9a260e42508` — regular source validation;
+- `5304acf5121cff72a151acd05e479e88520c072b` — stream-open source revalidation;
+- `86253c4e64ac8bc63c5574771454234c3500719e` — sender portable path deconfliction;
+- `445992173c56cd684ad5f8ce7128639924cb9cb8` — UTF-8 filename bounds;
+- `5b3610824787ea08aaa6ae454b3d18e3d01afc96` — collision marker preservation;
+- `bbf59e2a122e768debbbcb2ba3c6e55755c1537c` — canonical batch transfer ID syntax;
+- `e41fb03eac2f57fdfc7caf156dff5104430c287c` — remove obsolete batch handlers/harden single resume;
+- `078aa9a718881bb61985f8ad4cc5f2a50fcc9059` — remove implicit fresh-ID compatibility overload;
+- `0fc8b50c97600574f10db33dbdf0333fd92a1022` — preserve Android unknown-size storage reserve.
+
+---
+
+# 107. Git commit identity handling
+
+The GitHub Contents API available in this session allows commit messages but does not expose an independent author/committer-email override field for these focused file writes.
+
+Where commit-message control is available, commits use:
+
+`Signed-off-by: Sanskar <sanskarin@outlook.in>`
+
+This records the requested mailbox in the commit message trailer without falsely claiming the connector changed GitHub account-level commit authorship metadata.
+
+---
+
+# 108. Current documentation set reviewed
+
+Current-state repository documents reviewed/aligned during the August 14 completion pass include:
+
+- `README.md`;
+- `BUILDING.md`;
+- `PROJECT_STATUS.md`;
 - `NEXT_STEPS.md`;
+- `CHANGELOG.md`;
+- `PRIVACY.md`;
+- `THIRD_PARTY_NOTICES.md`;
+- `DECISIONS.md`;
+- `docs/architecture.md`;
+- `docs/architecture/clean-architecture.md`;
+- `docs/platform-permissions.md`;
+- `docs/platform/integration-status.md`;
+- `docs/protocol/wire-format.md`;
+- `docs/protocol/security.md`;
+- `docs/protocol/compatibility-matrix.md`;
+- `docs/security/THREAT_MODEL.md`;
 - `docs/testing/security-test-plan.md`;
 - `docs/testing/manual-test-matrix.md`;
-- `docs/release/release-checklist.md`.
+- `docs/testing/performance-benchmarks.md`;
+- `docs/storage/database-schema.md`;
+- `docs/release/release-checklist.md`;
+- this `what_changed.md` ledger.
+
+The current-state documentation uses the iOS-only extension architecture and keeps signed/device/store gates explicit.
 
 ---
 
-# 88. Final repository-write rule for this continuation
+# 109. Definition of completion used by this ledger
 
-This `what_changed.md` commit is intentionally the **final repository file write** of the August 12 continuation.
+**Implemented in source** means the repository contains the behavior/policy and associated integration code.
 
-After this ledger write:
+**Portable-tested** means portable regression/integration tests exist and, for the stated August 14 evidence, the full portable suite executed successfully.
 
-- no source file is modified;
-- no test file is modified;
-- no documentation file is modified;
-- no repository file is created/deleted;
-- only final HEAD/status evidence is read.
+**Hosted-platform compiled** means the appropriate GitHub hosted runner/workload compiled the maintained target source successfully.
 
-This preserves the user's requirement that the detailed ledger reflect the exact frozen repository state.
+**Signed/device validated** requires a real signed package/application on the relevant target environment with its real entitlements/capabilities/providers/filesystem/network behavior.
+
+**Production verified** additionally requires the full cross-device, release, accessibility, localization, dependency/license, privacy/store, signing/notarization, and exact-candidate evidence.
+
+---
+
+# 110. Current engineering phase
+
+The repository has moved from broad feature implementation to:
+
+**release-candidate validation and defect closure**.
+
+The highest-value next work is not inventing duplicate feature implementations. It is:
+
+1. freeze exact release candidate;
+2. run/observe all candidate workflows including release readiness;
+3. sign/package each target;
+4. configure/verify Apple App Group provisioning;
+5. execute physical cross-device matrix;
+6. exercise real Android/Apple providers;
+7. exercise low-storage/network/lifecycle/filesystem races;
+8. validate accessibility/localization;
+9. review exact signed dependency/license graph;
+10. align store declarations and publish only after those gates pass.
+
+---
+
+# 111. Final repository-write rule for this continuation
+
+This August 14 `what_changed.md` update is intentionally the final planned repository content write of the current continuation after source/platform/workflow/documentation reconciliation.
+
+After this ledger write, the next operation is status/evidence inspection only.
+
+If a newly triggered automated check exposes an actual defect, that defect must be fixed and the ledger updated again afterward; otherwise this file represents the frozen current repository engineering state.
+
+---
+
+**Made by the Sanskar**
