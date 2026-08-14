@@ -10,5 +10,8 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2"><PrivateAssets>all</PrivateAssets></PackageReference>
     <PackageReference Include="coverlet.collector" Version="6.0.4"><PrivateAssets>all</PrivateAssets></PackageReference>
   </ItemGroup>
-  <ItemGroup><ProjectReference Include="../../src/SwiftDrop.Core/SwiftDrop.Core.csproj" /></ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <ProjectReference Include="../../src/SwiftDrop.Core/SwiftDrop.Core.csproj" />
+  </ItemGroup>
 </Project>
