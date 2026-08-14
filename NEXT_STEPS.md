@@ -6,6 +6,19 @@ The current master-prompt source scope is implemented. This roadmap is intention
 
 ## Source work completed through the August 14 continuation
 
+### Release-evidence and verification automation completed on August 14
+
+- Added strict machine-readable NuGet vulnerable-package report validation with direct/transitive finding detection and helper regression tests.
+- Added deterministic SHA-256 dependency-evidence manifests with path confinement, exact byte lengths, stable ordering, and helper regression tests.
+- Normal CI pins Python 3.13, runs the Python helper tests, and validates the Core machine-readable vulnerability report.
+- Bash and PowerShell portable verification include documentation/localization/Apple/Core/test/benchmark/audit validation; Windows CI executes the PowerShell verifier directly.
+- Added target-specific dependency/vulnerability evidence for Android, focused Windows, Mac Catalyst, iOS containing app, and iOS Share Extension.
+- Added exact artifact contracts for `dependency-audit`, `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit`.
+- Platform run `31783405975` passed all maintained target builds/audits and produced hashed evidence bundles; downloaded Android/Windows/Apple internal manifests were independently verified against their report bytes.
+- Release-readiness self-test run `31783537853` passed every portable/platform/audit job and its aggregate gate.
+- Added deterministic pairing round-trip/canonical-alias property coverage and strict-JSON randomized robustness/duplicate-case coverage; portable xUnit count is now 516.
+- The remaining dependency task is **manual exact-candidate provenance/license/final signed-artifact reconciliation**, not adding another source-level inventory command.
+
 ### Documentation completion through the August 14 continuation
 
 - Added a canonical documentation index and complete end-user installation, user workflow, settings, FAQ, networking, troubleshooting, and privacy-safe diagnostic/reporting guides.
@@ -110,7 +123,10 @@ Before a production tag, confirm the **exact final commit** has successful runs 
 10. unsigned/certificate-independent iOS Simulator containing-app compile job;
 11. CodeQL/security-hygiene jobs;
 12. release-readiness aggregate gate;
-13. exact dependency inventory artifacts.
+13. exact dependency inventory artifacts;
+14. zero-finding validation for direct/transitive vulnerable-package JSON;
+15. deterministic evidence manifests for portable, Android, Windows, and Apple audit bundles;
+16. exact-candidate verification that retained report bytes match their manifest SHA-256 digests.
 
 Do not infer a pass from missing status contexts. If the connector/API reports no check contexts, record **unknown/unreported** and inspect the Actions UI/logs directly before release.
 
@@ -301,13 +317,16 @@ Any untranslated, clipped, inaccessible, or focus-order issue found here should 
 
 For the exact signed candidate:
 
-- download dependency inventory artifacts from release-readiness;
-- inspect Core/App/test/benchmark dependencies;
-- inspect the iOS Share Extension dependency graph;
-- generate/review final third-party notices from the exact restored graph;
+- download `dependency-audit`, `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit` from the exact release-readiness run;
+- independently verify each retained bundle's report lengths/SHA-256 digests against `manifest.json`;
+- inspect Core/App/test/benchmark and every shipped target graph, including the separate iOS Share Extension graph;
+- confirm the machine-readable vulnerable-package reports contain no findings under the configured advisory data;
+- manually review package provenance, licenses, notices, redistribution obligations, and platform/runtime components;
+- compare hosted restored/simulator/unpackaged evidence with the final signed AAB/APK, MSIX/package, iOS archive/extension, and Mac Catalyst distribution artifacts;
+- generate/review final third-party notices from the exact shipped graph;
 - verify Apache-2.0 project license/NOTICE contents;
 - verify no signing/private-key/local-database artifacts entered the repository;
-- retain license evidence with release artifacts.
+- retain verified dependency/license evidence with release artifacts.
 
 ## P2 — Optional post-v1 enhancements
 
