@@ -14,7 +14,7 @@ SwiftDrop keeps five maintained workflows under `.github/workflows/`:
 
 Temporary one-shot repair/migration workflows are not part of the maintained set after they complete.
 
-## `ci.yml` — portable core gate
+## `ci.yml` — portable core and documentation gate
 
 Primary portable regression gate on pushes to `main` and pull requests.
 
@@ -22,6 +22,7 @@ Current responsibilities:
 
 - checkout source;
 - install .NET 10 SDK;
+- validate canonical documentation files and local Markdown links with `scripts/validate_documentation.py`;
 - validate localization catalogs;
 - validate Apple integration metadata;
 - restore `SwiftDrop.Core`;
@@ -30,7 +31,9 @@ Current responsibilities:
 - compile the benchmark project Release;
 - exercise the machine-readable transitive vulnerable-package JSON command and parse its output as JSON.
 
-This gate is the fastest general proof that portable protocol/security/storage/path/transfer behavior remains internally consistent.
+The documentation validator requires the maintained user/developer/architecture/protocol/platform/storage/testing/release documents, confirms the canonical docs index links the principal guides, rejects broken local inline Markdown links, and ensures completed one-time documentation helper files are not left in the repository.
+
+This gate is the fastest general proof that portable protocol/security/storage/path/transfer behavior and documentation integrity remain internally consistent.
 
 It does **not** compile every MAUI target.
 
@@ -101,6 +104,14 @@ Repository warnings are treated as errors. This makes qualifying NuGet audit war
 
 ## Local equivalents
 
+### Documentation validation
+
+```bash
+python3 scripts/validate_documentation.py
+```
+
+Run this whenever documentation files, internal Markdown links, or canonical documentation navigation changes.
+
 ### Portable verification
 
 Linux/macOS shell:
@@ -136,10 +147,11 @@ Use the equivalent command for every relevant shipped/runtime/test/benchmark pro
 
 ### Green portable CI proves
 
+- the canonical documentation set exists and its checked local Markdown links resolve;
 - the current portable source restores under the workflow environment;
 - Core compiles under the configured .NET SDK;
 - portable tests pass;
-- metadata validators pass;
+- localization/Apple metadata validators pass;
 - benchmark source compiles;
 - audit command syntax/output remains usable.
 
@@ -196,7 +208,7 @@ The August 14 continuation recorded in `what_changed.md` includes successful evi
 - iOS Simulator Share Extension compile;
 - iOS Simulator containing-app compile.
 
-Always prefer the latest exact-candidate workflow results when preparing an actual release rather than treating this historical snapshot as permanent proof.
+The documentation-completion continuation additionally added an exact CI-enforced documentation integrity validator. Always prefer the latest exact-candidate workflow results when preparing an actual release rather than treating historical snapshots as permanent proof.
 
 ---
 
