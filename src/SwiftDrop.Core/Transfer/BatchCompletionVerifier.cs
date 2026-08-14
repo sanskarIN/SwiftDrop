@@ -43,11 +43,17 @@ public static class BatchCompletionVerifier
     {
         if (left.Length != 64 || right.Length != 64 || !left.All(Uri.IsHexDigit) || !right.All(Uri.IsHexDigit))
             return false;
-        Span<byte> leftBytes = stackalloc byte[32];
-        Span<byte> rightBytes = stackalloc byte[32];
-        if (!Convert.TryFromHexString(left, leftBytes, out var leftWritten) || leftWritten != 32 ||
-            !Convert.TryFromHexString(right, rightBytes, out var rightWritten) || rightWritten != 32)
-            return false;
-        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+
+        var leftBytes = Convert.FromHexString(left);
+        var rightBytes = Convert.FromHexString(right);
+        try
+        {
+            return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+        }
+        finally
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(leftBytes);
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(rightBytes);
+        }
     }
 }
