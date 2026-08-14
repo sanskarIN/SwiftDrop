@@ -2239,4 +2239,89 @@ SwiftDrop must still not be called production-ready until the existing external 
 
 The temporary continuation ledger helper is intentionally removed after a successful write so no stale self-edit workflow or script remains.
 
+---
+
+# 122. Complete documentation pass requested and executed
+
+The user explicitly requested complete project documentation, all repository work pushed to the `main` branch, focused commit messages, and use of `sanskarin@outlook.in` if commit identity configuration was needed. The continuation therefore audited the existing documentation surface against current source/platform/CI state before adding missing canonical guides.
+
+No source feature was invented solely to make documentation appear complete. Documentation continues to distinguish implemented source, portable-tested behavior, hosted-platform compilation, and signed/device/store validation.
+
+# 123. Canonical documentation index
+
+Commit `f275573c` added `docs/README.md` as the canonical documentation navigation point.
+
+Commit `ff4229d1` expanded that index after the rest of the documentation set landed so installation, user workflow, settings, diagnostics, networking, project structure, CI, versioning, and release-process material is discoverable rather than orphaned.
+
+# 124. End-user documentation
+
+Focused commits added:
+
+- `a97a1e70` — complete end-user guide covering discovery, pairing, single/multi/folder/text transfer, approval, resume, Android sharing, iOS Share Extension, Mac native drop, Windows drag/drop/receive folder, queue/history/trust/diagnostics, privacy, and safety boundaries.
+- `2a289046` — settings reference derived from the maintained Settings view model/XAML and `AppSettings.Default`, including concurrency 1-8, retention 0-3650, platform notification/receive-folder differences, identity reset, privacy, trust, themes, languages, and developer diagnostics.
+- `efbbe97d` — comprehensive FAQ aligned to the maintained local-only protocol, platform targets, iOS-only Share Extension, integrity/resume, settings, CI/release boundaries, and support channels.
+- `c8cc520c` — installation/source-run guide that explicitly avoids presenting hosted unsigned compile artifacts as official signed releases.
+- `86b66a09` — networking/firewall guide covering mDNS/DNS-SD, bounded UDP fallback, TCP 47821, UDP 47822, guest/client isolation, local address scope, Windows/macOS firewall, Apple local-network privacy, Android multicast behavior, VPNs, IPv4/IPv6, and diagnostic boundaries.
+- `b99745c0` — expanded troubleshooting guide covering local discovery/connection, strict pairing, fingerprint mismatch, trust, integrity/resume, collisions/path safety, storage, Android/iOS/Mac/Windows intake, App Group, localization validators, NuGet audit, target builds, and CI-versus-device failures.
+- `0a6aa886` — privacy-safe diagnostics and bug-report guide.
+
+# 125. Developer and architecture documentation
+
+Focused commits added:
+
+- `7f6f9d54` — repository/project-structure guide for `SwiftDrop.Core`, `SwiftDrop.App`, iOS-only `SwiftDrop.ShareExtension`, tests, benchmarks, scripts, workflows, docs, resources, platform boundaries, and dependency direction.
+- `61d989d7` — development workflow guide covering prerequisites, portable verification, NuGet audit, layer selection, protocol/path/resume/persistence/UI/platform changes, testing levels, CI, commit style, PR expectations, documentation ownership, and definition of done.
+- `8bd3d849` — CI/verification reference documenting the five maintained workflows, their exact evidence boundaries, repository-wide NuGet audit policy, local equivalents, candidate discipline, and August 14 verified hosted evidence.
+- `091ad581` — versioning/compatibility policy covering application/protocol/schema/trust/batch-resume/platform/settings/dependency/localization compatibility and fail-closed legacy-state handling.
+- `da3897fa` — end-to-end release process from exact candidate freeze through automated gates, dependency/license review, signing, signed artifacts, physical matrix, platform provider intake, accessibility/localization, privacy/store review, tagging/submission, and post-release verification.
+
+# 126. Community, support, security, and legal documentation
+
+Focused commits expanded:
+
+- `09ed02a8` — `SUPPORT.md`, linking complete user/developer troubleshooting and safe report guidance.
+- `d7d2e4f3` — `CONTRIBUTING.md`, adding security/privacy/layer/dependency/protocol/persistence/platform/test/docs/PR requirements and the requested sign-off format.
+- `f524247d` — original SwiftDrop Code of Conduct expanded with expected/unacceptable behavior, security/privacy handling, technical disagreement rules, maintainer responsibilities, reporting, scope, and good-faith enforcement.
+- `3192df73` — `SECURITY.md`, removing stale pre-1.0 wording and adding current source/release boundary, private reporting scope, security-sensitive examples, cryptography/endpoint/secret/dependency policies, responsible testing, and regression expectations.
+- `3397e85c` — `TERMS.md`, clarifying local-transfer responsibility, authorization, received-file trust, source/unofficial package boundaries, privacy, support diagnostics, third-party services, downstream forks, and Apache-2.0 precedence.
+
+# 127. Documentation source-truth audit
+
+Repository searches during this pass found no remaining indexed `TODO` documentation placeholders, old `469/469` portable-test marker, legacy `dotnet list package` audit spelling, obsolete `SwiftDrop.sln` solution reference, or maintained Mac Catalyst Share Extension wording.
+
+The audit also found `SECURITY.md` still referred to “pre-1.0 development” even though the current project source declares display version `1.0.0`; that stale wording was corrected without falsely claiming that a signed 1.0.0 production release has already passed the release process.
+
+# 128. Documentation ownership map
+
+The completed documentation set now has canonical ownership:
+
+- public overview -> `README.md`;
+- navigation -> `docs/README.md`;
+- installation/source-run -> `docs/installation.md`;
+- end-user workflow -> `docs/user-guide.md`;
+- settings -> `docs/configuration.md`;
+- FAQ -> `docs/faq.md`;
+- troubleshooting -> `docs/troubleshooting.md`;
+- safe diagnostics/bug reporting -> `docs/diagnostics-and-bug-reports.md`;
+- network/firewall -> `docs/networking.md`;
+- build -> `BUILDING.md`;
+- development/contribution -> `docs/development-guide.md` + `CONTRIBUTING.md`;
+- architecture/project boundaries -> `docs/architecture.md`, `docs/architecture/*`, `DECISIONS.md`;
+- protocol/security/compatibility -> `docs/protocol/*`, `docs/security/THREAT_MODEL.md`, `SECURITY.md`;
+- platform permissions/status -> `docs/platform-permissions.md`, `docs/platform/integration-status.md`;
+- local data/privacy -> `docs/storage/database-schema.md`, `PRIVACY.md`;
+- CI/testing -> `docs/testing/*`;
+- release/signing/store -> `docs/release/*`;
+- version compatibility -> `docs/versioning-and-compatibility.md`;
+- support/community/legal -> `SUPPORT.md`, `CODE_OF_CONDUCT.md`, `TERMS.md`, `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md`;
+- current engineering evidence -> `PROJECT_STATUS.md`, `NEXT_STEPS.md`, `CHANGELOG.md`, `what_changed.md`.
+
+# 129. Completion boundary after documentation pass
+
+The repository now contains a complete maintained documentation surface for the implemented source and release process. This does not remove external release gates.
+
+The next required production work remains exact-candidate signed Android/Windows/Apple packaging, Apple App Group provisioning, physical cross-device/network/provider/storage/lifecycle testing, Windows protocol/package/firewall validation, Mac sandbox/notarization validation, accessibility/localization checks, exact dependency/license provenance review, and store/privacy submission checks.
+
+Any source changes made while closing those external gates must update the affected canonical documentation and create a new exact candidate before production readiness is claimed.
+
 **Made by the Sanskar**
