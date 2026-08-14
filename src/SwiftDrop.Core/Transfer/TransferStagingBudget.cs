@@ -38,6 +38,8 @@ public sealed class TransferStagingBudget
             throw new InvalidDataException("Staged file exceeds the per-file limit.");
         if (_committedFiles >= _maximumFiles)
             throw new InvalidDataException("Staged content contains too many files.");
+        if (_maximumAggregateBytes > 0 && _committedBytes >= _maximumAggregateBytes)
+            throw new InvalidDataException("Staged content has exhausted the aggregate byte limit.");
         if (length > RemainingAggregateBytes)
             throw new InvalidDataException("Staged content exceeds the aggregate byte limit.");
     }
