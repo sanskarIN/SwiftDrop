@@ -66,6 +66,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 - [Release process](release/release-process.md)
 - [Release checklist](release/release-checklist.md)
+- [Dependency evidence](release/dependency-evidence.md)
 - [Signing configuration](release/signing-configuration.md)
 - [Store privacy declarations](release/store-privacy-declarations.md)
 - [Versioning and compatibility](versioning-and-compatibility.md)
@@ -117,6 +118,7 @@ When source behavior changes, update the document that owns that contract in the
 - local metadata -> database schema and privacy policy;
 - platform permissions/entitlements -> platform permissions/integration status;
 - tests/CI -> testing docs and CI reference;
+- dependency/audit artifact format -> dependency evidence reference;
 - release/signing/store behavior -> release docs;
 - significant continuation work -> changelog/status/engineering ledger.
 
