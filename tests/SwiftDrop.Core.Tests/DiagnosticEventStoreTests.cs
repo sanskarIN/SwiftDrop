@@ -31,7 +31,7 @@ public sealed class DiagnosticEventStoreTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -48,7 +48,7 @@ public sealed class DiagnosticEventStoreTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -85,7 +85,7 @@ public sealed class DiagnosticEventStoreTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -107,13 +107,7 @@ public sealed class DiagnosticEventStoreTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
-    }
-
-    private static void DeleteDatabase(string path)
-    {
-        foreach (var candidate in new[] { path, path + "-shm", path + "-wal" })
-            if (File.Exists(candidate)) File.Delete(candidate);
     }
 }
