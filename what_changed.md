@@ -2400,4 +2400,136 @@ The repository now has:
 
 This is the end of source/documentation completion work that can be truthfully proven from the repository and hosted CI alone. SwiftDrop must still not be described as production-ready until an exact release candidate passes the already documented external gates: real signing and distribution packaging; physical Android/iOS/device-to-device transfers; Apple App Group and iOS Share Extension runtime validation; Windows MSIX install/update/protocol/firewall validation; Mac Catalyst signed sandbox/notarization validation; real restricted-network/lifecycle/low-storage/provider tests; accessibility/localization checks on actual targets; final dependency/license/provenance review of signed artifacts; and store/privacy publication checks.
 
+---
+
+# 136. Machine-readable NuGet vulnerability evidence is enforced
+
+This continuation replaced a weak evidence assumption — “the JSON command ran and produced parseable JSON” — with explicit finding validation.
+
+Focused commits:
+
+- `562fc0d7` — added `scripts/validate_nuget_vulnerability_report.py`.
+- `003151ef` — added vulnerability-report validator regression tests.
+- `874238b0` — wired explicit finding validation into normal CI.
+- `1940907d` — pinned Python 3.13 for the normal validation gate.
+
+The validator accepts UTF-8/UTF-8-BOM reports, requires a top-level JSON object, recursively examines direct/transitive package structures for non-empty `vulnerabilities` arrays, reports package/version/severity/advisory fields when available, and fails malformed vulnerability shapes. Exit status distinguishes clean reports, reported vulnerabilities, and malformed/report failures.
+
+Machine-readable commands now explicitly request `--format json --output-version 1`; vulnerable views include transitive packages. Repository-wide NuGet restore auditing in `Directory.Build.props` remains a separate warnings-as-errors gate.
+
+# 137. Local portable verification now enforces audit evidence on Bash and PowerShell
+
+Focused commits:
+
+- `b551fa97` — Unix `verify-core.sh` now runs helper tests and validates a temporary Core vulnerable-package report with automatic cleanup.
+- `f9d5e80c` — PowerShell verification gained explicit native-command exit checking, helper tests, and Core vulnerable-package report validation.
+- `e858fc4a` — normal CI gained a Windows runner job that executes the PowerShell verifier.
+- `080126a0` — fixed the PowerShell parser defect exposed by that new Windows job by delimiting `${LASTEXITCODE}` before a colon.
+
+The initial Windows verifier run `31784473076` failed at parse time on the original `$LASTEXITCODE:` string. The gate was retained and the script was fixed rather than weakening/removing the Windows validation path.
+
+# 138. Shipped target dependency graphs are now audited by maintained platform CI
+
+Commit `e364d402` extended `platform-builds.yml` so hosted target jobs generate direct/transitive package JSON plus vulnerable-package JSON for:
+
+- Android `SwiftDrop.App`;
+- focused Windows `SwiftDrop.App`;
+- Mac Catalyst `SwiftDrop.App`;
+- iOS Simulator `SwiftDrop.App`;
+- iOS Simulator `SwiftDrop.ShareExtension`.
+
+The target vulnerable-package reports are passed through the same explicit finding validator used by portable verification. This closes the earlier evidence gap where release tooling had stronger portable/extension inventory coverage than ordinary shipped app target graphs.
+
+# 139. Dependency evidence bundles now have deterministic SHA-256 manifests
+
+Focused commits:
+
+- `6e3f8e98` — added `scripts/create_dependency_evidence_manifest.py`.
+- `22476296` — added manifest generator regression tests.
+- `335686ac` — platform audit bundles now include deterministic manifests.
+- `9901c7c0` — release-readiness audit bundles now include deterministic manifests.
+
+Schema version 1 records each evidence JSON file's relative POSIX path, exact byte length, and lowercase SHA-256 digest in stable path order. The generator rejects an output outside the evidence root, excludes the manifest from its own file list, and fails an empty evidence root.
+
+Platform run `31783405975` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app compile/audit jobs. It uploaded:
+
+- `android-dependency-audit`;
+- `windows-dependency-audit`;
+- `apple-dependency-audit`.
+
+The downloaded Android bundle contained `packages.json`, `vulnerabilities.json`, and `manifest.json`; every listed byte length and SHA-256 was independently recomputed and matched. The Windows bundle passed the same independent check. The Apple bundle contained six report files under `maccatalyst/`, `ios-app/`, and `ios-share-extension/`; all six independently matched its root manifest.
+
+These manifests are integrity aids, not signatures or provenance attestations.
+
+# 140. Release-readiness now self-validates audit/evidence changes
+
+Focused commits:
+
+- `462c4ae3` — extended release readiness with shipped-platform dependency evidence.
+- `9901c7c0` — added hashed evidence manifests to release artifacts.
+- `b050fcf5` — added main/pull-request self-test triggers for release workflow/verification/audit/evidence helper changes while keeping all `v*` tag pushes as candidate triggers.
+
+Release-readiness self-test run `31783537853` completed successfully. It passed:
+
+- canonical portable verification;
+- portable Core/test/benchmark dependency reports and manifest;
+- Android compile/audit/upload;
+- focused Windows compile/audit/upload;
+- Mac Catalyst compile/audit;
+- iOS Simulator Share Extension compile;
+- iOS Simulator containing-app compile;
+- iOS app/extension dependency audits and Apple evidence upload;
+- final aggregate `release-gate`.
+
+The aggregate gate still states that signed Windows MSIX, physical-device testing, Apple signing/notarization/App Group provisioning, Share Extension behavior, and store checks remain mandatory.
+
+# 141. Dependency evidence has a canonical release contract
+
+Focused documentation commits:
+
+- `24e39417` — added `docs/release/dependency-evidence.md`.
+- `b1d9224e` — linked it from the canonical documentation index.
+- `084ec25c` — made the dependency-evidence document required by documentation validation.
+- `85ef1535` — expanded the CI reference with helper tests, target audits, manifests, stable JSON schema, local equivalents, and evidence limitations.
+- `e33d7b42` — synchronized `BUILDING.md` with the audited portable/target workflows.
+- `6017b169` — release checklist now requires all four exact-candidate audit artifacts, manifest verification, and final signed-artifact comparison.
+- `d82f4671` — synchronized third-party notices with target audit evidence and final provenance/license obligations.
+- `116c56cf` — release process now explicitly retrieves/verifies evidence bundles before manual provenance/license and signed-artifact reconciliation.
+
+The documentation intentionally distinguishes restored/source graph evidence from final signed binary/package evidence.
+
+# 142. Deterministic adversarial pairing and strict-JSON regression coverage expanded
+
+Focused commits:
+
+- `48825620` — added deterministic randomized pairing payload round-trip/canonical re-encoding tests and repeated canonical outer/query alias rejection.
+- `dcfb40a2` — added deterministic bounded-byte strict-JSON fuzzing, case-variant duplicate-property generation, and distinct-property strict-validation invariants.
+
+CI run `31784196373` passed:
+
+- 10 Python helper tests;
+- 47 required documentation files and 85 checked local Markdown links at that commit;
+- localization validation;
+- Apple integration metadata validation;
+- Core Release build with zero warnings/errors;
+- **516/516** xUnit tests with zero failures/skips;
+- benchmark Release build with zero warnings/errors;
+- Core vulnerable-package report validation with zero findings.
+
+This increases the portable xUnit suite from 511 to 516 tests while keeping the randomized cases deterministic/reproducible and dependency-free.
+
+# 143. Source/release boundary after this continuation
+
+Source-level work now additionally proves:
+
+- machine-readable vulnerable-package findings are explicitly rejected rather than inferred from command success;
+- audit helper behavior has its own regression suite;
+- target-specific Android/Windows/Mac/iOS app/iOS extension restored graphs have maintained audit evidence;
+- retained report bundles have deterministic internal SHA-256 manifests;
+- release workflow/audit helper changes self-test before a candidate tag;
+- both Bash and Windows PowerShell portable verification paths are executable CI contracts;
+- pairing and strict-JSON boundaries have additional deterministic randomized regression coverage.
+
+The remaining P0/P1 work is deliberately external or candidate-specific: production signing and packaging; exact final package/runtime dependency and license/provenance reconciliation; physical cross-device/provider/network/lifecycle/low-storage testing; Apple App Group/provisioning/notarization; Windows signed MSIX install/update/protocol/firewall behavior; accessibility/localization on actual assistive technologies; and final store/privacy submission checks.
+
 **Made by the Sanskar**
