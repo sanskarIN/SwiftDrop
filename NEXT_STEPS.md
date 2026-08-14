@@ -6,6 +6,14 @@ The current master-prompt source scope is implemented. This roadmap is intention
 
 ## Source work completed through the August 14 continuation
 
+### Documentation completion through the August 14 continuation
+
+- Added a canonical documentation index and complete end-user installation, user workflow, settings, FAQ, networking, troubleshooting, and privacy-safe diagnostic/reporting guides.
+- Added repository structure, development workflow, CI-reference, versioning/compatibility, and release-process documentation.
+- Expanded support, contribution, community conduct, security-disclosure, and usage-term documents.
+- Synchronized public documentation navigation with the maintained iOS-only Share Extension, Mac native-drop architecture, .NET 10 `.slnx` workflow, explicit NuGet auditing, and current hosted compile/test evidence.
+- Documentation completeness does not remove the remaining external release tasks below; the next engineering phase remains exact-candidate signing, packaging, physical cross-device/network/provider testing, accessibility/localization validation, dependency/license review, and store/privacy submission checks.
+
 ### Canonical pairing capability transport
 
 - Pairing link decoder rejects surrounding whitespace.
