@@ -43,8 +43,12 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - run: dotnet workload install maui-android
-      - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
-      - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
+      - name: Restore Android app
+        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
+      - name: Restore shared core target
+        run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
+      - name: Build Android app
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
 
   windows-compile:
     runs-on: windows-latest
@@ -54,8 +58,12 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - run: dotnet workload install maui-windows
-      - run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-windows10.0.19041.0
-      - run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-windows10.0.19041.0 -c Release --no-restore
+      - name: Restore Windows app runtime
+        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifierOverride=win-x64
+      - name: Restore shared core runtime
+        run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=win-x64
+      - name: Build Windows app
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-windows10.0.19041.0 -c Release --no-restore -p:RuntimeIdentifierOverride=win-x64
 
   apple-compile:
     runs-on: macos-latest
@@ -65,42 +73,44 @@ jobs:
         with:
           dotnet-version: '10.0.x'
       - run: dotnet workload install maui-ios maui-maccatalyst
-      - name: Restore Mac Catalyst extension and app
-        run: |
-          dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:TargetFramework=net10.0-maccatalyst
-          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst
-      - name: Build Mac Catalyst share extension
-        run: dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-maccatalyst -c Release --no-restore
-      - name: Build Mac Catalyst app
-        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore
-      - name: Select iOS simulator runtime
+      - name: Select Apple simulator runtimes
         shell: bash
         run: |
           if [ "$(uname -m)" = "arm64" ]; then
+            echo "MACCATALYST_RID=maccatalyst-arm64" >> "$GITHUB_ENV"
             echo "IOS_SIMULATOR_RID=iossimulator-arm64" >> "$GITHUB_ENV"
           else
+            echo "MACCATALYST_RID=maccatalyst-x64" >> "$GITHUB_ENV"
             echo "IOS_SIMULATOR_RID=iossimulator-x64" >> "$GITHUB_ENV"
           fi
+      - name: Restore Mac Catalyst app
+        shell: bash
+        run: |
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst -p:RuntimeIdentifier="$MACCATALYST_RID"
+          dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier="$MACCATALYST_RID"
+      - name: Build Mac Catalyst app
+        shell: bash
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore -p:RuntimeIdentifier="$MACCATALYST_RID"
       - name: Restore iOS simulator extension and app
         shell: bash
         run: |
-          dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+          dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
           dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
+          dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
       - name: Build iOS simulator share extension
         shell: bash
         run: dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
       - name: Build iOS simulator app
         shell: bash
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
-      - name: Capture Apple extension dependency graph
+      - name: Capture iOS extension dependency graph
         shell: bash
         run: |
           mkdir -p artifacts
-          dotnet list src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj package --framework net10.0-maccatalyst --include-transitive > artifacts/share-extension-maccatalyst-packages.txt
           dotnet list src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj package --framework net10.0-ios --include-transitive > artifacts/share-extension-ios-packages.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: apple-share-extension-dependency-graph
+          name: ios-share-extension-dependency-graph
           path: artifacts/
 
   release-gate:
