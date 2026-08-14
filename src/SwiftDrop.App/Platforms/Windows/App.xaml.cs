@@ -65,7 +65,7 @@ public partial class App : MauiWinUIApplication
         var data = e.DataView;
         if (data.Contains(StandardDataFormats.StorageItems) || data.Contains(StandardDataFormats.Text))
         {
-            e.AcceptedOperation = DataPackageOperation.Copy;
+            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy;
             e.Handled = true;
         }
     }
@@ -104,12 +104,12 @@ public partial class App : MauiWinUIApplication
             if (paths.Count > 0 || sharedText is not null)
                 ExternalInputInbox.AddSharedBatch(sharedText, paths);
 
-            e.AcceptedOperation = DataPackageOperation.Copy;
+            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy;
             e.Handled = true;
         }
         catch
         {
-            e.AcceptedOperation = DataPackageOperation.None;
+            e.AcceptedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
             e.Handled = true;
         }
     }
