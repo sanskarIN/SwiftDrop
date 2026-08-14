@@ -18,11 +18,7 @@ public sealed class BatchCompletionStoreTests : IAsyncLifetime
 
     public Task DisposeAsync()
     {
-        foreach (var suffix in new[] { string.Empty, "-shm", "-wal" })
-        {
-            var candidate = _path + suffix;
-            if (File.Exists(candidate)) File.Delete(candidate);
-        }
+        SqliteTestDatabaseCleanup.Delete(_path);
         return Task.CompletedTask;
     }
 
