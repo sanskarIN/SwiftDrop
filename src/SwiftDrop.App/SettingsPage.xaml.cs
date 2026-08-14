@@ -6,6 +6,7 @@ namespace SwiftDrop.App;
 
 public partial class SettingsPage : ContentPage
 {
+    private static readonly Uri BuyMeACoffeeUri = new("https://buymeacoffee.com/sanskarIN");
     private readonly SettingsViewModel _viewModel;
     private readonly IServiceProvider _services;
 
@@ -65,6 +66,21 @@ public partial class SettingsPage : ContentPage
 
     private async void OpenDiagnosticsClicked(object? sender, EventArgs e)
         => await Navigation.PushAsync(_services.GetRequiredService<DiagnosticsPage>());
+
+    private async void OpenBuyMeACoffeeClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (!await Launcher.Default.TryOpenAsync(BuyMeACoffeeUri))
+            {
+                await DisplayAlertAsync(AppText.Get("UnableToOpenLink"), AppText.Get("BuyMeACoffeeDescription"), AppText.Get("Ok"));
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException)
+        {
+            await DisplayAlertAsync(AppText.Get("UnableToOpenLink"), AppText.Get("BuyMeACoffeeDescription"), AppText.Get("Ok"));
+        }
+    }
 
     private async void SaveClicked(object? sender, EventArgs e)
     {
