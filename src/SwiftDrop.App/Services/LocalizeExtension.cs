@@ -4,6 +4,7 @@ using Microsoft.Maui.Controls.Xaml;
 namespace SwiftDrop.App.Services;
 
 [ContentProperty(nameof(Key))]
+[AcceptEmptyServiceProvider]
 public sealed class LocalizeExtension : IMarkupExtension
 {
     public string Key { get; set; } = string.Empty;
