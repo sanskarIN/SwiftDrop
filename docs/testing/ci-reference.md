@@ -28,11 +28,16 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
 The current helper tests cover the NuGet vulnerability-report validator and dependency-evidence manifest generator. A helper-script regression therefore fails the same normal CI gate that uses those helpers.
 
-## `ci.yml` — portable core, documentation, and audit gate
+## `ci.yml` — two-OS portable core, documentation, and audit gate
 
 Primary portable regression gate on pushes to `main` and pull requests.
 
-Current responsibilities:
+The workflow has two jobs:
+
+- `core` on Ubuntu, which runs the canonical portable build/test/audit sequence;
+- `windows-portable-verifier` on Windows, which executes `scripts/verify-core.ps1` so Windows-native parsing, filesystem, SQLite, and process-exit behavior are exercised instead of being inferred from Linux success.
+
+Current Ubuntu responsibilities:
 
 - checkout source;
 - install .NET 10 SDK;
@@ -48,9 +53,13 @@ Current responsibilities:
 - generate a machine-readable direct/transitive Core vulnerable-package report using JSON output schema version 1;
 - fail if `scripts/validate_nuget_vulnerability_report.py` finds any reported vulnerability entry or malformed report structure.
 
+The Windows verifier performs the same helper/documentation/localization/Apple/Core/test/benchmark/vulnerability checks through the PowerShell entry point and explicitly treats nonzero native command exit codes as failures.
+
+The Windows job is intentionally not redundant. It has already exposed defects invisible to Ubuntu-only execution, including a PowerShell interpolation parser error and SQLite native-handle/file-lock lifetime issues. Those failures were fixed in source/test resource ownership rather than bypassed or retried away.
+
 The documentation validator requires the maintained user/developer/architecture/protocol/platform/storage/testing/release documents, confirms the canonical docs index links the principal guides, rejects broken local inline Markdown links, and ensures completed one-time documentation helper files are not left in the repository.
 
-This gate is the fastest general proof that portable protocol/security/storage/path/transfer behavior, validation tooling, dependency-audit evidence, and documentation integrity remain internally consistent.
+This gate is the fastest general proof that portable protocol/security/storage/path/transfer behavior, validation tooling, dependency-audit evidence, documentation integrity, and the Windows portable execution path remain internally consistent.
 
 It does **not** compile every MAUI target.
 
@@ -139,6 +148,19 @@ The workflow currently requires and retains:
 - an aggregate release-gate job that fails unless every required compile/test/audit job succeeded.
 
 The uploaded artifact names and evidence schema are defined in `docs/release/dependency-evidence.md`.
+
+## SQLite resource-lifetime regression protection
+
+SwiftDrop's SQLite stores use Microsoft.Data.Sqlite connection pooling. Windows keeps native database-file handles observable in ways that Linux cleanup often does not.
+
+The portable test infrastructure therefore:
+
+- clears SQLite connection pools before deleting isolated temporary database files;
+- removes main, `-wal`, and `-shm` temp files;
+- requires SQLite connections/readers/commands used in schema/storage code to be disposed deterministically;
+- executes the database-backed test suite on the Windows PowerShell verifier.
+
+Do not replace deterministic disposal with arbitrary sleeps/retries or disable Windows cleanup assertions. A Windows file-lock failure can indicate a real undisposed native SQLite resource.
 
 ## Repository-wide NuGet audit policy
 
@@ -244,10 +266,10 @@ This writes a path-sorted manifest of evidence JSON file byte lengths and SHA-25
 - the canonical documentation set exists and its checked local Markdown links resolve;
 - the current portable source restores under the workflow environment;
 - Core compiles under the configured .NET SDK;
-- portable tests pass;
+- portable tests pass on Ubuntu and through the Windows PowerShell verifier;
 - localization/Apple metadata validators pass;
-- benchmark source compiles;
-- the generated Core vulnerable-package report is structurally valid and contains no reported vulnerability entries under the configured command/advisory data.
+- benchmark source compiles on both portable verifier paths;
+- the generated Core vulnerable-package report is structurally valid and contains no reported vulnerability entries under the configured command/advisory data on both verifier paths.
 
 ### Green platform compile/audit proves
 
