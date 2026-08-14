@@ -1,23 +1,94 @@
 name: Feature request
-description: Suggest a SwiftDrop improvement
+description: Suggest a SwiftDrop product, platform, protocol, accessibility, or developer improvement
 title: "[Feature]: "
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user problem first. SwiftDrop prioritizes local-first transfer, explicit consent, bounded untrusted input, portable interoperability, and minimal permissions/data retention.
+        Do not include security vulnerability details here; follow SECURITY.md for private disclosure.
   - type: textarea
     id: problem
     attributes:
       label: Problem to solve
+      description: Who has the problem, what are they trying to do, and what is difficult or missing today?
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
       label: Proposed behavior
+      description: Describe the desired user-visible behavior without assuming a specific implementation unless necessary.
     validations:
       required: true
   - type: dropdown
-    id: platforms
+    id: area
     attributes:
-      label: Main platform
-      options: [Android, iOS, macOS, Windows, Cross-platform]
+      label: Main feature area
+      options:
+        - Discovery / networking
+        - Pairing / identity / trust
+        - File / folder / batch transfer
+        - Text transfer
+        - Pause / retry / resume
+        - Android integration
+        - iOS / Share Extension integration
+        - Mac Catalyst integration
+        - Windows integration
+        - Settings / history / queue / diagnostics
+        - Accessibility / localization / UI
+        - Protocol / security
+        - Storage / privacy
+        - Build / CI / developer experience
+        - Documentation / support
+        - Other
     validations:
       required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Main platform scope
+      options:
+        - Cross-platform / portable Core
+        - Android
+        - iOS
+        - iOS Share Extension
+        - Mac Catalyst
+        - Windows
+        - Documentation / tooling only
+    validations:
+      required: true
+  - type: textarea
+    id: security_privacy
+    attributes:
+      label: Security, privacy, and permission impact
+      description: Would this broaden network/filesystem/background/clipboard/provider permissions, store new metadata, alter trust/authorization, or introduce external services?
+      placeholder: "No new permissions/data; or explain the required change and why it is necessary."
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Note any protocol, database, settings, minimum OS, package identity, trust, resume, or cross-version implications you can foresee.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe existing workarounds or simpler approaches if any.
+  - type: textarea
+    id: validation
+    attributes:
+      label: How should this be validated?
+      description: Mention automated tests, target compiles, physical-device/provider/network/accessibility checks, or release evidence that would demonstrate completion.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I searched existing issues/requests for the same feature.
+          required: true
+        - label: I understand source/hosted compilation is not the same as signed-device/store validation for platform features.
+          required: true
+        - label: This request does not contain private vulnerability details or secrets.
+          required: true
