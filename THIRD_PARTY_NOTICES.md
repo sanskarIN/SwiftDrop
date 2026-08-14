@@ -24,7 +24,7 @@ Direct NuGet package references:
 
 - `Microsoft.Maui.Controls` — 10.0.90 in the current project file.
 - `Microsoft.Extensions.Logging.Debug` — 10.0.0 in the current project file.
-- `QRCoder` — 1.6.0 in the current project file.
+- `QRCoder` — 1.8.0 in the current project file.
 
 Direct project references:
 
