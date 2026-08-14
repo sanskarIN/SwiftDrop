@@ -11,6 +11,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 - [User guide](user-guide.md)
 - [Settings reference](configuration.md)
 - [FAQ](faq.md)
+- [Technical glossary](glossary.md)
 - [Troubleshooting](troubleshooting.md)
 - [Diagnostics and bug reports](diagnostics-and-bug-reports.md)
 - [Building SwiftDrop](../BUILDING.md)
@@ -32,6 +33,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 - [Compatibility rules](protocol/compatibility.md)
 - [Compatibility matrix](protocol/compatibility-matrix.md)
 - [Versioning and compatibility policy](versioning-and-compatibility.md)
+- [Technical glossary](glossary.md)
 - [Threat model](security/THREAT_MODEL.md)
 - [Security policy](../SECURITY.md)
 - [Privacy policy](../PRIVACY.md)
@@ -111,6 +113,7 @@ When source behavior changes, update the document that owns that contract in the
 - architecture/project boundaries -> architecture docs;
 - network/ports/address policy -> networking guide and protocol/security docs;
 - protocol/canonicality -> protocol docs and compatibility policy;
+- terminology -> technical glossary where the term is project-specific or security-relevant;
 - local metadata -> database schema and privacy policy;
 - platform permissions/entitlements -> platform permissions/integration status;
 - tests/CI -> testing docs and CI reference;
