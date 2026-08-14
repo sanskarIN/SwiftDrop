@@ -50,6 +50,19 @@ Repository-wide `Directory.Build.props` uses stable `LangVersion=latest`, nullab
 
 MAUI/Apple platform projects keep platform SDK availability/obsolete warnings visible while still failing common nullable-safety warnings.
 
+## Dependency security policy
+
+Repository-wide restore explicitly enables NuGet auditing for direct and transitive dependencies with `NuGetAudit=true`, `NuGetAuditMode=all`, and `NuGetAuditLevel=low`. Because warnings are treated as errors, a known low/moderate/high/critical NuGet vulnerability blocks normal verification rather than being silently accepted.
+
+For a machine-readable local dependency review with the .NET 10 SDK:
+
+```bash
+dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --format json
+dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json
+```
+
+The release-readiness workflow captures equivalent JSON dependency and vulnerability reports for Core, tests, benchmarks, and the iOS Share Extension as release evidence. These reports supplement restore-time audit enforcement; they do not replace license/provenance review of the exact signed candidate.
+
 ## Android
 
 ```bash
@@ -183,11 +196,12 @@ GitHub Actions is configured for:
 - portable Core build/tests;
 - benchmark compile;
 - CodeQL/security hygiene;
+- direct/transitive NuGet vulnerability auditing on restore;
 - Android app compile;
 - focused Windows app compile;
 - Mac Catalyst containing-app compile;
 - certificate-independent iOS Simulator Share Extension + containing-app compile;
-- release dependency inventories, including the iOS Share Extension graph;
+- machine-readable release dependency/vulnerability inventories, including the iOS Share Extension graph;
 - aggregate release-readiness gate.
 
 A configured workflow is not proof it passed. Confirm the exact release-candidate run before publishing.
