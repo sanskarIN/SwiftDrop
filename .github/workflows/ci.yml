@@ -24,3 +24,16 @@ jobs:
       - run: dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release --no-restore
       - run: dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
       - run: dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release
+      - name: Validate machine-readable vulnerability audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json > /tmp/core-vulnerabilities.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('/tmp/core-vulnerabilities.json').read_text(encoding='utf-8-sig'))
+          if not isinstance(report, dict):
+              raise SystemExit('NuGet vulnerability audit output was not a JSON object.')
+          print('Machine-readable NuGet vulnerability audit command produced valid JSON.')
+          PY
