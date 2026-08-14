@@ -1,5 +1,68 @@
 # Changelog
 
+## Unreleased - 2026-08-14
+
+### Dependency and portable-gate recovery
+
+- Upgraded `Microsoft.Data.Sqlite` to 10.0.10 and pinned `SQLitePCLRaw.bundle_e_sqlite3` 2.1.12 so restore no longer selects the vulnerable `SQLitePCLRaw.lib.e_sqlite3` 2.1.11 dependency that was blocked by warnings-as-errors/security auditing.
+- Repaired compile defects that became visible after restore was healthy: missing protocol namespace imports, stale text-size constants, and unsupported SHA-256 hex parsing overloads.
+- Restored project-level xUnit namespace wiring and corrected test/analyzer failures without weakening analyzer enforcement.
+- Added/retained history-pruning behavior through the compatibility-safe history maintenance API.
+- Tightened strict UTF-8 decode-before-JSON behavior, staging-budget exhaustion handling, filename normalization/idempotence, and whitespace canonicalization.
+- Portable verification reached 511/511 passing tests and the synthetic benchmark project compiled successfully.
+
+### Android compile and share-intake hardening
+
+- Hardened foreground-service notification construction/API-level checks and nullable Android binding behavior.
+- Guarded Wi-Fi multicast-lock acquisition when Android context/services/bindings are unavailable.
+- Updated Android intent handling to current bindings and bounded external-share staging directories.
+- Preserved sanitized source filenames while staging provider content and cleaned failed staging directories.
+- Fixed nullable multi-file picker handling exposed by the current MAUI servicing API contract.
+- Android Release compilation is covered by the maintained platform workflow.
+
+### Apple target architecture correction
+
+- Corrected `SwiftDrop.ShareExtension` to the supported iOS-only `net10.0-ios` target.
+- The MAUI containing app embeds the Share Extension only for the iOS target.
+- Mac Catalyst remains the desktop containing-app/native-`UIDropInteraction` integration path and no longer carries an unsupported Mac Catalyst Share Extension target.
+- Removed stale Mac Catalyst Share Extension entitlements.
+- Updated Apple metadata validation for the iOS-only extension while preserving Mac Catalyst sandbox/App Group checks on the containing desktop app.
+- Hosted iOS Simulator compilation is certificate-independent at CI command scope; the project retains real entitlements for signed/device builds.
+- Verified hosted Apple compilation for Mac Catalyst containing app, iOS Simulator Share Extension, and iOS Simulator containing app before the later MAUI servicing refresh.
+
+### Windows compile isolation and WinUI fixes
+
+- Added a focused target-framework override so Windows validation does not enumerate unrelated Android/iOS/Mac Catalyst workloads.
+- Added a Windows-only opt-out from the iOS Share Extension project-reference edge for focused restore/build validation; normal iOS product builds keep the extension reference.
+- Corrected WinUI activation/drag event namespace ambiguities and explicitly qualified WinRT `DataPackageOperation` values.
+- Windows source/XAML/WinUI compilation now reaches the generated application assembly.
+- Hosted Windows CI now performs an unpackaged compile (`WindowsPackageType=None`, `GenerateAppxPackageOnBuild=false`) so source compilation is separated from signing/MSIX infrastructure.
+- Signed MSIX generation, signing, install, update, and package-identity behavior remain explicit external release gates rather than being falsely represented by hosted compile CI.
+
+### .NET MAUI servicing refresh
+
+- Updated `Microsoft.Maui.Controls` from 10.0.0 to 10.0.90.
+- Adapted multi-file picker handling to the nullable/cancelled result contract exposed by the serviced package.
+- Kept the existing .NET 10 Android/iOS/Mac Catalyst/Windows product target matrix while allowing focused CI validation of one target at a time.
+
+### CI and workflow cleanup
+
+- Removed completed one-time self-edit/hardening workflows and the duplicate stale platform smoke workflow.
+- Consolidated platform compilation in the maintained `platform-builds.yml` workflow.
+- Aligned release-readiness platform commands with the maintained Android, focused Windows, Mac Catalyst, and iOS Simulator gates.
+- Kept iOS simulator signing/provisioning overrides confined to hosted commands instead of removing real project entitlements.
+- Kept Windows signed/package verification separate from unpackaged source compilation.
+- Marked the localization markup extension as service-provider-independent to remove repeated XAML compiler service-provider warnings.
+- Removed unsupported `Entry.LineBreakMode` usage from Settings XAML.
+
+### Documentation synchronization
+
+- Updated README, BUILDING, platform integration status, release checklist, manual test matrix, and release-validation roadmap to the maintained iOS-only Share Extension architecture.
+- Documented Mac Catalyst as the containing desktop app/native-drop path rather than an extension host.
+- Documented focused Windows target-matrix commands and the compile-versus-signed-MSIX boundary.
+- Preserved signed Apple App Group/provisioning, signed Windows packaging, physical-device/network/provider/filesystem/accessibility, dependency-license, and store validation as mandatory release gates.
+- Repository sweeps found no remaining `TODO`, `FIXME`, `NotImplementedException`, placeholder, or stub implementation markers in the maintained source tree.
+
 ## Unreleased - 2026-08-12
 
 ### Canonical pairing capability representation
