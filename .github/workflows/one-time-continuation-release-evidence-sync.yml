@@ -1,0 +1,56 @@
+name: One-time continuation release evidence sync
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-time-continuation-release-evidence-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Synchronize continuation evidence
+        run: python3 scripts/continuation_release_evidence_sync.py
+      - name: Configure commit identity
+        run: |
+          git config user.name 'Sanskar'
+          git config user.email 'sanskarin@outlook.in'
+      - name: Commit README evidence navigation
+        run: |
+          if ! git diff --quiet -- README.md; then
+            git add README.md
+            git commit -s -m 'docs(readme): surface dependency evidence gates'
+          fi
+      - name: Commit project status evidence
+        run: |
+          if ! git diff --quiet -- PROJECT_STATUS.md; then
+            git add PROJECT_STATUS.md
+            git commit -s -m 'docs(status): record release evidence hardening'
+          fi
+      - name: Commit next validation roadmap
+        run: |
+          if ! git diff --quiet -- NEXT_STEPS.md; then
+            git add NEXT_STEPS.md
+            git commit -s -m 'docs(roadmap): align remaining release validation'
+          fi
+      - name: Commit changelog evidence
+        run: |
+          if ! git diff --quiet -- CHANGELOG.md; then
+            git add CHANGELOG.md
+            git commit -s -m 'docs(changelog): record audit and fuzz hardening'
+          fi
+      - name: Commit engineering ledger
+        run: |
+          if ! git diff --quiet -- what_changed.md; then
+            git add what_changed.md
+            git commit -s -m 'docs(ledger): append release evidence continuation'
+          fi
+      - name: Push focused documentation commits
+        run: git push origin HEAD:main
