@@ -2,6 +2,19 @@
 
 ## Unreleased - 2026-08-14
 
+### Release evidence, audit enforcement, and adversarial regression expansion
+
+- Added a reusable NuGet vulnerability-report validator that rejects actual direct/transitive vulnerability findings and malformed report structure instead of treating any valid JSON file as clean evidence.
+- Added 10 Python regression tests covering vulnerability-report interpretation and deterministic dependency-evidence manifest generation.
+- Added deterministic dependency-evidence manifests containing path, exact byte length, and SHA-256 for retained audit JSON files.
+- Platform/release workflows now emit and validate separate dependency evidence for Android, focused Windows, Mac Catalyst, iOS containing app, and iOS Share Extension, using explicit JSON output schema version 1.
+- Platform run `31783405975` passed the complete target compile/audit matrix and uploaded hashed Android/Windows/Apple evidence bundles; downloaded bundle manifests were independently verified against the retained report bytes.
+- Release-readiness self-test run `31783537853` passed portable, Android, Windows, Mac Catalyst, iOS Share Extension, iOS containing-app, dependency-audit, artifact-upload, and aggregate-gate jobs.
+- Normal CI pins Python 3.13 and validates helper scripts; Bash/PowerShell portable verification now includes explicit vulnerability-report validation.
+- Added a Windows CI job for the PowerShell portable verifier. Its first run exposed a PowerShell interpolation parser error, fixed in `080126a0`, proving the value of executing the Windows path instead of only reviewing it statically.
+- Added deterministic randomized pairing round-trip/canonical-alias and strict-JSON fuzz/duplicate-property invariants; portable xUnit coverage increased from 511 to **516 passing tests** in CI run `31784196373`.
+- Added the canonical dependency-evidence reference and synchronized release process/checklist, CI/build docs, docs index, and third-party notices while preserving the signed-artifact/device/store production boundary.
+
 
 ### Documentation enforcement, community workflow, and dependency completion
 
