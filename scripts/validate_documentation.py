@@ -54,6 +54,7 @@ REQUIRED_DOCUMENTS = (
     "docs/testing/performance-benchmarks.md",
     "docs/release/release-process.md",
     "docs/release/release-checklist.md",
+    "docs/release/dependency-evidence.md",
     "docs/release/signing-configuration.md",
     "docs/release/store-privacy-declarations.md",
     "docs/versioning-and-compatibility.md",
@@ -72,6 +73,7 @@ INDEX_LINKS = (
     "architecture/project-structure.md",
     "testing/ci-reference.md",
     "release/release-process.md",
+    "release/dependency-evidence.md",
     "versioning-and-compatibility.md",
 )
 
