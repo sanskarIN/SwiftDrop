@@ -1,6 +1,6 @@
 # SwiftDrop Project Status
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 
 ## Implemented in source
 
@@ -8,6 +8,7 @@ Updated: 2026-08-12
 
 - Apache-2.0, .NET 10, C#, .NET MAUI.
 - Android, iOS, Mac Catalyst, and Windows application targets.
+- `Microsoft.Maui.Controls` 10.0.90 servicing package on the application project.
 - Reusable `SwiftDrop.Core`, portable xUnit tests, and synthetic benchmark project.
 - Account-free direct local-network transfers with no SwiftDrop-operated cloud upload/relay path.
 - mDNS/DNS-SD discovery plus bounded UDP fallback and peer expiry.
@@ -20,13 +21,13 @@ Updated: 2026-08-12
 - Windows custom receive folder and native files/folders/text/pair-link drag/drop.
 - Android bounded share-sheet intake.
 - iOS/Mac Catalyst file URL/document opening.
-- Dedicated iOS/Mac Catalyst Share Extension source target using App Group package handoff.
-- Native Mac Catalyst `UIDropInteraction` for files, folders, text, and pairing links.
+- Dedicated **iOS-only** Share Extension source target using App Group package handoff.
+- Native Mac Catalyst `UIDropInteraction` for files, folders, text, and pairing links; Mac Catalyst does not use a Share Extension target in the maintained architecture.
 - Warm/cold external-input application handoff.
 
 ### Canonical pairing and protocol representation
 
-Pairing capability text is now accepted in one strict representation:
+Pairing capability text is accepted in one strict representation:
 
 - no leading/trailing whitespace;
 - exact `swiftdrop://pair` URI structure;
@@ -40,7 +41,7 @@ Pairing capability text is now accepted in one strict representation:
 Application framed JSON remains closed-schema and typed:
 
 - bounded frame length/depth;
-- strict UTF-8/JSON;
+- strict UTF-8 decode before JSON parsing;
 - no comments/trailing commas;
 - case-insensitive duplicate-member rejection;
 - unknown/unmapped-member rejection;
@@ -49,7 +50,7 @@ Application framed JSON remains closed-schema and typed:
 
 ### Canonical cross-platform manifest paths
 
-Protocol-v1 file manifest paths now have one operating-system-independent identity:
+Protocol-v1 file manifest paths have one operating-system-independent identity:
 
 - `/` is the only wire separator;
 - incoming backslash aliases are rejected rather than silently normalized after authorization;
@@ -60,12 +61,13 @@ Protocol-v1 file manifest paths now have one operating-system-independent identi
 - bounded total relative-path metadata;
 - every incoming manifest path must already equal SwiftDrop's canonical sanitized form before one-time authorization is consumed.
 
-Canonical filename segment policy now includes:
+Canonical filename segment policy includes:
 
 - Unicode NFC;
 - portable invalid/control-character removal during sender/local source construction;
 - Windows reserved-device-name neutralization;
 - trailing dot/space handling;
+- canonical post-filter whitespace handling;
 - 180 UTF-16 code-unit bound;
 - 180 UTF-8 byte bound without splitting Unicode scalars;
 - headroom for `.swiftdrop.part` on common byte-limited filesystems;
@@ -121,7 +123,7 @@ The old duplicate MainPage batch handlers and implicit fresh-ID coordinator comp
 - Collision candidates remain bounded/distinct even when original filename is at character/byte limit.
 - Optional last-write timestamp application after verified promotion is best-effort and cannot turn verified content into a false transfer failure.
 - Android backup disabled for app-local metadata.
-- Windows package restricted to private-network capability.
+- Windows packaged release design remains private-network-only; hosted compile validation is deliberately unpackaged and does not replace signed MSIX capability/package validation.
 - Privacy-aware history, diagnostics, queue persistence, and bounded external staging.
 
 ### Idempotent batch resume
@@ -145,7 +147,7 @@ Resume metadata is best-effort and never authorization; persistence failure does
 
 ### Cross-platform external intake and staging budgets
 
-Shared Core `TransferStagingBudget` now provides one source of truth for:
+Shared Core `TransferStagingBudget` provides one source of truth for:
 
 - maximum staged file count;
 - maximum single-file bytes;
@@ -161,11 +163,14 @@ Android:
 - unknown-length runtime byte cap based on remaining aggregate budget;
 - repeated storage-reserve checks during unknown-length streaming;
 - exact staged-length verification;
-- cleanup on failure;
+- cleanup of failed files/directories;
+- current Android intent/openable-column binding handling;
+- foreground data-sync service and guarded multicast-lock behavior;
 - atomic inbox handoff.
 
-Apple Share Extension:
+iOS Share Extension:
 
+- **iOS-only `net10.0-ios` target**;
 - files/images/movies/text/web URLs under explicit activation bounds;
 - bounded provider-response waits plus extension-lifetime cancellation;
 - late timed-out/cancelled callbacks cannot begin a new copy;
@@ -174,7 +179,9 @@ Apple Share Extension:
 - security-scoped access where provided;
 - bounded collision-safe filenames;
 - strict App Group package manifest and atomic `.staging-*` → `pending-*` publication;
-- never auto-sends.
+- never auto-sends;
+- real App Group entitlements remain in source for signed/device builds;
+- hosted iOS Simulator compile commands clear signing/provisioning requirements only at CI command scope.
 
 Containing Apple app:
 
@@ -195,13 +202,15 @@ Mac Catalyst native drop:
 - bounded provider-response waits;
 - symlink/reparse rejection;
 - portable UTF-8-bounded collision handling;
-- never auto-sends.
+- never auto-sends;
+- implemented through the containing desktop app rather than a Mac Catalyst Share Extension.
 
 Windows native drop:
 
 - explicit files/folders/text/pairing-link input;
 - atomic common inbox handoff;
-- direct file/folder sources still pass the shared regular-source/link-safe/canonical-manifest pipeline before transfer.
+- direct file/folder sources still pass the shared regular-source/link-safe/canonical-manifest pipeline before transfer;
+- WinUI activation/drag event types and WinRT data-package operations are explicitly qualified to avoid namespace ambiguity.
 
 ### Local metadata
 
@@ -223,7 +232,10 @@ Transfer bytes/text, private keys, pairing invitations/nonces, receive-root abso
 - History, Queue, Nearby Devices, Trusted Devices, Diagnostics, Settings, and About use dedicated view models.
 - Active single-file controls validate regular source state before send/resume.
 - Active batch controls use the dedicated stable-ID partial workflow.
+- Multi-file picker treats a cancelled/null platform result as an empty selection under the MAUI 10.0.90 API contract.
 - Obsolete duplicate batch handlers/fresh-ID compatibility overload removed.
+- Unsupported `Entry.LineBreakMode` XAML usage removed.
+- `LocalizeExtension` is explicitly marked service-provider independent for XAML compilation.
 - Pickers/dialogs/native drop/share/lifecycle remain at the platform/UI boundary.
 - Networking, TLS, certificates, storage, path policy, protocol, hashing, source safety, and authorization remain in services/Core.
 - English/Hindi XAML/runtime catalogs cover the implemented UI surfaces.
@@ -260,22 +272,38 @@ Portable tests cover, among other areas:
 - privacy redaction;
 - Unicode UTF-8 text truncation.
 
+Portable verification evidence for the August 14 source head:
+
+- Core restore/build succeeded in Release configuration;
+- **511/511 portable tests passed**;
+- synthetic benchmark project compiled;
+- localization validation passed;
+- Apple integration metadata validation passed;
+- CodeQL passed on the MAUI 10.0.90/picker-contract source head;
+- repository security-hygiene checks passed on that source head.
+
 ### CI/build/release engineering
 
 - Canonical solution: `SwiftDrop.slnx`.
 - Stable C# language mode (`latest`, not preview).
+- `Microsoft.Maui.Controls` serviced to 10.0.90.
 - Portable Core build/test/localization/Apple-metadata validation/benchmark compile configured.
-- Android, Windows, Mac Catalyst, and unsigned iOS Simulator compile workflows configured.
-- Apple jobs explicitly compile the Share Extension and containing app.
-- Apple metadata validator checks App Group, app/extension IDs, versions, targets, entitlements, sandbox, activation rule, project reference, Core constant, and solution inclusion.
-- Release-readiness includes extension dependency inventories for iOS and Mac Catalyst.
+- Maintained platform workflow covers Android, focused Windows, Mac Catalyst, and certificate-independent iOS Simulator app/extension compilation.
+- Android Release compile is green on the MAUI 10.0.90/picker-contract source head.
+- Focused Windows Release compile is green on the same source head with `WindowsPackageType=None`/`GenerateAppxPackageOnBuild=false`, producing the Windows application assembly with 0 errors.
+- Windows CI uses `SwiftDropTargetFrameworksOverride` plus `SkipIosShareExtensionProjectReference` only for focused Windows validation so it does not traverse unrelated mobile workloads.
+- Signed MSIX creation/install/update remains a separate release gate and is not represented by the unpackaged compile job.
+- Apple jobs compile the Mac Catalyst containing app plus the iOS Simulator Share Extension and iOS containing app; an earlier repaired .NET 10 Apple run was fully green, and the current MAUI 10.0.90 Apple revalidation run remains in progress at the time of this status write.
+- Apple metadata validator checks App Group, app/extension IDs, versions, iOS extension target, entitlements, Mac sandbox, activation rule, project reference, Core constant, and solution inclusion.
+- Release-readiness captures the iOS Share Extension dependency inventory and mirrors the maintained platform compile boundaries.
+- Obsolete one-time self-edit workflows and the duplicate stale platform smoke workflow were removed.
 - CodeQL, Dependabot, security-hygiene and release-readiness workflows remain configured.
 
 ## Current engineering phase
 
-**Source-complete release-validation phase for the current master-prompt scope, with additional August 12 canonical-protocol/source/staging hardening implemented but not yet physically/signed validated.**
+**Source-complete release-validation phase for the current master-prompt scope.**
 
-The source now includes the previously implemented Apple Share Extension/Mac native drop/schema-v3 resume plus this continuation's canonical path representation, source-link safety, deterministic folder enumeration, external staging budgets, strict capability representation, bounded filename/collision behavior, stable-ID-only active app batch path, and repeated completed-file verification.
+The repository source contains the local-transfer product scope, iOS Share Extension, Mac native drop, schema-v3 idempotent resume, canonical pairing/path representation, source-link safety, deterministic folder enumeration, external staging budgets, bounded filename/collision behavior, stable-ID-only active batch path, repeated completed-file verification, Android lifecycle/share hardening, and repaired platform compile infrastructure.
 
 ## Remaining source boundaries / deliberate constraints
 
@@ -304,14 +332,14 @@ These are deliberate platform/release boundaries or optional future enhancements
 
 ## External validation still required before production-ready claims
 
-Repository source edits cannot honestly complete these gates:
+Repository source edits and unsigned/unpackaged hosted compile jobs cannot honestly complete these gates:
 
-- observe all current GitHub Actions jobs successfully complete on the exact release candidate;
+- observe all configured release-candidate workflows successfully complete on the exact release candidate;
 - signed Android AAB/APK build/install/upgrade;
-- signed Windows package build/install/update;
-- Apple Developer App Group provisioning for app + Share Extension;
+- signed Windows MSIX/package build/install/update and package-identity/protocol/capability checks;
+- Apple Developer App Group provisioning for iOS app + iOS Share Extension;
 - signed iOS device/TestFlight Share Extension/provider behavior;
-- signed Mac Catalyst sandbox/App Group/Share Extension/native-drop/provider behavior;
+- signed/notarized Mac Catalyst containing-app sandbox/App Group/native-drop/provider behavior;
 - physical Android/iOS/macOS/Windows transfer matrix in both directions;
 - Windows→non-Windows folder manifests using canonical `/` paths;
 - real content providers with null/negative/changing Android size metadata;
@@ -323,10 +351,23 @@ Repository source edits cannot honestly complete these gates:
 - TalkBack, VoiceOver, Narrator, keyboard-only, large-text, reduced-motion, high-contrast, and Hindi layout validation;
 - final store privacy declarations, screenshots, signing/notarization, dependency-license review, and submission checks.
 
+## Repository completion sweep
+
+August 14 repository searches found no remaining maintained-source occurrences of:
+
+- `TODO`;
+- `FIXME`;
+- `NotImplementedException`;
+- placeholder implementation markers;
+- stub implementation markers;
+- stale current-state Mac Catalyst Share Extension references.
+
+Open GitHub issue search returned no open issues at the time of the sweep.
+
 ## Connector/environment limits
 
-- The active chat runtime does not provide the .NET/MAUI workloads required to compile/sign all targets locally.
-- GitHub status evidence must be checked for the exact final commit after the final repository write; absence of status contexts is **unknown/unreported**, not a pass.
+- The active chat runtime does not provide private platform signing material or physical-device/store access; those release gates are intentionally documented rather than falsely claimed complete.
+- GitHub status evidence is checked against exact source/workflow commits; absence of a status context is treated as **unknown/unreported**, not a pass.
 - Contents API writes do not expose an independent author/committer-email override; focused commits use `Signed-off-by: Sanskar <sanskarin@outlook.in>`.
 
 See `NEXT_STEPS.md` for release validation priorities and `what_changed.md` for the complete engineering ledger.
