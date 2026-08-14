@@ -389,10 +389,11 @@ public partial class MainPage : ContentPage
     {
         try
         {
-            _selectedBatchFiles = (await FilePicker.Default.PickMultipleAsync(new PickOptions
-                {
-                    PickerTitle = AppText.Get("ChooseFilesToSend")
-                }))
+            var pickedFiles = await FilePicker.Default.PickMultipleAsync(new PickOptions
+            {
+                PickerTitle = AppText.Get("ChooseFilesToSend")
+            });
+            _selectedBatchFiles = (pickedFiles ?? Array.Empty<FileResult>())
                 .OfType<FileResult>()
                 .Where(x => !string.IsNullOrWhiteSpace(x.FullPath))
                 .Take(2048)
