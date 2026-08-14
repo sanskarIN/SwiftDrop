@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - name: Test Python validation helpers
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - name: Validate documentation integrity
         run: python3 scripts/validate_documentation.py
       - name: Validate localization catalogs
@@ -30,12 +32,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json > /tmp/core-vulnerabilities.json
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          report = json.loads(Path('/tmp/core-vulnerabilities.json').read_text(encoding='utf-8-sig'))
-          if not isinstance(report, dict):
-              raise SystemExit('NuGet vulnerability audit output was not a JSON object.')
-          print('Machine-readable NuGet vulnerability audit command produced valid JSON.')
-          PY
+          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json --output-version 1 > /tmp/core-vulnerabilities.json
+          python3 scripts/validate_nuget_vulnerability_report.py /tmp/core-vulnerabilities.json
