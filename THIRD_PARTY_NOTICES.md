@@ -47,10 +47,10 @@ Mac Catalyst uses the containing desktop app/native-drop path and does not have 
 
 `tests/SwiftDrop.Core.Tests` directly references:
 
-- `Microsoft.NET.Test.Sdk` — 17.13.0 in the current project file.
+- `Microsoft.NET.Test.Sdk` — 18.8.1 in the current project file.
 - `xunit` — 2.9.3 in the current project file.
-- `xunit.runner.visualstudio` — 3.0.2 in the current project file.
-- `coverlet.collector` — 6.0.4 in the current project file.
+- `xunit.runner.visualstudio` — 3.1.5 in the current project file.
+- `coverlet.collector` — 10.0.1 in the current project file.
 
 These test dependencies are not automatically part of a shipped application binary merely because they are used by CI/development tests.
 
