@@ -31,6 +31,8 @@ Direct project references:
 - `SwiftDrop.Core` on all app targets.
 - `SwiftDrop.ShareExtension` on the iOS target as an app-extension project reference.
 
+Maintained hosted audit jobs now capture separate restored containing-app dependency/vulnerability evidence for Android, the focused Windows target, Mac Catalyst, and iOS. Those reports improve review coverage, but they still describe the hosted restored graph rather than proving the exact contents of a separately produced signed store artifact.
+
 The Windows hosted compile gate deliberately uses `WindowsPackageType=None` and does not generate a signed MSIX; the final signed/package dependency and notice review must be performed against the real release package rather than the unpackaged CI compile output.
 
 ### `SwiftDrop.ShareExtension`
@@ -39,7 +41,7 @@ The dedicated **iOS-only** Share Extension currently declares no direct NuGet `P
 
 - `SwiftDrop.Core`.
 
-Its restored runtime graph therefore still includes dependencies pulled by the referenced Core project and the iOS/.NET target packs. Release review must inspect the **restored iOS extension target graph**, not infer that “no direct PackageReference” means “no third-party/runtime dependencies.”
+Its restored runtime graph therefore still includes dependencies pulled by the referenced Core project and the iOS/.NET target packs. Maintained Apple audit evidence captures the restored iOS extension graph separately from the iOS containing app. Release review must inspect the **restored iOS extension target graph** and final signed extension package, not infer that “no direct PackageReference” means “no third-party/runtime dependencies.”
 
 Mac Catalyst uses the containing desktop app/native-drop path and does not have a maintained Share Extension target.
 
@@ -70,20 +72,38 @@ Building SwiftDrop can use:
 
 Those SDKs are governed by their respective licenses. They are not automatically redistributed by this repository merely because SwiftDrop targets them.
 
+## Machine-readable dependency evidence
+
+Maintained platform/release workflows can produce these evidence bundles:
+
+- `dependency-audit` — Core, portable tests, and benchmark reports;
+- `android-dependency-audit` — Android containing-app graph;
+- `windows-dependency-audit` — focused Windows containing-app graph;
+- `apple-dependency-audit` — Mac Catalyst containing app, iOS containing app, and iOS Share Extension graphs.
+
+Reports use an explicit machine-readable JSON schema version, include direct/transitive package views, and include vulnerable-package views validated by repository tooling. Each bundle also carries a deterministic evidence manifest recording report byte lengths and SHA-256 digests.
+
+These manifests are integrity aids for retained report files. They are not digital signatures, SBOM attestations, or proof that an independently produced signed artifact contains exactly the same graph.
+
+See `docs/release/dependency-evidence.md` for the canonical evidence contract.
+
 ## Release dependency inventory
 
 Before publishing any binary release:
 
 1. Restore the **exact release-candidate commit** on the supported target environments.
-2. Generate dependency inventories for `SwiftDrop.Core`, `SwiftDrop.App`, and the iOS `SwiftDrop.ShareExtension` target.
-3. Include transitive packages/framework/native components where redistribution or notice obligations apply.
-4. Review package provenance, versions, licenses, notices, vulnerabilities/security advisories, and redistribution terms.
-5. Confirm the restored graph does not reintroduce the previously blocked vulnerable SQLite native dependency version/path.
-6. Compare the inventory against the final signed/package outputs; do not rely only on source project files.
-7. Include every required attribution/license text in the app/package/release materials.
-8. Repeat the review whenever package versions, workloads, SDKs, target frameworks, or shipped projects change.
+2. Generate/retrieve target-specific dependency inventories for `SwiftDrop.Core`, Android/Windows/Mac Catalyst/iOS `SwiftDrop.App`, and the iOS `SwiftDrop.ShareExtension` target.
+3. Retain the exact-candidate `dependency-audit`, `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit` workflow artifacts.
+4. Verify each retained bundle against its SHA-256 `manifest.json` before archival/review.
+5. Confirm the vulnerable-package reports contain no findings under the configured advisory data and command semantics.
+6. Include transitive packages/framework/native components where redistribution or notice obligations apply.
+7. Review package provenance, versions, licenses, notices, vulnerabilities/security advisories, and redistribution terms manually.
+8. Confirm the restored graph does not reintroduce the previously blocked vulnerable SQLite native dependency version/path.
+9. Compare the source/restored inventories against the final signed/package outputs; do not rely only on project files or hosted simulator/unpackaged reports.
+10. Include every required attribution/license text in the app/package/release materials.
+11. Repeat the review whenever package versions, workloads, SDKs, target frameworks, or shipped projects change.
 
-The release-readiness workflow can generate dependency inventory evidence, but workflow configuration alone is not proof that the exact signed candidate was reviewed.
+Workflow-generated evidence substantially improves reproducibility, but workflow configuration or a historical green run alone is not proof that the exact signed candidate was reviewed.
 
 ## User content
 
