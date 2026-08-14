@@ -50,7 +50,7 @@ jobs:
       - name: Restore shared core runtime
         run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=win-x64
       - name: Build Windows app
-        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-windows10.0.19041.0 -c Release -p:RuntimeIdentifierOverride=win-x64
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifierOverride=win-x64
 
   apple:
     runs-on: macos-latest
