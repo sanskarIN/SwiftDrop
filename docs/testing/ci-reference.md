@@ -1,5 +1,7 @@
 # SwiftDrop CI and Verification Reference
 
+Updated: 2026-08-14
+
 This document explains the maintained GitHub Actions gates and how their evidence should be interpreted.
 
 ## Maintained workflow set
@@ -14,7 +16,19 @@ SwiftDrop keeps five maintained workflows under `.github/workflows/`:
 
 Temporary one-shot repair/migration workflows are not part of the maintained set after they complete.
 
-## `ci.yml` — portable core and documentation gate
+## Python validation toolchain
+
+Maintained GitHub-hosted jobs that execute repository Python validators explicitly install Python 3.13 with `actions/setup-python@v7` instead of relying on an incidental runner PATH version.
+
+Normal CI also executes the repository's Python helper regression tests:
+
+```bash
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+```
+
+The current helper tests cover the NuGet vulnerability-report validator and dependency-evidence manifest generator. A helper-script regression therefore fails the same normal CI gate that uses those helpers.
+
+## `ci.yml` — portable core, documentation, and audit gate
 
 Primary portable regression gate on pushes to `main` and pull requests.
 
@@ -22,6 +36,8 @@ Current responsibilities:
 
 - checkout source;
 - install .NET 10 SDK;
+- install pinned Python 3.13;
+- run Python validation-helper unit tests;
 - validate canonical documentation files and local Markdown links with `scripts/validate_documentation.py`;
 - validate localization catalogs;
 - validate Apple integration metadata;
@@ -29,40 +45,55 @@ Current responsibilities:
 - build `SwiftDrop.Core` Release;
 - run `SwiftDrop.Core.Tests` Release;
 - compile the benchmark project Release;
-- exercise the machine-readable transitive vulnerable-package JSON command and parse its output as JSON.
+- generate a machine-readable direct/transitive Core vulnerable-package report using JSON output schema version 1;
+- fail if `scripts/validate_nuget_vulnerability_report.py` finds any reported vulnerability entry or malformed report structure.
 
 The documentation validator requires the maintained user/developer/architecture/protocol/platform/storage/testing/release documents, confirms the canonical docs index links the principal guides, rejects broken local inline Markdown links, and ensures completed one-time documentation helper files are not left in the repository.
 
-This gate is the fastest general proof that portable protocol/security/storage/path/transfer behavior and documentation integrity remain internally consistent.
+This gate is the fastest general proof that portable protocol/security/storage/path/transfer behavior, validation tooling, dependency-audit evidence, and documentation integrity remain internally consistent.
 
 It does **not** compile every MAUI target.
 
-## `platform-builds.yml` — hosted target compile matrix
+## `platform-builds.yml` — hosted target compile and dependency-audit matrix
 
-Maintained jobs cover:
+Maintained jobs compile shipped target graphs and retain target-specific dependency evidence.
 
 ### Android
 
 - install MAUI Android workload;
 - restore Android containing-app target and Core;
-- build Android containing-app source in Release configuration.
+- build Android containing-app source in Release configuration;
+- generate `net10.0-android` direct/transitive package JSON;
+- generate and validate its vulnerable-package JSON;
+- generate a deterministic SHA-256 evidence manifest;
+- upload `android-dependency-audit`.
 
 ### Windows
 
 - install MAUI Windows workload;
 - restore the focused Windows app runtime and Core runtime;
-- build the Windows target in the maintained hosted compile configuration without claiming signed MSIX validation.
+- build the Windows target in the maintained hosted compile configuration without claiming signed MSIX validation;
+- generate focused `net10.0-windows10.0.19041.0` direct/transitive package JSON;
+- generate and validate its vulnerable-package JSON;
+- generate a deterministic SHA-256 evidence manifest;
+- upload `windows-dependency-audit`.
 
 ### Apple
 
 - install MAUI iOS and Mac Catalyst workloads;
-- select the hosted simulator runtime identifiers appropriate for runner architecture;
+- select the hosted simulator/runtime identifiers appropriate for runner architecture;
 - restore/build the Mac Catalyst containing app;
+- generate and validate Mac Catalyst dependency/vulnerability evidence;
 - restore iOS containing app + Share Extension graph;
 - build the iOS Simulator Share Extension;
-- build the iOS Simulator containing app.
+- build the iOS Simulator containing app;
+- generate and validate separate iOS containing-app and Share Extension dependency/vulnerability reports;
+- generate one deterministic SHA-256 manifest covering the Apple evidence JSON files;
+- upload `apple-dependency-audit`.
 
 The Apple job disables real code signing only for simulator compile scope. Source entitlements remain part of the project and must be validated again in signed device/distribution builds.
+
+`platform-builds.yml` includes the two dependency-evidence helper scripts in its path triggers, so changes to audit interpretation or evidence manifest generation re-exercise the shipped target matrix.
 
 ## `codeql.yml` — static security analysis
 
@@ -84,11 +115,30 @@ This is a source-repository protection gate, not a malware scanner or secret-man
 
 ## `release-readiness.yml` — candidate aggregate evidence
 
-Release readiness is a broader candidate-oriented gate. It mirrors/aggregates important build/test/platform checks and emits dependency inventory/audit evidence.
+Release readiness is the candidate-oriented aggregate gate.
 
-Maintained dependency evidence uses .NET 10 noun-first package commands and machine-readable JSON where configured, including complete transitive graph and vulnerable-package views for relevant projects/targets.
+It runs on:
 
-The resulting evidence should be retained/reviewed with the candidate rather than relying on memory of an earlier run.
+- manual `workflow_dispatch`;
+- `v*` tags;
+- changes to the release workflow or its verification/audit/evidence helper scripts on `main`;
+- pull requests to `main` that change those release-gate inputs.
+
+The main-branch/path self-test trigger means release-gate engineering changes are exercised before a production tag. Tag-triggered release candidates remain governed by the tag trigger rather than being treated as ordinary documentation-only changes.
+
+The workflow currently requires and retains:
+
+- canonical portable verification;
+- Core/test/benchmark dependency inventories and vulnerable-package reports;
+- Android compile plus Android dependency evidence;
+- focused Windows compile plus Windows dependency evidence;
+- Mac Catalyst compile plus Mac Catalyst dependency evidence;
+- iOS Simulator Share Extension compile plus extension dependency evidence;
+- iOS Simulator containing-app compile plus iOS app dependency evidence;
+- deterministic evidence manifests containing file sizes and SHA-256 digests;
+- an aggregate release-gate job that fails unless every required compile/test/audit job succeeded.
+
+The uploaded artifact names and evidence schema are defined in `docs/release/dependency-evidence.md`.
 
 ## Repository-wide NuGet audit policy
 
@@ -102,7 +152,31 @@ The resulting evidence should be retained/reviewed with the candidate rather tha
 
 Repository warnings are treated as errors. This makes qualifying NuGet audit warnings blocking unless a deliberate, reviewed repository policy change says otherwise.
 
+Machine-readable evidence is an additional gate. It does not merely prove that JSON parsing succeeded: the validator rejects a report containing a non-empty package `vulnerabilities` collection.
+
+## Stable machine-readable report format
+
+Maintained evidence commands use:
+
+```text
+--format json --output-version 1
+```
+
+Vulnerable-package views use:
+
+```text
+--include-transitive --vulnerable
+```
+
+Where a target has already been restored for the job, report capture uses `--no-restore` so the evidence corresponds to that restored graph instead of silently initiating another restore at evidence-capture time.
+
 ## Local equivalents
+
+### Validation-helper tests
+
+```bash
+python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+```
 
 ### Documentation validation
 
@@ -126,6 +200,10 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
+The local verification scripts include helper tests, documentation/localization/Apple validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.
+
+The PowerShell verifier checks `$LASTEXITCODE` for native commands rather than assuming PowerShell exception behavior will convert every nonzero native exit into a terminating error.
+
 ### Core commands
 
 ```bash
@@ -138,26 +216,45 @@ dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Rele
 ### Machine-readable vulnerability review
 
 ```bash
-dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json
+dotnet package list \
+  --project src/SwiftDrop.Core/SwiftDrop.Core.csproj \
+  --include-transitive \
+  --vulnerable \
+  --format json \
+  --output-version 1 > core-vulnerabilities.json
+
+python3 scripts/validate_nuget_vulnerability_report.py core-vulnerabilities.json
 ```
 
-Use the equivalent command for every relevant shipped/runtime/test/benchmark project when preparing a release.
+Use the corresponding restored target/framework command for every shipped runtime graph when preparing a release.
+
+### Evidence manifest
+
+```bash
+python3 scripts/create_dependency_evidence_manifest.py artifacts artifacts/manifest.json
+```
+
+This writes a path-sorted manifest of evidence JSON file byte lengths and SHA-256 digests. See `docs/release/dependency-evidence.md` for the exact contract and limitations.
 
 ## Evidence interpretation
 
 ### Green portable CI proves
 
+- Python validation helpers pass their regression tests;
 - the canonical documentation set exists and its checked local Markdown links resolve;
 - the current portable source restores under the workflow environment;
 - Core compiles under the configured .NET SDK;
 - portable tests pass;
 - localization/Apple metadata validators pass;
 - benchmark source compiles;
-- audit command syntax/output remains usable.
+- the generated Core vulnerable-package report is structurally valid and contains no reported vulnerability entries under the configured command/advisory data.
 
-### Green platform compile proves
+### Green platform compile/audit proves
 
-- the target source/project graph can compile under the hosted runner/workload configuration used by the workflow.
+- the target source/project graph can compile under the hosted runner/workload configuration used by the workflow;
+- the configured target package/vulnerability reports were generated successfully;
+- the vulnerable-package JSON contained no findings according to the repository validator;
+- the uploaded evidence bundle was generated with its deterministic hash manifest when that workflow version includes the manifest step.
 
 ### Green CodeQL proves
 
@@ -166,6 +263,12 @@ Use the equivalent command for every relevant shipped/runtime/test/benchmark pro
 ### Green security hygiene proves
 
 - the configured repository hygiene patterns/doc checks passed for that commit.
+
+### Matching evidence manifest proves
+
+- the retained JSON report bytes match the file lengths and SHA-256 digests recorded by the manifest.
+
+It does **not** authenticate who produced the evidence, sign the bundle, or prove that a separately built signed artifact used the same graph.
 
 ### None of the above proves
 
@@ -177,38 +280,29 @@ Use the equivalent command for every relevant shipped/runtime/test/benchmark pro
 - real LAN firewall/client-isolation/multicast behavior;
 - device low-storage/lifecycle/background behavior;
 - accessibility on actual platform assistive technologies;
+- complete third-party license compliance by automation alone;
 - final App Store/Play/Microsoft Store declaration acceptance.
 
 ## Required candidate discipline
 
 For a release candidate:
 
-1. identify the exact commit SHA;
+1. identify the exact commit SHA/tag;
 2. avoid mixing evidence from older commits without explicitly documenting it;
 3. require relevant automated gates for that candidate;
-4. retain dependency inventory/audit outputs;
-5. build/sign packages from the frozen candidate;
-6. complete the manual test matrix and release checklist;
-7. record defects/fixes with a new candidate SHA when source changes;
-8. repeat invalidated evidence after a candidate-changing fix.
+4. retain all dependency inventory/vulnerability artifacts and their manifests;
+5. verify the retained report bytes against each manifest;
+6. manually review package provenance/licenses/notices and compare with final signed artifacts;
+7. build/sign packages from the frozen candidate;
+8. complete the manual test matrix and release checklist;
+9. record defects/fixes with a new candidate SHA when source changes;
+10. repeat invalidated evidence after a candidate-changing fix.
 
-## Latest verified continuation evidence
+## Historical versus exact-candidate evidence
 
-The August 14 continuation recorded in `what_changed.md` includes successful evidence for:
+`PROJECT_STATUS.md` and `what_changed.md` may record specific successful run IDs from earlier continuation checkpoints. Those are historical evidence for the source/workflow state they tested.
 
-- 511/511 portable Core tests after test-toolchain modernization;
-- Core and benchmark Release builds;
-- localization and Apple metadata validators;
-- machine-readable vulnerability-audit validation;
-- CodeQL v4;
-- repository security hygiene;
-- Android hosted compile;
-- focused Windows hosted compile;
-- Mac Catalyst hosted compile;
-- iOS Simulator Share Extension compile;
-- iOS Simulator containing-app compile.
-
-The documentation-completion continuation additionally added an exact CI-enforced documentation integrity validator. Always prefer the latest exact-candidate workflow results when preparing an actual release rather than treating historical snapshots as permanent proof.
+Always prefer the latest exact-candidate workflow results when preparing an actual release. Do not treat an earlier successful report, compile, or vulnerability view as permanent proof for a later candidate.
 
 ---
 
