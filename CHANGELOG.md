@@ -2,6 +2,18 @@
 
 ## Unreleased - 2026-08-14
 
+### Windows portable verification and SQLite resource-lifetime hardening
+
+- Added a dedicated Windows PowerShell portable-verifier CI job so Core tests, helper/documentation validators, benchmark compilation, and vulnerable-package validation execute on both Ubuntu and Windows.
+- Fixed the PowerShell `${LASTEXITCODE}` interpolation parser defect exposed by the first Windows run.
+- Added cross-platform SQLite temporary-database cleanup that clears Microsoft.Data.Sqlite pools and removes DB/WAL/SHM files, plus a direct cleanup regression.
+- Fixed deterministic SQLite command disposal throughout schema migration, batch-completion, diagnostics, transfer-history, queue-metadata, and trust stores after Windows file-lock testing exposed retained native resources.
+- Explicitly scoped schema-test connections before temp-file cleanup rather than masking handle-lifetime failures with retries.
+- Portable xUnit coverage is now **517 tests**; exact source-head CI run `31785808946` passed all tests on Ubuntu and through the Windows PowerShell verifier.
+- Source-head CodeQL `31785808918` and security hygiene `31785808999` passed after the storage fixes.
+- Platform run `31786513898` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, iOS Simulator app, target vulnerability audits, evidence manifests, and artifact uploads.
+- Added same-ref concurrency controls to platform/core/CodeQL/security workflows so obsolete intermediate runs are cancelled in favor of the newest branch evidence.
+
 ### Release evidence, audit enforcement, and adversarial regression expansion
 
 - Added a reusable NuGet vulnerability-report validator that rejects actual direct/transitive vulnerability findings and malformed report structure instead of treating any valid JSON file as clean evidence.
