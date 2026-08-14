@@ -218,6 +218,7 @@ Portable tests include:
 Configured GitHub Actions include:
 
 - documentation integrity validation;
+- Python validation-helper regression tests;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;
@@ -227,7 +228,10 @@ Configured GitHub Actions include:
 - Mac Catalyst containing-app compile;
 - certificate-independent iOS Simulator Share Extension + containing-app compile;
 - CodeQL/security hygiene;
-- release-readiness aggregate gates and dependency inventories.
+- explicit machine-readable direct/transitive vulnerability-report validation;
+- target-specific Android, Windows, Mac Catalyst, iOS app, and iOS Share Extension dependency-audit artifacts;
+- deterministic SHA-256 manifests for retained dependency-evidence JSON bundles;
+- release-readiness aggregate compile/test/audit gates.
 
 Successful source compilation is not equivalent to physical-device/store validation.
 
@@ -253,7 +257,7 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
-The verification scripts also validate documentation integrity, localization, and Apple integration metadata.
+The verification scripts run Python helper tests; validate documentation integrity, localization, and Apple integration metadata; compile/test Core and benchmarks; and reject machine-readable Core vulnerability reports containing findings.
 
 See `BUILDING.md` for target-specific build commands and Apple Share Extension requirements.
 
@@ -304,6 +308,7 @@ Financial support is optional and does not unlock features, priority security ha
 - Project structure: `docs/architecture/project-structure.md`
 - CI reference: `docs/testing/ci-reference.md`
 - Release process: `docs/release/release-process.md`
+- Dependency evidence: `docs/release/dependency-evidence.md`
 - Versioning/compatibility: `docs/versioning-and-compatibility.md`
 - Diagnostics/bug reports: `docs/diagnostics-and-bug-reports.md`
 - Build: `BUILDING.md`
