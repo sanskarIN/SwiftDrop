@@ -36,7 +36,7 @@ public sealed class TextSnippetValidatorTests
     public void Validate_Rejects_Text_Over_Utf8_Byte_Limit()
     {
         var now = DateTimeOffset.UtcNow;
-        var text = new string('é', ProtocolConstants.MaxTextBytes);
+        var text = new string('é', ProtocolConstants.MaxTextSnippetBytes);
         Assert.Throws<InvalidDataException>(() => TextSnippetValidator.Validate(text, now.AddMinutes(1), now));
     }
 }
