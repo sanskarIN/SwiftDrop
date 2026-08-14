@@ -37,3 +37,17 @@ jobs:
           set -euo pipefail
           dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json --output-version 1 > /tmp/core-vulnerabilities.json
           python3 scripts/validate_nuget_vulnerability_report.py /tmp/core-vulnerabilities.json
+
+  windows-portable-verifier:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Run Windows portable verification
+        shell: pwsh
+        run: ./scripts/verify-core.ps1
