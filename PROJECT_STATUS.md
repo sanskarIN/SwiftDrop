@@ -2,6 +2,16 @@
 
 Updated: 2026-08-14
 
+
+## August 14 continuation hardening snapshot
+
+- Maintained GitHub Actions use `actions/checkout@v7`, `actions/setup-dotnet@v6`, and `github/codeql-action@v4`.
+- Repository-wide NuGet auditing is explicitly enabled for direct/transitive dependencies at low-or-higher severity, with warnings-as-errors retaining audit findings as blockers.
+- Release readiness emits machine-readable full/vulnerable dependency JSON evidence; portable CI continuously validates the JSON vulnerability-report command.
+- The .NET 10 test toolchain uses `Microsoft.NET.Test.Sdk` 18.8.1, `xunit.runner.visualstudio` 3.1.5, and `coverlet.collector` 10.0.1; 511/511 tests passed after the update.
+- Platform run `31773145276` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app compilation after the action/audit hardening.
+- Signed/package/device/network/accessibility/store validation remains required exactly as described below.
+
 ## Implemented in source
 
 ### Product and transfer foundation
