@@ -37,12 +37,26 @@ public static class Fingerprint
         var clean = value.Replace(":", string.Empty, StringComparison.Ordinal).Trim();
         if (clean.Length != 64) return false;
 
-        Span<byte> bytes = stackalloc byte[32];
-        if (!Convert.TryFromHexString(clean, bytes, out var written) || written != bytes.Length)
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromHexString(clean);
+        }
+        catch (FormatException)
+        {
             return false;
-        CryptographicOperations.ZeroMemory(bytes);
-        normalized = clean.ToUpperInvariant();
-        return true;
+        }
+
+        try
+        {
+            if (bytes.Length != 32) return false;
+            normalized = clean.ToUpperInvariant();
+            return true;
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(bytes);
+        }
     }
 
     public static string NormalizeSha256(string value)
