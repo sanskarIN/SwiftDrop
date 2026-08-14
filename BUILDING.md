@@ -50,7 +50,11 @@ These verify:
 - machine-readable Core direct/transitive vulnerable-package JSON using schema version 1;
 - explicit rejection of any vulnerability entries or malformed vulnerability-report structure.
 
+Normal `ci.yml` executes this portable contract on both Ubuntu and Windows: the Ubuntu job runs the individual canonical gates directly and the Windows job executes `scripts/verify-core.ps1`. Windows execution is required because it exercises PowerShell parsing/native exit handling, Windows filesystem semantics, and Microsoft.Data.Sqlite native-handle behavior that Linux execution alone cannot prove.
+
 The Unix verifier uses a temporary audit file with automatic cleanup. The PowerShell verifier explicitly checks native-command exit codes so a nonzero `dotnet`/Python result cannot be mistaken for success merely because the host shell did not convert it into a terminating exception.
+
+SQLite-backed tests use deterministic resource ownership and a test-only pooled-database cleanup helper. Production SQLite connections, readers, commands, and schema transactions must be disposed deterministically; Windows file-lock failures are treated as resource-lifetime defects, not hidden with sleeps/retries.
 
 Individual validation helpers can also be run directly:
 
@@ -244,8 +248,7 @@ GitHub Actions is configured for:
 - documentation integrity validation;
 - localization validation;
 - Apple integration metadata validation;
-- portable Core build/tests;
-- benchmark compile;
+- two-OS portable Core/test/benchmark/audit verification (Ubuntu and Windows PowerShell);
 - CodeQL/security hygiene;
 - direct/transitive NuGet vulnerability auditing on restore;
 - explicit machine-readable vulnerability-report finding validation;
@@ -254,6 +257,7 @@ GitHub Actions is configured for:
 - Mac Catalyst containing-app compile plus Mac Catalyst dependency evidence;
 - certificate-independent iOS Simulator Share Extension + containing-app compile plus separate iOS app/extension dependency evidence;
 - deterministic SHA-256 manifests for retained dependency-report bundles;
+- concurrency controls that cancel superseded same-ref CI/platform/security analysis runs while preserving the newest branch evidence;
 - release-readiness self-validation when its workflow/helper inputs change;
 - aggregate release-readiness gate.
 
