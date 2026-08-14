@@ -180,6 +180,8 @@ def validate_no_completed_helpers(errors: list[str]) -> None:
         ROOT / "scripts/documentation_completion_sync.py",
         ROOT / ".github/workflows/one-time-final-documentation-sync.yml",
         ROOT / "scripts/final_documentation_state_sync.py",
+        ROOT / ".github/workflows/one-time-repository-documentation-finalize.yml",
+        ROOT / "scripts/repository_documentation_finalize.py",
     )
     for path in forbidden:
         if path.exists():
