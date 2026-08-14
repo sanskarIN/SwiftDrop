@@ -12,6 +12,17 @@ Updated: 2026-08-14
 - Platform run `31773145276` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app compilation after the action/audit hardening.
 - Signed/package/device/network/accessibility/store validation remains required exactly as described below.
 
+## August 14 documentation enforcement and dependency completion
+
+- `scripts/validate_documentation.py` now makes the canonical documentation surface testable: required documents must exist and be nonempty, principal guides must be indexed, checked local Markdown links must resolve, and completed one-time documentation helpers must not remain.
+- Documentation validation runs in regular CI and both local `verify-core` entry points; release-readiness uses the same canonical portable verification path.
+- CI run `31778543950` proved the new documentation gate together with localization, Apple metadata validation, Core build, 511/511 tests, benchmark compilation, and machine-readable vulnerability auditing; run `31778749428` revalidated the integrated build documentation state.
+- Added a technical glossary and aligned pull-request, bug-report, feature-request, and issue-contact routing with the maintained security/privacy/compatibility/release evidence rules.
+- `QRCoder` is updated from 1.6.0 to 1.8.0 and `THIRD_PARTY_NOTICES.md` matches the direct dependency version.
+- QRCoder update evidence: CI `31778661754`, CodeQL `31778661766`, security hygiene `31778661731`, and platform matrix `31778661776` all succeeded; Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app compilation are green.
+- Dependabot PR #9 was closed after the equivalent signed update was applied directly to `main`; no open pull requests or issues remained at the completion check.
+- These source/hosted checks do not replace signed Android/Windows/Apple packaging, physical-device/network/provider/accessibility validation, Apple provisioning/notarization, exact release dependency/license review, or store/privacy submission checks.
+
 ## August 14 documentation completion snapshot
 
 - Added a canonical `docs/README.md` index covering user, developer, architecture, protocol/security, platform, storage, testing, release, support, and legal documentation.
