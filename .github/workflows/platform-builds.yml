@@ -46,11 +46,11 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet workload install maui-windows
       - name: Restore Windows app runtime
-        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifier=win-x64 -p:RuntimeIdentifierOverride=win-x64
+        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifier=win-x64 -p:RuntimeIdentifierOverride=win-x64 -p:SkipIosShareExtensionProjectReference=true
       - name: Restore shared core runtime
         run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=win-x64
       - name: Build Windows app
-        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifierOverride=win-x64
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifierOverride=win-x64 -p:SkipIosShareExtensionProjectReference=true
 
   apple:
     runs-on: macos-latest
