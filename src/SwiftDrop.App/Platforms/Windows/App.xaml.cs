@@ -19,7 +19,7 @@ public partial class App : MauiWinUIApplication
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         base.OnLaunched(args);
         HandleActivation(AppInstance.GetCurrent().GetActivatedEventArgs());
@@ -60,7 +60,7 @@ public partial class App : MauiWinUIApplication
         _dropSurface = null;
     }
 
-    private static void OnDragOver(object sender, DragEventArgs e)
+    private static void OnDragOver(object sender, Microsoft.UI.Xaml.DragEventArgs e)
     {
         var data = e.DataView;
         if (data.Contains(StandardDataFormats.StorageItems) || data.Contains(StandardDataFormats.Text))
@@ -70,7 +70,7 @@ public partial class App : MauiWinUIApplication
         }
     }
 
-    private static async void OnDrop(object sender, DragEventArgs e)
+    private static async void OnDrop(object sender, Microsoft.UI.Xaml.DragEventArgs e)
     {
         try
         {
