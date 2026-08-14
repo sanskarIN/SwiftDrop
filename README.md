@@ -217,6 +217,7 @@ Portable tests include:
 
 Configured GitHub Actions include:
 
+- documentation integrity validation;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;
@@ -252,7 +253,7 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
-The verification scripts also validate localization and Apple integration metadata.
+The verification scripts also validate documentation integrity, localization, and Apple integration metadata.
 
 See `BUILDING.md` for target-specific build commands and Apple Share Extension requirements.
 
@@ -296,6 +297,7 @@ Financial support is optional and does not unlock features, priority security ha
 - User guide: `docs/user-guide.md`
 - Settings reference: `docs/configuration.md`
 - FAQ: `docs/faq.md`
+- Technical glossary: `docs/glossary.md`
 - Troubleshooting: `docs/troubleshooting.md`
 - Networking/firewall guide: `docs/networking.md`
 - Development guide: `docs/development-guide.md`
