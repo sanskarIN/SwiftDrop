@@ -11,19 +11,21 @@ public sealed class DatabaseSchemaManagerTests
         var path = TempDatabasePath();
         try
         {
-            await using var connection = new SqliteConnection($"Data Source={path}");
-            await connection.OpenAsync();
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
 
-            Assert.Equal(0, await DatabaseSchemaManager.GetVersionAsync(connection));
-            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
-            Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+                Assert.Equal(0, await DatabaseSchemaManager.GetVersionAsync(connection));
+                await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+                Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
 
-            var tables = await ReadTablesAsync(connection);
-            Assert.Contains("trusted_peers", tables);
-            Assert.Contains("transfer_history", tables);
-            Assert.Contains("diagnostic_events", tables);
-            Assert.Contains("transfer_queue_metadata", tables);
-            Assert.Contains("completed_batch_items", tables);
+                var tables = await ReadTablesAsync(connection);
+                Assert.Contains("trusted_peers", tables);
+                Assert.Contains("transfer_history", tables);
+                Assert.Contains("diagnostic_events", tables);
+                Assert.Contains("transfer_queue_metadata", tables);
+                Assert.Contains("completed_batch_items", tables);
+            }
         }
         finally
         {
@@ -37,18 +39,20 @@ public sealed class DatabaseSchemaManagerTests
         var path = TempDatabasePath();
         try
         {
-            await using var connection = new SqliteConnection($"Data Source={path}");
-            await connection.OpenAsync();
-            var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = 1;";
-            await command.ExecuteNonQueryAsync();
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                using var command = connection.CreateCommand();
+                command.CommandText = "PRAGMA user_version = 1;";
+                await command.ExecuteNonQueryAsync();
 
-            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+                await DatabaseSchemaManager.EnsureCurrentAsync(connection);
 
-            Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
-            var tables = await ReadTablesAsync(connection);
-            Assert.Contains("transfer_queue_metadata", tables);
-            Assert.Contains("completed_batch_items", tables);
+                Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+                var tables = await ReadTablesAsync(connection);
+                Assert.Contains("transfer_queue_metadata", tables);
+                Assert.Contains("completed_batch_items", tables);
+            }
         }
         finally
         {
@@ -62,16 +66,18 @@ public sealed class DatabaseSchemaManagerTests
         var path = TempDatabasePath();
         try
         {
-            await using var connection = new SqliteConnection($"Data Source={path}");
-            await connection.OpenAsync();
-            var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = 2;";
-            await command.ExecuteNonQueryAsync();
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                using var command = connection.CreateCommand();
+                command.CommandText = "PRAGMA user_version = 2;";
+                await command.ExecuteNonQueryAsync();
 
-            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+                await DatabaseSchemaManager.EnsureCurrentAsync(connection);
 
-            Assert.Equal(3, await DatabaseSchemaManager.GetVersionAsync(connection));
-            Assert.Contains("completed_batch_items", await ReadTablesAsync(connection));
+                Assert.Equal(3, await DatabaseSchemaManager.GetVersionAsync(connection));
+                Assert.Contains("completed_batch_items", await ReadTablesAsync(connection));
+            }
         }
         finally
         {
@@ -85,11 +91,13 @@ public sealed class DatabaseSchemaManagerTests
         var path = TempDatabasePath();
         try
         {
-            await using var connection = new SqliteConnection($"Data Source={path}");
-            await connection.OpenAsync();
-            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
-            await DatabaseSchemaManager.EnsureCurrentAsync(connection);
-            Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+                await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+                Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+            }
         }
         finally
         {
@@ -103,13 +111,15 @@ public sealed class DatabaseSchemaManagerTests
         var path = TempDatabasePath();
         try
         {
-            await using var connection = new SqliteConnection($"Data Source={path}");
-            await connection.OpenAsync();
-            var command = connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = 999;";
-            await command.ExecuteNonQueryAsync();
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                using var command = connection.CreateCommand();
+                command.CommandText = "PRAGMA user_version = 999;";
+                await command.ExecuteNonQueryAsync();
 
-            await Assert.ThrowsAsync<InvalidDataException>(() => DatabaseSchemaManager.EnsureCurrentAsync(connection));
+                await Assert.ThrowsAsync<InvalidDataException>(() => DatabaseSchemaManager.EnsureCurrentAsync(connection));
+            }
         }
         finally
         {
@@ -120,7 +130,7 @@ public sealed class DatabaseSchemaManagerTests
     private static async Task<HashSet<string>> ReadTablesAsync(SqliteConnection connection)
     {
         var result = new HashSet<string>(StringComparer.Ordinal);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "SELECT name FROM sqlite_master WHERE type='table';";
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync()) result.Add(reader.GetString(0));
