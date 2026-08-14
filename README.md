@@ -291,6 +291,19 @@ Financial support is optional and does not unlock features, priority security ha
 
 ## Engineering/release documents
 
+- Complete documentation index: `docs/README.md`
+- Installation/source run: `docs/installation.md`
+- User guide: `docs/user-guide.md`
+- Settings reference: `docs/configuration.md`
+- FAQ: `docs/faq.md`
+- Troubleshooting: `docs/troubleshooting.md`
+- Networking/firewall guide: `docs/networking.md`
+- Development guide: `docs/development-guide.md`
+- Project structure: `docs/architecture/project-structure.md`
+- CI reference: `docs/testing/ci-reference.md`
+- Release process: `docs/release/release-process.md`
+- Versioning/compatibility: `docs/versioning-and-compatibility.md`
+- Diagnostics/bug reports: `docs/diagnostics-and-bug-reports.md`
 - Build: `BUILDING.md`
 - Architecture: `docs/architecture.md`
 - Protocol wire format: `docs/protocol/wire-format.md`
