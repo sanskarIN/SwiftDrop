@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - name: Validate documentation integrity
+        run: python3 scripts/validate_documentation.py
       - name: Validate localization catalogs
         run: python3 scripts/validate_localization.py
       - name: Validate Apple integration metadata
