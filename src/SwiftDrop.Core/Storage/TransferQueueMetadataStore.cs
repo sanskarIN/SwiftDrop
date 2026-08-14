@@ -30,7 +30,7 @@ public sealed class TransferQueueMetadataStore
     {
         Validate(entry);
         await using var connection = await OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT INTO transfer_queue_metadata
             (id, label, state, created_utc, started_utc, finished_utc, error_code)
@@ -60,7 +60,7 @@ public sealed class TransferQueueMetadataStore
         if (limit is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(limit));
         var results = new List<TransferQueueMetadataEntry>();
         await using var connection = await OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, label, state, created_utc, started_utc, finished_utc, error_code
             FROM transfer_queue_metadata
@@ -86,7 +86,7 @@ public sealed class TransferQueueMetadataStore
     public async Task MarkInFlightInterruptedAsync(DateTimeOffset finishedUtc, CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             UPDATE transfer_queue_metadata
             SET state='Interrupted', finished_utc=$finished, error_code='app-restarted'
@@ -99,7 +99,7 @@ public sealed class TransferQueueMetadataStore
     public async Task DeleteFinishedAsync(CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             DELETE FROM transfer_queue_metadata
             WHERE state IN ('Completed', 'Failed', 'Cancelled', 'Interrupted');
@@ -111,7 +111,7 @@ public sealed class TransferQueueMetadataStore
     {
         if (keepLatest is < 1 or > 1000) throw new ArgumentOutOfRangeException(nameof(keepLatest));
         await using var connection = await OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             DELETE FROM transfer_queue_metadata
             WHERE id IN (
@@ -127,7 +127,7 @@ public sealed class TransferQueueMetadataStore
     public async Task ClearAsync(CancellationToken ct = default)
     {
         await using var connection = await OpenAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_queue_metadata;";
         await command.ExecuteNonQueryAsync(ct);
     }
