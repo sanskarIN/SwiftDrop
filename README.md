@@ -88,7 +88,7 @@ Paused single/batch resume state retains only still-existing regular non-link/no
 
 ### Cross-platform external intake
 
-External file staging on Android share, Apple Share Extension, and Mac drop uses one reusable count/per-file/aggregate staging-budget policy. Budget is committed only after exact successful staging.
+External file staging on Android share, the iOS Share Extension, and Mac native drop uses one reusable count/per-file/aggregate staging-budget policy. Budget is committed only after exact successful staging.
 
 **Android**
 
@@ -105,11 +105,11 @@ External file staging on Android share, Apple Share Extension, and Mac drop uses
 - Foreground data-sync lifetime for active user-initiated transfers.
 - Optional generic completion/failure notifications on Android.
 
-**iOS / Mac Catalyst**
+**iOS**
 
 - Strict `swiftdrop://pair` activation.
 - File/document URL opening into bounded cache staging.
-- Dedicated **SwiftDrop Share Extension** for files/images/movies/text/web URLs.
+- Dedicated **iOS-only SwiftDrop Share Extension** for files/images/movies/text/web URLs.
 - App Group `group.in.sanskar.swiftdrop` handoff with strict versioned manifests and atomic package publication.
 - Share Extension provider-response timeout plus extension-lifetime cancellation; a response timeout does not incorrectly terminate an already-started valid file copy.
 - Aggregate staging budget checked before the file that would exceed the package limit is copied.
@@ -122,11 +122,13 @@ External file staging on Android share, Apple Share Extension, and Mac drop uses
 
 **Mac Catalyst desktop**
 
+- Strict `swiftdrop://pair` activation and normal file/document URL intake.
 - Native `UIDropInteraction` for files, folders, text, and pairing links.
 - Temporary security-scoped access.
 - Shared count/per-file/aggregate staging budget.
 - Bounded provider-response waits.
 - Symlink/reparse rejection, portable collision-safe bounded staging, and review-before-send.
+- The maintained Mac Catalyst architecture uses the containing desktop app/native-drop path; there is no Mac Catalyst Share Extension target.
 
 **Windows**
 
@@ -217,12 +219,12 @@ Configured GitHub Actions include:
 
 - portable Core build/tests;
 - localization validation;
-- Apple App Group/Share Extension metadata validation;
+- Apple App Group/iOS Share Extension metadata validation;
 - benchmark-project compile validation;
 - Android compile;
 - Windows compile;
-- Mac Catalyst **Share Extension + containing app** compile;
-- unsigned iOS Simulator **Share Extension + containing app** compile;
+- Mac Catalyst containing-app compile;
+- certificate-independent iOS Simulator Share Extension + containing-app compile;
 - CodeQL/security hygiene;
 - release-readiness aggregate gates and dependency inventories.
 
@@ -256,16 +258,18 @@ See `BUILDING.md` for target-specific build commands and Apple Share Extension r
 
 ## Apple provisioning requirement
 
-The source contains matching App Group entitlements for the containing app and Share Extension:
+The source contains matching App Group entitlements for the iOS containing app and iOS Share Extension:
 
 `group.in.sanskar.swiftdrop`
 
-Signed iOS/Mac Catalyst packages still require real Apple Developer configuration/provisioning profiles to include this App Group for:
+Signed iOS packages still require real Apple Developer configuration/provisioning profiles to include this App Group for:
 
 - app ID `in.sanskar.swiftdrop`;
 - extension ID `in.sanskar.swiftdrop.share`.
 
-Do not claim Share Extension production readiness until signed device/TestFlight/Mac sandbox validation succeeds.
+The Mac Catalyst containing app has its own sandbox/signing/notarization validation path and does not embed a Mac Catalyst Share Extension in the maintained architecture.
+
+Do not claim iOS Share Extension or Mac Catalyst production readiness until signed device/TestFlight/Mac sandbox validation succeeds.
 
 ## Networking notes
 
@@ -305,7 +309,7 @@ Financial support is optional and does not unlock features, priority security ha
 
 ## Production-status boundary
 
-The current master-prompt scope is implemented in repository source, including Apple Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, and idempotent completed-file batch resume. Production verification still requires successful current CI runs for the exact candidate, signed packages/extensions, real App Group provisioning, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
+The current master-prompt scope is implemented in repository source, including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, and idempotent completed-file batch resume. Production verification still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
 
 ## License
 
