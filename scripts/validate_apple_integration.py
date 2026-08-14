@@ -140,9 +140,8 @@ def assert_project_configuration() -> None:
     if marker is None or (marker.text or "").strip().lower() != "true":
         fail("SwiftDrop.App Share Extension reference must set IsAppExtension=true")
 
-    target_frameworks = first_project_value(extension_root, "TargetFrameworks")
-    if "net10.0-ios" not in target_frameworks or "net10.0-maccatalyst" not in target_frameworks:
-        fail("Share Extension must target net10.0-ios and net10.0-maccatalyst")
+    if first_project_value(extension_root, "TargetFramework") != "net10.0-ios":
+        fail("Share Extension must target net10.0-ios only")
     if first_project_value(extension_root, "IsAppExtension").lower() != "true":
         fail("Share Extension project must set IsAppExtension=true")
     if first_project_value(extension_root, "InfoPlist") != "Info.plist":
@@ -151,7 +150,6 @@ def assert_project_configuration() -> None:
     assert_codesign_file(app_root, "Platforms/iOS/Entitlements.plist")
     assert_codesign_file(app_root, "Platforms/MacCatalyst/Entitlements.plist")
     assert_codesign_file(extension_root, "Platforms/iOS/Entitlements.plist")
-    assert_codesign_file(extension_root, "Platforms/MacCatalyst/Entitlements.plist")
 
     solution = (ROOT / "SwiftDrop.slnx").read_text(encoding="utf-8")
     if "src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj" not in solution:
@@ -170,12 +168,10 @@ def main() -> int:
             "src/SwiftDrop.App/Platforms/iOS/Entitlements.plist",
             "src/SwiftDrop.App/Platforms/MacCatalyst/Entitlements.plist",
             "src/SwiftDrop.ShareExtension/Platforms/iOS/Entitlements.plist",
-            "src/SwiftDrop.ShareExtension/Platforms/MacCatalyst/Entitlements.plist",
         )
         for relative in paths:
             assert_app_group(ROOT / relative)
         assert_mac_sandbox(ROOT / "src/SwiftDrop.App/Platforms/MacCatalyst/Entitlements.plist")
-        assert_mac_sandbox(ROOT / "src/SwiftDrop.ShareExtension/Platforms/MacCatalyst/Entitlements.plist")
         assert_share_info(ROOT / "src/SwiftDrop.ShareExtension/Info.plist")
         assert_project_configuration()
     except (ET.ParseError, OSError, RuntimeError) as exc:
@@ -186,7 +182,7 @@ def main() -> int:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
 
-    print("Apple App Group, versions, entitlements, and Share Extension configuration are internally consistent.")
+    print("Apple App Group, versions, entitlements, and iOS Share Extension configuration are internally consistent.")
     return 0
 
 
