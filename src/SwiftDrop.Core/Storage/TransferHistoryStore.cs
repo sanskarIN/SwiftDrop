@@ -27,7 +27,7 @@ public sealed class TransferHistoryStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT OR REPLACE INTO transfer_history
             (id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified)
@@ -51,7 +51,7 @@ public sealed class TransferHistoryStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified
             FROM transfer_history
@@ -74,7 +74,7 @@ public sealed class TransferHistoryStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_history WHERE id=$id;";
         command.Parameters.AddWithValue("$id", id);
         await command.ExecuteNonQueryAsync(ct);
@@ -85,7 +85,7 @@ public sealed class TransferHistoryStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_history WHERE timestamp_utc < $cutoff;";
         command.Parameters.AddWithValue("$cutoff", cutoffUtc.UtcDateTime.ToString("O"));
         return await command.ExecuteNonQueryAsync(ct);
@@ -99,7 +99,7 @@ public sealed class TransferHistoryStore
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "DELETE FROM transfer_history;";
         await command.ExecuteNonQueryAsync(ct);
     }
