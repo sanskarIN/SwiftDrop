@@ -9,8 +9,8 @@ public static class TextSnippetValidator
         if (string.IsNullOrWhiteSpace(text))
             throw new InvalidDataException("Text snippet is empty.");
 
-        if (Encoding.UTF8.GetByteCount(text) > ProtocolConstants.MaxTextBytes)
-            throw new InvalidDataException($"Text snippet exceeds {ProtocolConstants.MaxTextBytes:N0} UTF-8 bytes.");
+        if (Encoding.UTF8.GetByteCount(text) > ProtocolConstants.MaxTextSnippetBytes)
+            throw new InvalidDataException($"Text snippet exceeds {ProtocolConstants.MaxTextSnippetBytes:N0} UTF-8 bytes.");
 
         if (expiresUtc <= nowUtc)
             throw new InvalidDataException("Text snippet has expired.");
