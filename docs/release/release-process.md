@@ -1,8 +1,10 @@
 # SwiftDrop Release Process
 
+Updated: 2026-08-14
+
 This process turns a source-complete commit into a release candidate and, only after all required evidence passes, into a publishable release.
 
-The authoritative detailed checklist remains `docs/release/release-checklist.md`. This document explains sequence and ownership of the evidence.
+The authoritative detailed checklist remains `docs/release/release-checklist.md`. The machine-readable dependency artifact contract is defined in `docs/release/dependency-evidence.md`. This document explains sequence and ownership of the evidence.
 
 ## 1. Define the candidate
 
@@ -24,7 +26,7 @@ Before candidate freeze, confirm the following reflect the same source state:
 - `THIRD_PARTY_NOTICES.md`;
 - `docs/README.md`;
 - protocol/security/architecture/platform/storage/testing docs;
-- release checklist and store privacy declarations;
+- release process/checklist, dependency-evidence contract, and store privacy declarations;
 - `what_changed.md` engineering ledger.
 
 If a source fix is required after freeze, create a new candidate SHA and repeat invalidated evidence.
@@ -41,24 +43,57 @@ For the exact candidate, require the relevant maintained workflows:
 
 Review failures; do not bypass a gate simply to publish.
 
-## 4. Review dependency and license evidence
+The release-readiness workflow also self-tests when its verification/audit/evidence helper inputs change on `main` or in a pull request. That reduces the chance of discovering a broken release gate only after a version tag is created.
 
-Generate/review direct and transitive package inventories for shipped/runtime projects and required target frameworks.
+## 4. Retrieve and verify dependency evidence
 
-Use the maintained .NET 10 package-list syntax, including machine-readable vulnerable-package views where configured:
+Use the exact-candidate release-readiness run, not a historical successful run from a different SHA.
 
-```bash
-dotnet package list --project <project> --include-transitive --vulnerable --format json
-```
+Retain all four machine-readable artifact bundles:
+
+- `dependency-audit`;
+- `android-dependency-audit`;
+- `windows-dependency-audit`;
+- `apple-dependency-audit`.
+
+The reports use explicit JSON output schema version 1. Vulnerable-package reports include transitive dependencies and are checked by `scripts/validate_nuget_vulnerability_report.py` during the workflow.
+
+Before long-term retention/review:
+
+1. download every audit artifact from the exact candidate;
+2. verify the expected package/vulnerability JSON files are present;
+3. independently recompute each report file's byte length and SHA-256 digest;
+4. compare those values with the bundle's deterministic `manifest.json`;
+5. reject/recreate an evidence bundle if a retained file no longer matches its manifest;
+6. keep the verified artifact bundle with the release record.
+
+The hash manifest detects report-byte changes. It is not a digital signature, provenance attestation, SBOM signature, or proof that a separately built signed package used the same dependency graph.
+
+## 5. Review dependency provenance, vulnerabilities, and licenses
+
+Review the direct and transitive restored graphs captured for:
+
+- `SwiftDrop.Core`;
+- portable tests and benchmarks where release engineering depends on them;
+- Android `SwiftDrop.App`;
+- focused Windows `SwiftDrop.App`;
+- Mac Catalyst `SwiftDrop.App`;
+- iOS `SwiftDrop.App`;
+- iOS `SwiftDrop.ShareExtension`.
 
 Confirm:
 
+- the machine-readable vulnerable-package files contain no findings under the configured advisory data;
 - no unreviewed low/moderate/high/critical advisory is being ignored;
-- versions match the candidate restore graph;
+- versions match the exact candidate restore graph;
 - dependency provenance is understood;
-- license/notice obligations are represented in `THIRD_PARTY_NOTICES.md` and `NOTICE` where applicable.
+- license/notice/redistribution obligations are represented in `THIRD_PARTY_NOTICES.md`, `NOTICE`, package/store materials, or other required attribution locations;
+- the previously blocked vulnerable SQLite native dependency path has not returned;
+- hosted simulator/unpackaged evidence is not mistaken for the final signed package graph.
 
-## 5. Prepare signing outside the repository
+After signed/distribution artifacts are built, compare their actual dependency/runtime contents with this restored/source evidence and investigate unexplained differences before publication.
+
+## 6. Prepare signing outside the repository
 
 Never commit production signing secrets.
 
@@ -86,7 +121,7 @@ Configure signing/sandbox/distribution/notarization as required for the selected
 
 Configure package signing certificate and selected store/distribution identity outside the repository.
 
-## 6. Build signed/distribution artifacts from the candidate
+## 7. Build signed/distribution artifacts from the candidate
 
 Produce the final-format artifacts from the same frozen source commit.
 
@@ -99,23 +134,25 @@ Examples of target output categories:
 
 Hosted unsigned/simulator compile artifacts are not substitutes for these final signed artifacts.
 
-## 7. Validate package metadata and entitlements
+## 8. Validate package metadata, entitlements, and dependency correspondence
 
 Inspect the produced artifacts, not only source files.
 
+Compare packaged/runtime dependency contents with the exact-candidate restored evidence from steps 4–5. Record and review any target/runtime components that are introduced by packaging and are not represented as ordinary NuGet package rows.
+
 ### Apple
 
-Verify bundle IDs, versions/build numbers, App Group entitlements, Share Extension extension point/activation rules, containing-app embedding, sandbox/network entitlements, and provisioning signatures.
+Verify bundle IDs, versions/build numbers, App Group entitlements, Share Extension extension point/activation rules, containing-app embedding, sandbox/network entitlements, provisioning signatures, and the extension/containing-app packaged dependency boundary.
 
 ### Android
 
-Verify manifest/permissions/foreground-service declarations, min/target SDK expectations, signing identity, exported component posture, backup behavior, and packaged resources.
+Verify manifest/permissions/foreground-service declarations, min/target SDK expectations, signing identity, exported component posture, backup behavior, packaged resources, and packaged runtime/native dependency contents.
 
 ### Windows
 
-Verify package identity, protocol registration, private-network capability, signing, supported OS metadata, icons/assets, and install/update behavior.
+Verify package identity, protocol registration, private-network capability, signing, supported OS metadata, icons/assets, install/update behavior, and packaged runtime dependency contents.
 
-## 8. Execute physical transfer matrix
+## 9. Execute physical transfer matrix
 
 Use `docs/testing/manual-test-matrix.md` and `docs/testing/release-candidate-additional-cases.md`.
 
@@ -138,7 +175,7 @@ Cover at minimum:
 - receive-location changes;
 - queue/restart behavior.
 
-## 9. Execute restricted-network/lifecycle cases
+## 10. Execute restricted-network/lifecycle cases
 
 Test real environments such as:
 
@@ -152,7 +189,7 @@ Test real environments such as:
 - low storage during staging/transfer;
 - repeated invalid pairing/connection pressure.
 
-## 10. Validate platform-specific external intake
+## 11. Validate platform-specific external intake
 
 ### Android
 
@@ -170,7 +207,7 @@ Exercise native file/folder/text/pair-link drop with security-scoped source life
 
 Exercise file/folder/text/pair-link drag/drop, protocol activation, receive-folder picker, and package/firewall behavior.
 
-## 11. Accessibility and localization validation
+## 12. Accessibility and localization validation
 
 Use `docs/testing/accessibility-checklist.md`.
 
@@ -185,7 +222,7 @@ Test:
 - status/error communication that does not rely only on color;
 - reduced-motion/high-contrast expectations.
 
-## 12. Privacy/store declaration review
+## 13. Privacy/store declaration review
 
 Compare final binaries/behavior with:
 
@@ -195,13 +232,13 @@ Compare final binaries/behavior with:
 
 Do not claim that data is absent if the candidate actually stores/transmits it, and do not declare permissions/features that are not present merely because they were once planned.
 
-## 13. Final release checklist sign-off
+## 14. Final release checklist sign-off
 
 Complete every required applicable item in `docs/release/release-checklist.md`.
 
 Any unchecked required item means the candidate is not yet production-ready.
 
-## 14. Version/tag/release notes
+## 15. Version/tag/release notes
 
 When the exact candidate has passed:
 
@@ -209,15 +246,15 @@ When the exact candidate has passed:
 2. update changelog/release notes as needed;
 3. create the intended Git tag from the exact verified commit;
 4. publish release notes that identify what changed and known limitations;
-5. retain relevant verification/dependency evidence.
+5. retain the verified dependency-evidence bundles and relevant automated/manual/signed-package evidence.
 
-## 15. Store/distribution submission
+## 16. Store/distribution submission
 
 Submit only the artifacts built and validated from the approved candidate.
 
 Do not rebuild from a different commit after final verification without repeating the invalidated gates.
 
-## 16. Post-release verification
+## 17. Post-release verification
 
 After publication/distribution:
 
@@ -227,7 +264,7 @@ After publication/distribution:
 - monitor incoming crash/security/support reports;
 - open a new patch candidate rather than modifying a published artifact in place.
 
-## 17. Emergency security fix path
+## 18. Emergency security fix path
 
 For a security-relevant defect:
 
@@ -236,14 +273,15 @@ For a security-relevant defect:
 3. add regression tests that fail before/pass after the fix;
 4. review compatibility/data migration implications;
 5. run the full relevant candidate gates;
-6. produce/revalidate signed artifacts;
-7. publish a security patch/release note without exposing unnecessary exploit detail before users can update.
+6. regenerate/re-verify dependency evidence if the restore graph or release tooling changed;
+7. produce/revalidate signed artifacts;
+8. publish a security patch/release note without exposing unnecessary exploit detail before users can update.
 
-## 18. Release completion rule
+## 19. Release completion rule
 
 SwiftDrop is production-ready only when the exact release candidate has passed the required automated gates **and** its signed target artifacts have completed the applicable physical-device/network/provider/storage/accessibility/localization/dependency/license/privacy/store checks.
 
-Source completeness and hosted compilation are necessary evidence, not the final release claim.
+Source completeness, hosted compilation, clean vulnerable-package reports, and matching evidence hashes are necessary evidence, not the final release claim.
 
 ---
 
