@@ -2532,4 +2532,114 @@ Source-level work now additionally proves:
 
 The remaining P0/P1 work is deliberately external or candidate-specific: production signing and packaging; exact final package/runtime dependency and license/provenance reconciliation; physical cross-device/provider/network/lifecycle/low-storage testing; Apple App Group/provisioning/notarization; Windows signed MSIX install/update/protocol/firewall behavior; accessibility/localization on actual assistive technologies; and final store/privacy submission checks.
 
+---
+
+# 144. Windows portable verification became a required CI contract
+
+Commit `e858fc4a` added the `windows-portable-verifier` job to normal CI and made `scripts/verify-core.ps1` execute on a real Windows hosted runner.
+
+The first Windows execution, run `31784473076`, immediately found a PowerShell parser error in the native-command error message: `$LASTEXITCODE:` was parsed as an invalid variable reference. Commit `080126a0` changed the interpolation to `${LASTEXITCODE}:`.
+
+The Windows gate was deliberately retained. It exists because platform-specific process, filesystem, and native-library behavior cannot be proven by Ubuntu-only execution.
+
+# 145. SQLite test teardown was made portable instead of retry-based
+
+Windows then exposed SQLite temp-database file locks after otherwise-successful tests.
+
+Focused test commits introduced `SqliteTestDatabaseCleanup` and applied it across transfer history, history maintenance, schema migration, diagnostic events, completed-batch metadata, trusted peers, and transfer-queue metadata tests. The helper calls `SqliteConnection.ClearAllPools()` before deleting the isolated database plus `-wal` and `-shm` companions.
+
+A direct `SqliteTestDatabaseCleanupTests` regression creates a pooled temporary database, disposes the connection, invokes cleanup, and verifies that the main/WAL/SHM files are gone. This raised the portable xUnit suite to 517 tests.
+
+Schema migration tests were also changed from broad method-lifetime `await using var` connections to explicit `await using (...)` scopes so connection disposal necessarily occurs before the outer cleanup `finally`.
+
+Arbitrary sleeps/retries were not introduced. A locked test database remains a signal of incorrect SQLite resource ownership.
+
+# 146. Windows testing exposed a production SQLite resource-lifetime defect
+
+Even after pool-aware test cleanup and explicit schema-test connection scopes, the version-zero migration path still retained the database on Windows. Inspection found the real cause in production storage code: SQLite commands were created without deterministic disposal.
+
+Focused signed production fixes:
+
+- `ef8d9deb` — `DatabaseSchemaManager` disposes version/migration commands;
+- `a87b486e` — `BatchCompletionStore` disposes all commands;
+- `c6be1c1a` — `DiagnosticEventStore` disposes all commands;
+- `07616b2a` — `TransferHistoryStore` disposes all commands;
+- `ab8a6605` — `TransferQueueMetadataStore` disposes all commands;
+- `13af8507` — `TrustStore` disposes all commands.
+
+Readers/connections and migration transactions remain scoped to their actual operation. The Core storage directory was audited after these changes; every Microsoft.Data.Sqlite command-owning storage component is covered by deterministic command disposal.
+
+# 147. Two-OS portable evidence reached 517 tests
+
+Exact source-head CI run `31785808946` completed successfully after the production disposal fixes.
+
+Ubuntu `core` passed:
+
+- 10 Python helper tests;
+- documentation validation;
+- localization validation;
+- Apple integration metadata validation;
+- Core Release build;
+- **517/517 xUnit tests**;
+- benchmark Release build;
+- Core machine-readable vulnerable-package validation with zero findings.
+
+Windows `windows-portable-verifier` passed the same PowerShell verification contract, including **517/517 xUnit tests**, benchmark compilation, and zero-finding vulnerable-package validation on Windows.
+
+The Windows success proves that the earlier schema/database-lock failures are closed under the maintained hosted verifier instead of merely passing on Linux.
+
+Source-head CodeQL run `31785808918` and security-hygiene run `31785808999` also succeeded.
+
+# 148. Superseded branch runs no longer block the newest evidence
+
+This continuation produced many intentionally focused commits, which exposed another engineering issue: older platform runs could occupy hosted runner capacity while a newer source head waited.
+
+Focused workflow commits added same-ref concurrency cancellation:
+
+- `7ef7b354` — platform build/audit matrices;
+- `a870ff73` — core/two-OS CI;
+- `9d9934f3` — CodeQL analysis;
+- `51f94cc0` — repository security hygiene.
+
+The platform concurrency change immediately allowed the newest Android, Windows, and Apple jobs to run together rather than waiting behind superseded intermediate matrices. This changes only CI scheduling; it does not skip or downgrade checks on the newest branch run.
+
+# 149. Latest maintained platform matrix is green after the SQLite fixes
+
+Platform run `31786513898` uses commit `7ef7b354`, which contains the complete SQLite production/test fixes plus the maintained platform workflow with concurrency control.
+
+The run succeeded for:
+
+- Android Release compile and dependency audit/upload;
+- focused Windows Release compile and dependency audit/upload;
+- Mac Catalyst containing-app Release compile and dependency audit;
+- iOS Simulator Share Extension Release compile;
+- iOS Simulator containing-app Release compile;
+- separate iOS app/extension vulnerable-package validation;
+- deterministic Apple dependency-evidence manifest generation and artifact upload.
+
+This is hosted source/restored-graph evidence. It is not a signed AAB/APK, MSIX, iOS archive/TestFlight build, or notarized Mac distribution result.
+
+# 150. Current-main portable/security evidence after workflow and documentation alignment
+
+After the source fixes, normal CI/workflow documentation was aligned with the two-OS contract and concurrency behavior.
+
+CI run `31786693757` passed both Ubuntu and Windows jobs on the aligned main state, including 517/517 xUnit tests on both paths. CodeQL run `31786693816` also completed successfully.
+
+The final documentation synchronization and helper cleanup that follow this entry are documentation/repository-maintenance-only changes; they do not alter SwiftDrop transfer/storage runtime source.
+
+# 151. Source/release boundary after Windows and SQLite hardening
+
+The repository now additionally proves:
+
+- PowerShell verification is actually executable on Windows;
+- native-command failures are propagated reliably by the Windows verifier;
+- SQLite test teardown handles connection pooling without hiding failures;
+- production SQLite command objects have deterministic lifetimes across every Core SQLite store;
+- the 517-test portable contract passes on both Ubuntu and Windows;
+- CodeQL/security hygiene remain green after the resource-lifetime fixes;
+- Android/Windows/Mac Catalyst/iOS hosted compilation and target dependency audits remain green after those fixes;
+- obsolete intermediate CI runs no longer block newest same-ref platform/core/security evidence.
+
+Still external/candidate-specific: production signing and packaging; physical Android/iOS/device-to-device transfer testing; signed App Group/Share Extension behavior; Windows MSIX install/update/protocol/firewall validation; Mac sandbox/notarization; real restricted-network/provider/lifecycle/low-storage testing; accessibility/localization on actual assistive technologies; exact final signed-artifact dependency/license/provenance reconciliation; and store/privacy publication checks.
+
 **Made by the Sanskar**
