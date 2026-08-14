@@ -219,6 +219,7 @@ Configured GitHub Actions include:
 
 - documentation integrity validation;
 - Python validation-helper regression tests;
+- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering 517 xUnit tests;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;
@@ -231,6 +232,7 @@ Configured GitHub Actions include:
 - explicit machine-readable direct/transitive vulnerability-report validation;
 - target-specific Android, Windows, Mac Catalyst, iOS app, and iOS Share Extension dependency-audit artifacts;
 - deterministic SHA-256 manifests for retained dependency-evidence JSON bundles;
+- deterministic SQLite command/resource disposal validated by Windows temp-database cleanup;
 - release-readiness aggregate compile/test/audit gates.
 
 Successful source compilation is not equivalent to physical-device/store validation.
