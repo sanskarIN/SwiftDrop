@@ -97,7 +97,7 @@ public static class DatabaseSchemaManager
 
     public static async Task<int> GetVersionAsync(SqliteConnection connection, CancellationToken ct = default)
     {
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.CommandText = "PRAGMA user_version;";
         var value = await command.ExecuteScalarAsync(ct);
         return Convert.ToInt32(value, System.Globalization.CultureInfo.InvariantCulture);
@@ -109,7 +109,7 @@ public static class DatabaseSchemaManager
         CancellationToken ct)
     {
         await using var transaction = await connection.BeginTransactionAsync(ct);
-        var command = connection.CreateCommand();
+        using var command = connection.CreateCommand();
         command.Transaction = (SqliteTransaction)transaction;
         command.CommandText = sql;
         await command.ExecuteNonQueryAsync(ct);
