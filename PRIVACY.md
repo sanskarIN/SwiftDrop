@@ -1,5 +1,7 @@
 # SwiftDrop Privacy
 
+Updated: 2026-08-14
+
 SwiftDrop is designed as a local-network, account-free transfer application.
 
 ## Current local-transfer model
@@ -52,7 +54,7 @@ SQLite schema version 3 contains metadata that allows an interrupted batch to av
 A completed-batch metadata row can contain:
 
 - stable random transfer ID;
-- sender source relative path;
+- sender canonical source relative path;
 - SHA-256 key derived from the normalized receive root;
 - effective destination relative path;
 - length and SHA-256;
@@ -60,7 +62,7 @@ A completed-batch metadata row can contain:
 
 The absolute receive-root path is **not** stored in this table.
 
-This metadata is not authorization. Before SwiftDrop treats a retry item as already complete it verifies the same transfer/root/source/length/hash, confirms the destination remains beneath the receive root without symlink/reparse traversal, checks the file still exists at the expected length, and recomputes SHA-256. Pairing authorization must still be fresh.
+This metadata is not authorization. Before SwiftDrop treats a retry item as already complete it verifies the same transfer/root/source/length/hash, confirms the destination remains beneath the receive root without symlink/reparse traversal, checks the file still exists at the expected length, and recomputes SHA-256. After the sender returns the matching batch-item-start frame, SwiftDrop verifies that completed destination again immediately before the zero-byte completion acknowledgement. Pairing authorization must still be fresh.
 
 Completion metadata is bounded/pruned and is a best-effort resume optimization; persistence failure does not change the success of a verified transfer.
 
@@ -70,33 +72,45 @@ A pairing invitation contains temporary local connection metadata such as receiv
 
 Pairing invitations should still be treated as temporary sensitive capabilities and should not be published. A transfer invitation is consumed for one transfer attempt; pause/retry/resume requires fresh pairing authorization.
 
+Pairing text is accepted only in SwiftDrop's canonical strict representation; malformed or alias representations are rejected rather than silently normalized into another capability string.
+
 ## External share/drop staging
 
 SwiftDrop never automatically sends externally shared or dropped content. External content is staged only so the user can review it inside SwiftDrop before sending.
 
+A shared Core staging-budget policy limits file count, per-file bytes, and aggregate bytes for Android shares, the iOS Share Extension, and Mac native drop. Budget is committed only after a file stages successfully.
+
 ### Android
 
-Android share-sheet content URIs may be copied into SwiftDrop app cache. Staging is bounded by protocol file/count limits, uses portable filename sanitation, performs storage-capacity checks, validates provider-declared length where available, enforces a runtime byte cap when length is unknown, and removes failed partial staging. Stale cache content is pruned.
+Android share-sheet content URIs may be copied into bounded per-share SwiftDrop app-cache staging. Staging uses portable UTF-8-bounded filename sanitation, performs storage-capacity checks, validates provider-declared length where available, treats negative provider size as unknown, caps unknown-length runtime bytes to the remaining aggregate budget, rechecks storage reserve while streaming unknown-length providers, verifies exact staged length, and removes failed partial files/directories. Stale cache content is pruned.
 
 Android application backup is disabled for SwiftDrop app-local metadata.
 
-### iOS / Mac Catalyst Share Extension
+### iOS Share Extension
 
-SwiftDrop includes a Share Extension using App Group:
+SwiftDrop includes a dedicated **iOS-only** Share Extension using App Group:
 
 `group.in.sanskar.swiftdrop`
 
-The extension may stage selected file/text/URL content into an App Group inbox using a strict versioned manifest and atomic package publication. The containing app validates package age, schema, filenames, item sizes, aggregate size, symlink/reparse status, and exact file length before copying accepted items into regular app cache for review.
+The extension may stage selected file/text/image/movie/web-URL content into an App Group inbox using a strict versioned manifest and atomic package publication. Provider-response waits are bounded; once a provider responds and a legitimate local copy has begun, the response timer is not treated as a file-copy timeout. Extension-lifetime cancellation still bounds active work.
 
-Malformed/stale packages are discarded; temporary extension staging is pruned. The extension does not receive or store SwiftDrop private keys, trusted-peer credentials, or reusable pairing authorization.
+The containing app validates package age, schema, filenames, canonical paths, item sizes, aggregate size, exact physical file set, symlink/reparse status, and exact file length. It preflights aggregate app-cache capacity before copying accepted items into regular app cache for review. One pending package is surfaced at a time rather than silently merging later pending packages.
+
+Malformed/stale packages are discarded; temporary extension staging is pruned. The extension does not receive or store SwiftDrop private keys, trusted-peer credentials, transfer history databases, or reusable pairing authorization.
+
+The source App Group entitlement does not itself establish Apple Developer provisioning. Signed iOS app/extension profiles must contain the same App Group before release.
 
 ### Mac Catalyst native drop
 
-Mac native drag/drop may temporarily access user-dropped Finder items through security-scoped URLs and copy them into bounded cache staging while access is valid. Symlinks/reparse inputs are rejected, item/file/aggregate limits are enforced, and dropped text is UTF-8-byte bounded. Nothing is automatically transferred.
+The maintained Mac Catalyst architecture does **not** include a Mac Catalyst Share Extension. External desktop intake uses the containing app's native `UIDropInteraction` and normal file/document flows.
+
+Mac native drag/drop may temporarily access user-dropped Finder items through security-scoped URLs and copy them into bounded cache staging while access is valid. Symlinks/reparse inputs are rejected, shared item/per-file/aggregate limits are enforced, provider-response waits are bounded, collision names remain portable and byte-bounded, and dropped text is UTF-8-byte bounded. Nothing is automatically transferred.
 
 ### Windows native drop
 
-Windows drag/drop supplies explicit user-selected filesystem paths/text to the review inbox. Those paths still pass through normal source preflight, manifests, path validation, and transfer authorization before bytes are sent.
+Windows drag/drop supplies explicit user-selected filesystem paths/text to the review inbox. Those paths still pass through normal regular-source/link-safe preflight, canonical manifests, hashing, transfer authorization, and receiver safety rules before bytes are sent.
+
+Hosted Windows CI uses unpackaged source compilation. That does not change the shipped privacy/capability model and is not evidence that a signed MSIX package's capabilities/protocol registration were validated.
 
 ## Diagnostics
 
@@ -119,8 +133,9 @@ SwiftDrop does not attempt to bypass guest-Wi-Fi isolation, firewall policy, mul
 ## Platform capability minimization
 
 - Android uses local-network/share/foreground-service capabilities required by the implemented workflow and disables application backup.
-- Apple targets use local-network/Bonjour declarations plus the App Group required for Share Extension handoff; Mac Catalyst uses sandbox/network entitlements needed for direct LAN transfer.
-- Windows requests private-network client/server capability rather than a general Internet-client capability for the local-only protocol.
+- iOS uses local-network/Bonjour declarations plus the App Group required for the iOS Share Extension handoff.
+- Mac Catalyst uses containing-app sandbox/network/App Group declarations needed by its local-transfer/native-drop model; no Mac Catalyst Share Extension entitlement is required by the maintained architecture.
+- Windows packaged release design requests private-network client/server capability rather than a general Internet-client capability for the local-only protocol.
 - Broad legacy storage permissions, contacts, microphone, background-location, advertising, and analytics permissions are not part of the current baseline.
 
 ## Deleting data
