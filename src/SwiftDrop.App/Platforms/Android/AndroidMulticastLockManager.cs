@@ -15,15 +15,25 @@ public static class AndroidMulticastLockManager
         {
             _references++;
             if (_lock is not null) return;
-            var wifi = (WifiManager?)global::Android.App.Application.Context.GetSystemService(Context.WifiService);
+
+            var context = global::Android.App.Application.Context;
+            var wifi = context?.GetSystemService(Context.WifiService) as WifiManager;
             if (wifi is null)
             {
                 _references--;
                 return;
             }
-            _lock = wifi.CreateMulticastLock("SwiftDrop.mDNS");
-            _lock.SetReferenceCounted(false);
-            _lock.Acquire();
+
+            var multicastLock = wifi.CreateMulticastLock("SwiftDrop.mDNS");
+            if (multicastLock is null)
+            {
+                _references--;
+                return;
+            }
+
+            multicastLock.SetReferenceCounted(false);
+            multicastLock.Acquire();
+            _lock = multicastLock;
         }
     }
 
