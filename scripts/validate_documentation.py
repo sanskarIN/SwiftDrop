@@ -30,6 +30,7 @@ REQUIRED_DOCUMENTS = (
     "docs/user-guide.md",
     "docs/configuration.md",
     "docs/faq.md",
+    "docs/glossary.md",
     "docs/troubleshooting.md",
     "docs/networking.md",
     "docs/development-guide.md",
@@ -63,6 +64,7 @@ INDEX_LINKS = (
     "user-guide.md",
     "configuration.md",
     "faq.md",
+    "glossary.md",
     "troubleshooting.md",
     "networking.md",
     "development-guide.md",
@@ -176,6 +178,8 @@ def validate_no_completed_helpers(errors: list[str]) -> None:
     forbidden = (
         ROOT / ".github/workflows/one-time-documentation-completion.yml",
         ROOT / "scripts/documentation_completion_sync.py",
+        ROOT / ".github/workflows/one-time-final-documentation-sync.yml",
+        ROOT / "scripts/final_documentation_state_sync.py",
     )
     for path in forbidden:
         if path.exists():
