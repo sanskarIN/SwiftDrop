@@ -17,19 +17,25 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
       - name: Verify portable source and documentation
         run: ./scripts/verify-core.sh
       - name: Compile synthetic benchmark harness
         run: dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release
-      - name: Capture dependency and vulnerability reports
+      - name: Capture and validate portable dependency reports
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts
-          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --format json > artifacts/core-packages.json
-          dotnet package list --project tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj --include-transitive --format json > artifacts/test-packages.json
-          dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --format json > artifacts/benchmark-packages.json
-          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json > artifacts/core-vulnerabilities.json
-          dotnet package list --project tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj --include-transitive --vulnerable --format json > artifacts/test-vulnerabilities.json
-          dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --vulnerable --format json > artifacts/benchmark-vulnerabilities.json
+          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --no-restore --format json --output-version 1 > artifacts/core-packages.json
+          dotnet package list --project tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj --include-transitive --no-restore --format json --output-version 1 > artifacts/test-packages.json
+          dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --no-restore --format json --output-version 1 > artifacts/benchmark-packages.json
+          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/core-vulnerabilities.json
+          dotnet package list --project tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/test-vulnerabilities.json
+          dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/benchmark-vulnerabilities.json
+          python3 scripts/validate_nuget_vulnerability_report.py artifacts/core-vulnerabilities.json artifacts/test-vulnerabilities.json artifacts/benchmark-vulnerabilities.json
       - uses: actions/upload-artifact@v4
         with:
           name: dependency-audit
@@ -42,6 +48,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
       - run: dotnet workload install maui-android
       - name: Restore Android app
         run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-android
@@ -49,6 +58,19 @@ jobs:
         run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
       - name: Build Android app
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Release --no-restore
+      - name: Capture and validate Android dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/android
+          export SwiftDropTargetFrameworksOverride=net10.0-android
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-android --include-transitive --no-restore --format json --output-version 1 > artifacts/android/packages.json
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-android --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/android/vulnerabilities.json
+          python3 scripts/validate_nuget_vulnerability_report.py artifacts/android/vulnerabilities.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-dependency-audit
+          path: artifacts/android/
 
   windows-compile:
     runs-on: windows-latest
@@ -57,6 +79,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
       - run: dotnet workload install maui-windows
       - name: Restore Windows app runtime
         run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:SwiftDropTargetFrameworksOverride=net10.0-windows10.0.19041.0 -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifier=win-x64 -p:RuntimeIdentifierOverride=win-x64 -p:SkipIosShareExtensionProjectReference=true -p:WindowsPackageType=None -p:GenerateAppxPackageOnBuild=false
@@ -64,6 +89,22 @@ jobs:
         run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier=win-x64
       - name: Build Windows app without MSIX packaging
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release -p:SwiftDropTargetFrameworksOverride=net10.0-windows10.0.19041.0 -p:TargetFramework=net10.0-windows10.0.19041.0 -p:RuntimeIdentifierOverride=win-x64 -p:SkipIosShareExtensionProjectReference=true -p:WindowsPackageType=None -p:GenerateAppxPackageOnBuild=false
+      - name: Capture and validate Windows dependency audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force artifacts/windows | Out-Null
+          $env:SwiftDropTargetFrameworksOverride = 'net10.0-windows10.0.19041.0'
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-windows10.0.19041.0 --include-transitive --no-restore --format json --output-version 1 | Out-File -FilePath artifacts/windows/packages.json -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { throw "Windows package inventory failed with exit code $LASTEXITCODE." }
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-windows10.0.19041.0 --include-transitive --vulnerable --no-restore --format json --output-version 1 | Out-File -FilePath artifacts/windows/vulnerabilities.json -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { throw "Windows vulnerability inventory failed with exit code $LASTEXITCODE." }
+          python scripts/validate_nuget_vulnerability_report.py artifacts/windows/vulnerabilities.json
+          if ($LASTEXITCODE -ne 0) { throw "Windows vulnerability report validation failed with exit code $LASTEXITCODE." }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-dependency-audit
+          path: artifacts/windows/
 
   apple-compile:
     runs-on: macos-latest
@@ -72,6 +113,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
       - run: dotnet workload install maui-ios maui-maccatalyst
       - name: Select Apple simulator runtimes
         shell: bash
@@ -91,6 +135,16 @@ jobs:
       - name: Build Mac Catalyst app
         shell: bash
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore -p:RuntimeIdentifier="$MACCATALYST_RID"
+      - name: Capture and validate Mac Catalyst dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/maccatalyst
+          export SwiftDropTargetFrameworksOverride=net10.0-maccatalyst
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-maccatalyst --include-transitive --no-restore --format json --output-version 1 > artifacts/maccatalyst/packages.json
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-maccatalyst --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/maccatalyst/vulnerabilities.json
+          python3 scripts/validate_nuget_vulnerability_report.py artifacts/maccatalyst/vulnerabilities.json
+          unset SwiftDropTargetFrameworksOverride
       - name: Restore iOS simulator extension and app
         shell: bash
         run: |
@@ -103,15 +157,21 @@ jobs:
       - name: Build iOS simulator app
         shell: bash
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID" -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements=
-      - name: Capture iOS extension dependency and vulnerability reports
+      - name: Capture and validate iOS dependency audits
         shell: bash
         run: |
-          mkdir -p artifacts
-          dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --format json > artifacts/share-extension-ios-packages.json
-          dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --vulnerable --format json > artifacts/share-extension-ios-vulnerabilities.json
+          set -euo pipefail
+          mkdir -p artifacts/ios-app artifacts/ios-share-extension
+          export SwiftDropTargetFrameworksOverride=net10.0-ios
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-ios --include-transitive --no-restore --format json --output-version 1 > artifacts/ios-app/packages.json
+          dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-ios --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/ios-app/vulnerabilities.json
+          unset SwiftDropTargetFrameworksOverride
+          dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --no-restore --format json --output-version 1 > artifacts/ios-share-extension/packages.json
+          dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/ios-share-extension/vulnerabilities.json
+          python3 scripts/validate_nuget_vulnerability_report.py artifacts/ios-app/vulnerabilities.json artifacts/ios-share-extension/vulnerabilities.json
       - uses: actions/upload-artifact@v4
         with:
-          name: ios-share-extension-dependency-audit
+          name: apple-dependency-audit
           path: artifacts/
 
   release-gate:
@@ -125,4 +185,4 @@ jobs:
           test "${{ needs.android-compile.result }}" = "success"
           test "${{ needs.windows-compile.result }}" = "success"
           test "${{ needs.apple-compile.result }}" = "success"
-          echo "Automated release-readiness compile/test gates passed. Signed Windows MSIX packaging/install/update, physical-device testing, Apple signing/notarization/App Group provisioning, Share Extension behavior, and store checks remain mandatory."
+          echo "Automated release-readiness compile/test and dependency-audit gates passed. Signed Windows MSIX packaging/install/update, physical-device testing, Apple signing/notarization/App Group provisioning, Share Extension behavior, and store checks remain mandatory."
