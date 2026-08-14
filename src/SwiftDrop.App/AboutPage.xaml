@@ -22,14 +22,14 @@
                    Source="bmc_support.svg"
                    HeightRequest="72"
                    WidthRequest="72"
-                   SemanticProperties.Description="{x:Static services:AppText.BuyMeACoffeeLogoDescription}" />
+                   SemanticProperties.Description="Buy Me a Coffee support logo" />
             <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
               <Label Text="{x:Static services:AppText.SupportDevelopment}"
                      TextColor="#111827"
                      FontAttributes="Bold"
                      FontSize="21"
                      SemanticProperties.HeadingLevel="Level2" />
-              <Label Text="{x:Static services:AppText.BuyMeACoffeeHighlight}"
+              <Label Text="Support SwiftDrop on Buy Me a Coffee"
                      TextColor="#374151"
                      FontAttributes="Bold" />
             </VerticalStackLayout>
@@ -40,7 +40,7 @@
                  FontAttributes="Bold"
                  FontSize="14"
                  LineBreakMode="CharacterWrap" />
-          <Button Text="☕  {x:Static services:AppText.BuyMeACoffee}"
+          <Button Text="☕  Buy Me a Coffee"
                   BackgroundColor="#FFDD00"
                   TextColor="#111827"
                   FontAttributes="Bold"
