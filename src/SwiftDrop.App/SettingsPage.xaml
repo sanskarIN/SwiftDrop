@@ -24,7 +24,7 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize Transfers}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <Label Text="{services:Localize DefaultReceiveFolder}" />
-          <Entry Text="{Binding ReceiveFolder}" IsReadOnly="True" LineBreakMode="MiddleTruncation" />
+          <Entry Text="{Binding ReceiveFolder}" IsReadOnly="True" />
           <HorizontalStackLayout Spacing="10">
             <Button Text="{services:Localize ChooseFolder}" Clicked="ChooseReceiveFolderClicked" />
             <Button Text="{services:Localize UseAppFolder}" Clicked="UseAppReceiveFolderClicked" />
