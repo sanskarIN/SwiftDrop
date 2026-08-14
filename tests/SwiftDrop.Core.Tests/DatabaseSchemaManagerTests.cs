@@ -27,7 +27,7 @@ public sealed class DatabaseSchemaManagerTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -52,7 +52,7 @@ public sealed class DatabaseSchemaManagerTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -75,7 +75,7 @@ public sealed class DatabaseSchemaManagerTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -93,7 +93,7 @@ public sealed class DatabaseSchemaManagerTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -113,7 +113,7 @@ public sealed class DatabaseSchemaManagerTests
         }
         finally
         {
-            DeleteDatabase(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -129,10 +129,4 @@ public sealed class DatabaseSchemaManagerTests
 
     private static string TempDatabasePath()
         => Path.Combine(Path.GetTempPath(), "swiftdrop-schema-" + Guid.NewGuid().ToString("N") + ".db");
-
-    private static void DeleteDatabase(string path)
-    {
-        foreach (var candidate in new[] { path, path + "-shm", path + "-wal" })
-            if (File.Exists(candidate)) File.Delete(candidate);
-    }
 }
