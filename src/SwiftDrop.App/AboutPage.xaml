@@ -11,6 +11,44 @@
       <Label Text="{Binding VersionText}" HorizontalTextAlignment="Center" Opacity="0.75" />
       <Label Text="{x:Static services:AppText.AboutSummary}" HorizontalTextAlignment="Center" />
 
+      <Border StrokeShape="RoundRectangle 22"
+              Stroke="#FFDD00"
+              StrokeThickness="2"
+              BackgroundColor="#FFF8CC"
+              Padding="18">
+        <VerticalStackLayout Spacing="12">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+            <Image Grid.Column="0"
+                   Source="bmc_support.svg"
+                   HeightRequest="72"
+                   WidthRequest="72"
+                   SemanticProperties.Description="{x:Static services:AppText.BuyMeACoffeeLogoDescription}" />
+            <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+              <Label Text="{x:Static services:AppText.SupportDevelopment}"
+                     TextColor="#111827"
+                     FontAttributes="Bold"
+                     FontSize="21"
+                     SemanticProperties.HeadingLevel="Level2" />
+              <Label Text="{x:Static services:AppText.BuyMeACoffeeHighlight}"
+                     TextColor="#374151"
+                     FontAttributes="Bold" />
+            </VerticalStackLayout>
+          </Grid>
+          <Label Text="{x:Static services:AppText.SupportDevelopmentDescription}" TextColor="#374151" />
+          <Label Text="https://buymeacoffee.com/sanskarIN"
+                 TextColor="#4F46E5"
+                 FontAttributes="Bold"
+                 FontSize="14"
+                 LineBreakMode="CharacterWrap" />
+          <Button Text="☕  {x:Static services:AppText.BuyMeACoffee}"
+                  BackgroundColor="#FFDD00"
+                  TextColor="#111827"
+                  FontAttributes="Bold"
+                  Clicked="OpenBuyMeACoffeeClicked"
+                  SemanticProperties.Description="{x:Static services:AppText.BuyMeACoffeeDescription}" />
+        </VerticalStackLayout>
+      </Border>
+
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
           <Label Text="{x:Static services:AppText.OpenSource}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
@@ -19,15 +57,6 @@
           <Label Text="{x:Static services:AppText.LicenseLabel}" />
           <Button Text="{x:Static services:AppText.OpenRepository}" Clicked="OpenRepositoryClicked" SemanticProperties.Description="{x:Static services:AppText.OpenRepositoryDescription}" />
           <Button Text="{x:Static services:AppText.OpenCreatorProfile}" Clicked="OpenProfileClicked" SemanticProperties.Description="{x:Static services:AppText.OpenCreatorProfileDescription}" />
-        </VerticalStackLayout>
-      </Border>
-
-      <Border StrokeShape="RoundRectangle 18" Padding="18">
-        <VerticalStackLayout Spacing="10">
-          <Label Text="{x:Static services:AppText.SupportDevelopment}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
-          <Label Text="{x:Static services:AppText.SupportDevelopmentDescription}" />
-          <Label Text="https://buymeacoffee.com/sanskarIN" FontSize="13" />
-          <Button Text="{x:Static services:AppText.BuyMeACoffee}" Clicked="OpenBuyMeACoffeeClicked" SemanticProperties.Description="{x:Static services:AppText.BuyMeACoffeeDescription}" />
         </VerticalStackLayout>
       </Border>
 
