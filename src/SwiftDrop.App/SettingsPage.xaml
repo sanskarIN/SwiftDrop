@@ -78,17 +78,10 @@
         <VerticalStackLayout Spacing="12">
           <Label Text="{services:Localize AppearanceAndLanguage}" FontSize="18" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level2" />
           <Picker SelectedItem="{Binding Theme, Mode=TwoWay}" Title="{services:Localize Theme}">
-            <Picker.Items>
-              <x:String>System</x:String>
-              <x:String>Light</x:String>
-              <x:String>Dark</x:String>
-            </Picker.Items>
+            <Picker.Items><x:String>System</x:String><x:String>Light</x:String><x:String>Dark</x:String></Picker.Items>
           </Picker>
           <Picker SelectedItem="{Binding Language, Mode=TwoWay}" Title="{services:Localize Language}">
-            <Picker.Items>
-              <x:String>English</x:String>
-              <x:String>Hindi</x:String>
-            </Picker.Items>
+            <Picker.Items><x:String>English</x:String><x:String>Hindi</x:String></Picker.Items>
           </Picker>
           <Label Text="{services:Localize LocalizationFallbackNote}" FontSize="12" Opacity="0.7" />
         </VerticalStackLayout>
@@ -104,6 +97,17 @@
           <Label Text="{services:Localize DeveloperDiagnosticsNote}" FontSize="12" Opacity="0.7" />
           <Button Text="{services:Localize OpenDiagnostics}" Clicked="OpenDiagnosticsClicked" />
         </VerticalStackLayout>
+      </Border>
+
+      <Border Stroke="#FFDD00" StrokeThickness="2" BackgroundColor="#FFF8CC" StrokeShape="RoundRectangle 22" Padding="16">
+        <Grid ColumnDefinitions="64,*" ColumnSpacing="14">
+          <Image Source="bmc_support.svg" HeightRequest="56" WidthRequest="56" SemanticProperties.Description="Buy Me a Coffee support logo" />
+          <VerticalStackLayout Grid.Column="1" Spacing="7">
+            <Label Text="Support SwiftDrop" TextColor="#111827" FontAttributes="Bold" FontSize="18" />
+            <Label Text="Optional support for continued open-source development." TextColor="#374151" FontSize="12" />
+            <Button Text="☕ Buy Me a Coffee" BackgroundColor="#FFDD00" TextColor="#111827" FontAttributes="Bold" Clicked="OpenBuyMeACoffeeClicked" />
+          </VerticalStackLayout>
+        </Grid>
       </Border>
 
       <Button Text="{services:Localize SaveSettings}" Clicked="SaveClicked" />
