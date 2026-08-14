@@ -1,12 +1,25 @@
+using System.Text;
 using System.Text.Json;
 
 namespace SwiftDrop.Core.Protocol;
 
 public static class StrictJsonGuard
 {
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
     public static void Validate(ReadOnlyMemory<byte> utf8Json, int maxDepth)
     {
         if (maxDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxDepth));
+
+        try
+        {
+            _ = StrictUtf8.GetCharCount(utf8Json.Span);
+        }
+        catch (DecoderFallbackException ex)
+        {
+            throw new JsonException("Protocol JSON is not valid UTF-8.", ex);
+        }
+
         using var document = JsonDocument.Parse(utf8Json, new JsonDocumentOptions
         {
             MaxDepth = maxDepth,
