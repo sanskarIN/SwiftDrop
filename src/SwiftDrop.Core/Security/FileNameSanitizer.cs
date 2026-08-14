@@ -30,17 +30,17 @@ public static class FileNameSanitizer
             .Trim()
             .Where(ch => !char.IsControl(ch) && !invalid.Contains(ch))
             .ToArray();
-        var result = new string(chars).Normalize(NormalizationForm.FormC).TrimEnd('.', ' ');
+        var result = new string(chars).Normalize(NormalizationForm.FormC).Trim().TrimEnd('.');
         if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
 
         result = AvoidReservedWindowsDeviceName(result);
         result = BoundSegmentUtf16(result, MaximumSegmentLength);
-        result = BoundSegmentUtf8(result, MaximumSegmentUtf8Bytes).TrimEnd('.', ' ');
+        result = BoundSegmentUtf8(result, MaximumSegmentUtf8Bytes).Trim().TrimEnd('.');
         if (string.IsNullOrWhiteSpace(result)) result = "unnamed";
 
         result = AvoidReservedWindowsDeviceName(result);
         result = BoundSegmentUtf16(result, MaximumSegmentLength);
-        result = BoundSegmentUtf8(result, MaximumSegmentUtf8Bytes).TrimEnd('.', ' ');
+        result = BoundSegmentUtf8(result, MaximumSegmentUtf8Bytes).Trim().TrimEnd('.');
         return string.IsNullOrWhiteSpace(result) ? "unnamed" : result;
     }
 
