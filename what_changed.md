@@ -2324,4 +2324,80 @@ The next required production work remains exact-candidate signed Android/Windows
 
 Any source changes made while closing those external gates must update the affected canonical documentation and create a new exact candidate before production readiness is claimed.
 
+---
+
+# 130. Permanent documentation integrity gate
+
+The documentation completion pass was converted from a one-time editorial exercise into a maintained automated contract.
+
+Focused commits:
+
+- `14b6c980` — added `scripts/validate_documentation.py`.
+- `aa4cc015` — regular CI runs documentation integrity before localization/Apple/Core checks.
+- `7f13b4a6` — documented the new gate in the CI reference.
+- `c838ac52` — Linux/macOS `verify-core.sh` runs the documentation validator.
+- `1ffeee38` — Windows PowerShell `verify-core.ps1` runs the documentation validator.
+- `efa24732` — `BUILDING.md` documents the validator/local verification contract.
+- `08040d5d` — release readiness now uses the canonical portable verification entry point, so release-candidate portable validation includes the same documentation check instead of duplicating drift-prone validator commands.
+
+The validator requires the canonical user/developer/architecture/protocol/platform/storage/testing/release documents, checks that principal guides are indexed, resolves local inline Markdown links/images, requires the public README to link the canonical docs index, and rejects completed one-time documentation helpers that are explicitly forbidden.
+
+CI run `31778543950` completed successfully with the new documentation gate plus localization, Apple integration metadata, Core Release build, 511/511 portable tests, benchmark Release build, and machine-readable vulnerability-audit validation. CI run `31778749428` revalidated the integrated build-documentation state.
+
+# 131. Community contribution and issue workflow alignment
+
+The repository's GitHub community templates were brought to the same standard as the completed documentation set.
+
+Focused commits:
+
+- `b76e26e2` — expanded pull-request template with compatibility, exact verification, security/privacy, dependency/license, accessibility/localization, platform, documentation, and remaining signed-device validation sections.
+- `fae0c2ec` — expanded non-security bug report template with exact version/commit, sender/receiver, affected area, network/pairing context, reproducible steps, expected/actual result, sanitized diagnostics, and security-data confirmations.
+- `30e860c5` — expanded feature-request template with product problem, platform/area, security/privacy, compatibility, alternatives, and validation requirements.
+- `78594321` / `57d9d5ea` — added and refined issue contact routing so documentation, general support, and security disclosure point to the canonical repository policies instead of encouraging unsuitable blank/public issues.
+
+# 132. Technical glossary added to the canonical documentation contract
+
+Commit `4aa85e49` added `docs/glossary.md` covering project-specific terms such as App Group, canonical representation, pairing capability, certificate fingerprint, discovery, external staging, completed-item reuse, receive root, resume metadata, signed/device validation, stable transfer ID, strict JSON, trusted device, and production-ready.
+
+Commit `809cb2b8` linked the glossary from the canonical docs index and documented terminology maintenance ownership.
+
+Commit `7042345b` made the glossary a required/indexed file in `validate_documentation.py` and extended the temporary-helper absence checks used during this finalization sequence.
+
+# 133. QRCoder 1.8.0 dependency completion
+
+The only remaining open Dependabot update at this stage was QRCoder 1.6.0 -> 1.8.0.
+
+Focused commits:
+
+- `9f4d6018` — updated `SwiftDrop.App` to QRCoder 1.8.0.
+- `6a9e8b09` — synchronized `THIRD_PARTY_NOTICES.md`.
+
+Verification for the source-changing dependency commit:
+
+- CI run `31778661754` — success.
+- CodeQL run `31778661766` — success.
+- Security hygiene run `31778661731` — success.
+- Platform run `31778661776` — success across Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app.
+
+Dependabot PR #9 was then closed without merging because the equivalent signed update had already been applied directly to `main`. A repository queue check returned no open pull requests and no open issues.
+
+# 134. Release-readiness verification path simplified
+
+Commit `08040d5d` changed `release-readiness.yml` so its portable job calls `./scripts/verify-core.sh` as the canonical portable source/documentation verification entry point instead of separately repeating localization/Apple validators and then re-running them through the script.
+
+The release workflow still captures machine-readable direct/transitive dependency and vulnerability reports, compiles the synthetic benchmark harness, compiles Android/Windows/Apple target paths, and keeps the explicit final message that signed Windows MSIX, physical-device testing, Apple signing/notarization/App Group provisioning, Share Extension runtime behavior, and store checks remain mandatory.
+
+# 135. Documentation and source completion boundary after this continuation
+
+The repository now has:
+
+- a complete navigable documentation surface for users, contributors, architecture, protocol/security, platform integration, networking, settings, storage/privacy, diagnostics, CI/testing, versioning, signing, release process/checklist, support/community/legal policies, and the detailed engineering ledger;
+- automated documentation integrity enforcement in normal/local/release portable verification;
+- strengthened GitHub contribution/issue routing templates;
+- no open pull requests or issues at the completion check;
+- the current QRCoder dependency update validated across the maintained hosted target matrix;
+- the existing 511-test portable correctness/security suite and NuGet/CodeQL/security-hygiene gates retained.
+
+This is the end of source/documentation completion work that can be truthfully proven from the repository and hosted CI alone. SwiftDrop must still not be described as production-ready until an exact release candidate passes the already documented external gates: real signing and distribution packaging; physical Android/iOS/device-to-device transfers; Apple App Group and iOS Share Extension runtime validation; Windows MSIX install/update/protocol/firewall validation; Mac Catalyst signed sandbox/notarization validation; real restricted-network/lifecycle/low-storage/provider tests; accessibility/localization checks on actual targets; final dependency/license/provenance review of signed artifacts; and store/privacy publication checks.
+
 **Made by the Sanskar**
