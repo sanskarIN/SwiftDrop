@@ -7,7 +7,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 ## Source and dependency review
 
 - [ ] The exact release-candidate commit is identified and frozen for validation.
-- [ ] `main`/candidate CI is green for portable restore, build, tests, localization validation, Apple integration metadata validation, benchmark compile, platform compile jobs, CodeQL, repository hygiene, and release-readiness aggregation.
+- [ ] `main`/candidate CI is green for documentation integrity, portable restore, build, tests, localization validation, Apple integration metadata validation, benchmark compile, platform compile jobs, CodeQL, repository hygiene, and release-readiness aggregation.
 - [ ] `SwiftDrop.App`, the iOS `SwiftDrop.ShareExtension`, `SwiftDrop.Core`, tests, and benchmark dependency graphs are generated from the exact restored candidate.
 - [ ] `dotnet package list --project <project> --include-transitive --vulnerable --format json` is run/reviewed for every shipped/runtime project and required target framework, and the release-readiness JSON audit artifacts are retained with the release evidence.
 - [ ] Dependency provenance, supported target frameworks, licenses, notice obligations, and security advisories are reviewed.
