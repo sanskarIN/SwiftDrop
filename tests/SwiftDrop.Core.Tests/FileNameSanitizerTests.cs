@@ -49,7 +49,7 @@ public sealed class FileNameSanitizerTests
     {
         var value = FileNameSanitizer.SanitizeSegment(new string('a', 300) + ".txt");
         Assert.True(value.Length <= FileNameSanitizer.MaximumSegmentLength);
-        Assert.True(value.EndsWith(".txt", StringComparison.Ordinal));
+        Assert.EndsWith(".txt", value, StringComparison.Ordinal);
     }
 
     [Fact]
