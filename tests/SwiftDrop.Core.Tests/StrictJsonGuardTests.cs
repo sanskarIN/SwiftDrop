@@ -28,7 +28,7 @@ public sealed class StrictJsonGuardTests
     public void Validate_RejectsInvalidUtf8OrJson()
     {
         byte[] bytes = [(byte)'{', (byte)'\"', (byte)'x', (byte)'\"', (byte)':', 0xC3, 0x28, (byte)'}'];
-        Assert.Throws<JsonException>(() => StrictJsonGuard.Validate(bytes, 16));
+        Assert.ThrowsAny<JsonException>(() => StrictJsonGuard.Validate(bytes, 16));
     }
 
     [Fact]
@@ -36,6 +36,6 @@ public sealed class StrictJsonGuardTests
     {
         var json = new string('[', 20) + "0" + new string(']', 20);
         var bytes = Encoding.UTF8.GetBytes(json);
-        Assert.Throws<JsonException>(() => StrictJsonGuard.Validate(bytes, 8));
+        Assert.ThrowsAny<JsonException>(() => StrictJsonGuard.Validate(bytes, 8));
     }
 }
