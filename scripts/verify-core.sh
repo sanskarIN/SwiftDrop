@@ -5,6 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
 dotnet --info
+python3 scripts/validate_documentation.py
 python3 scripts/validate_localization.py
 python3 scripts/validate_apple_integration.py
 dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
