@@ -1,6 +1,6 @@
 # SwiftDrop Security Test Plan
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 
 This plan complements automated unit tests and the manual cross-platform transfer matrix. Execute it against the exact release candidate before public/store distribution. Use synthetic test files, synthetic identities, disposable receive roots, and disposable App Group/cache content only.
 
@@ -138,10 +138,14 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Verify portable/UTF-8-bounded filename sanitation and collision naming.
 - Verify text + multiple files arrive in one coherent inbox handoff and are never auto-sent.
 - Verify stale nested share-cache staging is pruned without touching unrelated app files.
+- Verify foreground transfer-service behavior and optional notification-permission denial cannot cause a transfer to fail.
+- Verify mDNS multicast-lock acquisition/release when the Android application or Wi-Fi service is temporarily unavailable.
 
-## Apple Share Extension and App Group handoff
+## iOS Share Extension and App Group handoff
 
-- Verify containing app and Share Extension are signed/provisioned for the intended shared App Group.
+The maintained Share Extension target is **iOS-only**. Mac Catalyst external intake is validated separately through the containing desktop app/native-drop path.
+
+- Verify the iOS containing app and iOS Share Extension are signed/provisioned for the intended shared App Group.
 - Exercise supported file/image/movie/text/web-URL providers with synthetic data.
 - Exceed item count, text byte, per-file, aggregate byte, and package-age limits.
 - Verify Share Extension staging budget rejects the file that would exceed aggregate bytes **before copying that over-limit file**.
@@ -159,8 +163,11 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Verify imported content is re-staged into app cache and shown for review rather than automatically transmitted.
 - Verify only one pending bundle is surfaced for review at a time and later pending bundles are not silently merged/deleted.
 - Verify App Group packages never contain private keys, pairing nonces/codes, trusted-device secrets, or reusable transfer authorization.
+- Confirm hosted certificate-independent iOS Simulator compilation is treated only as source/API evidence; repeat these checks on signed physical-device/TestFlight builds with real provisioning.
 
 ## Mac Catalyst native drop
+
+The maintained Mac Catalyst architecture is the containing desktop app plus native drop and does not include a Mac Catalyst Share Extension target.
 
 - Drop files, folders, text, and pairing links.
 - Verify security-scoped access is held only for staging.
@@ -170,6 +177,7 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Return the provider before timeout but let a legitimate copy continue longer; verify the response timer does not terminate the active copy.
 - Verify maximum-length/Unicode/collision filenames remain bounded and distinct.
 - Verify all staged content enters review state and is never auto-sent.
+- Verify signed Mac Catalyst sandbox/network/App Group configuration used by the containing app and notarized/package behavior.
 
 ## Windows and document/open input
 
@@ -178,6 +186,7 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Verify direct Windows file/folder sources pass regular-source/link rejection and canonical manifest construction before transfer.
 - Verify Apple document/open-file URLs stage under temporary security-scoped access and clean failure/cancellation output.
 - Verify all external-input text uses the shared UTF-8 byte-safe limiter.
+- Treat hosted `WindowsPackageType=None` compilation as source/XAML/WinUI evidence only; separately generate/sign/install/update the MSIX/package release candidate and verify protocol registration plus package capabilities.
 
 ## Network and TLS
 
@@ -204,18 +213,19 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Run the full portable Core test suite and localization/Apple configuration validators.
 - Run CodeQL and repository security-hygiene checks.
 - Review Dependabot/package advisories.
-- Generate exact restored dependency graphs for Core, app, and Share Extension target frameworks.
+- Generate exact restored dependency graphs for Core, app, and the iOS Share Extension target framework.
 - Review direct/transitive licenses and third-party notice obligations from the exact release graph.
-- Verify Apple app/extension IDs, App Group, versions, entitlements, activation rules, project reference, and solution inclusion with repository validation tooling and the signed artifacts.
+- Verify Apple app/iOS extension IDs, App Group, versions, entitlements, activation rules, project reference, and solution inclusion with repository validation tooling and the signed artifacts.
 - Verify no obsolete compatibility/dead transfer handler is wired from XAML after the stable-ID cleanup.
 - Treat cryptographic, authentication, trust, canonical-path, source-link, App Group, protocol-framing, staging-budget, or resume-metadata changes as security-sensitive and require focused review.
+- Verify the restored application dependency graph uses the intended .NET 10 MAUI servicing baseline and does not reintroduce the previously blocked vulnerable SQLite native dependency.
 
 ## Release evidence
 
 Record:
 
 - exact SwiftDrop commit SHA;
-- app/extension version/build numbers;
+- app and applicable iOS extension version/build numbers;
 - signed artifact hashes where applicable;
 - device/OS/network versions;
 - test date/tester;
