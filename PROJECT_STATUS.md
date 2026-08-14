@@ -12,6 +12,15 @@ Updated: 2026-08-14
 - Platform run `31773145276` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app compilation after the action/audit hardening.
 - Signed/package/device/network/accessibility/store validation remains required exactly as described below.
 
+## August 14 documentation completion snapshot
+
+- Added a canonical `docs/README.md` index covering user, developer, architecture, protocol/security, platform, storage, testing, release, support, and legal documentation.
+- Added complete user-facing guides for installation/source-run boundaries, pairing/sending/receiving/resume, settings/defaults, networking/firewalls, FAQ, troubleshooting, and privacy-safe diagnostics/bug reports.
+- Added developer/repository documentation for project structure, development workflow, CI evidence interpretation, versioning/compatibility, and the end-to-end signed release process.
+- Expanded `CONTRIBUTING.md`, `SUPPORT.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, and `TERMS.md` so community, support, security-disclosure, and source-vs-release boundaries are explicit.
+- Public README navigation now links the complete documentation surface; documentation maintenance rules identify the canonical owner for user/settings/protocol/storage/platform/testing/release changes.
+- The documentation pass does not change the existing production-ready rule: signed/device/network/provider/accessibility/store validation remains required for an exact release candidate.
+
 ## Implemented in source
 
 ### Product and transfer foundation
