@@ -38,11 +38,18 @@ Windows PowerShell:
 These verify:
 
 - .NET environment;
+- canonical documentation files and local Markdown link integrity;
 - English/Hindi localization catalogs and placeholder parity;
 - Apple App Group/iOS Share Extension project/entitlement/version invariants;
 - Core restore/build;
 - portable tests;
 - benchmark-project compilation.
+
+The documentation check can also be run independently:
+
+```bash
+python3 scripts/validate_documentation.py
+```
 
 ## Stable compiler policy
 
@@ -191,6 +198,7 @@ See `docs/testing/performance-benchmarks.md`.
 
 GitHub Actions is configured for:
 
+- documentation integrity validation;
 - localization validation;
 - Apple integration metadata validation;
 - portable Core build/tests;
