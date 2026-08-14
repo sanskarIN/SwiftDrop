@@ -2,6 +2,20 @@
 
 Updated: 2026-08-14
 
+## August 14 Windows/SQLite resource-lifetime and final hosted matrix continuation
+
+- Normal CI now has a dedicated `windows-portable-verifier` job executing `scripts/verify-core.ps1`; the Windows path is an enforced contract rather than an unexecuted helper script.
+- The first Windows verifier exposed a PowerShell interpolation parser defect (`$LASTEXITCODE:`), fixed in signed commit `080126a0` without weakening the gate.
+- Subsequent Windows execution exposed SQLite database-file locks that Linux had not revealed. Test teardown now clears Microsoft.Data.Sqlite pools before deleting isolated temp DB/`-wal`/`-shm` files, and schema tests dispose connections before cleanup.
+- The investigation found a real production resource-lifetime defect: SQLite command objects were not deterministically disposed. `DatabaseSchemaManager`, `BatchCompletionStore`, `DiagnosticEventStore`, `TransferHistoryStore`, `TransferQueueMetadataStore`, and `TrustStore` now dispose commands explicitly; schema transactions/readers remain scoped as well.
+- Added a direct pooled SQLite cleanup regression. The portable xUnit suite is now **517 tests**.
+- Exact source-head CI run `31785808946` passed the complete 517-test contract on both Ubuntu and Windows, including 10 Python helper tests, documentation/localization/Apple metadata validation, Core/benchmark builds, and zero-finding machine-readable Core vulnerability validation.
+- Source-head CodeQL run `31785808918` and security-hygiene run `31785808999` passed after the storage resource-lifetime fixes.
+- Platform run `31786513898` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, iOS Simulator containing app, all target dependency audits, and audit-artifact uploads using the current source plus the maintained platform workflow.
+- Same-ref concurrency controls were added to platform CI, core CI, CodeQL, and security hygiene so rapid focused commits keep the newest branch evidence instead of allowing superseded runs to block hosted capacity.
+- Current-main CI run `31786693757` passed both Ubuntu and Windows portable jobs with **517/517** xUnit tests; CodeQL run `31786693816` also passed on the same documentation/workflow state before this final status synchronization.
+- The repository still does not claim production readiness from hosted evidence alone. Signed Android/Windows/Apple packaging, physical device/network/provider/accessibility validation, exact final package dependency/license/provenance reconciliation, App Group/notarization, and store/privacy checks remain required.
+
 ## August 14 release-evidence, verifier, and adversarial-test continuation
 
 - Added `scripts/validate_nuget_vulnerability_report.py` plus regression tests so a machine-readable NuGet report is not treated as clean merely because it is valid JSON; non-empty vulnerability collections now fail explicitly.
@@ -320,7 +334,7 @@ Portable tests cover, among other areas:
 Portable verification evidence for the August 14 source head:
 
 - Core restore/build succeeded in Release configuration;
-- **516/516 portable tests passed**;
+- **517/517 portable tests passed**;
 - synthetic benchmark project compiled;
 - localization validation passed;
 - Apple integration metadata validation passed;
