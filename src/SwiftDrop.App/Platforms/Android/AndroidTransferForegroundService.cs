@@ -25,15 +25,18 @@ public sealed class AndroidTransferForegroundService : Service
 
     public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
     {
-        StartForeground(ForegroundNotificationId, BuildProgressNotification(this));
+        var notification = BuildProgressNotification(this);
+        StartForeground(ForegroundNotificationId, notification);
         return StartCommandResult.NotSticky;
     }
 
     public static void Start()
     {
-        var context = Application.Context;
-        var intent = new Intent(context, typeof(AndroidTransferForegroundService));
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+        var context = global::Android.App.Application.Context;
+        if (context is null) return;
+
+        using var intent = new Intent(context, typeof(AndroidTransferForegroundService));
+        if (OperatingSystem.IsAndroidVersionAtLeast(26))
             context.StartForegroundService(intent);
         else
             context.StartService(intent);
@@ -41,29 +44,38 @@ public sealed class AndroidTransferForegroundService : Service
 
     public static void Stop()
     {
-        var context = Application.Context;
-        context.StopService(new Intent(context, typeof(AndroidTransferForegroundService)));
+        var context = global::Android.App.Application.Context;
+        if (context is null) return;
+
+        using var intent = new Intent(context, typeof(AndroidTransferForegroundService));
+        context.StopService(intent);
     }
 
     public static void ShowTerminalNotification(bool success)
     {
         try
         {
-            var context = Application.Context;
+            var context = global::Android.App.Application.Context;
+            if (context is null) return;
+
             EnsureChannel(context);
-            var builder = new NotificationCompat.Builder(context, ChannelId)
-                .SetContentTitle(success ? "SwiftDrop transfer completed" : "SwiftDrop transfer failed")
-                .SetContentText(success
-                    ? "A local SwiftDrop transfer completed."
-                    : "A local SwiftDrop transfer did not complete.")
-                .SetSmallIcon(Resource.Mipmap.appicon)
-                .SetAutoCancel(true)
-                .SetCategory(NotificationCompat.CategoryStatus)
-                .SetPriority((int)NotificationPriority.Low);
+            using var builder = new NotificationCompat.Builder(context, ChannelId);
+            _ = builder.SetContentTitle(success ? "SwiftDrop transfer completed" : "SwiftDrop transfer failed");
+            _ = builder.SetContentText(success
+                ? "A local SwiftDrop transfer completed."
+                : "A local SwiftDrop transfer did not complete.");
+            _ = builder.SetSmallIcon(Resource.Mipmap.appicon);
+            _ = builder.SetAutoCancel(true);
+            _ = builder.SetCategory(NotificationCompat.CategoryStatus);
+            _ = builder.SetPriority((int)NotificationPriority.Low);
 
             var pending = CreateLaunchPendingIntent(context);
-            if (pending is not null) builder.SetContentIntent(pending);
-            NotificationManagerCompat.From(context).Notify(TerminalNotificationId, builder.Build());
+            if (pending is not null) _ = builder.SetContentIntent(pending);
+
+            using var notification = builder.Build();
+            if (notification is null) return;
+            var manager = NotificationManagerCompat.From(context);
+            manager?.Notify(TerminalNotificationId, notification);
         }
         catch
         {
@@ -73,34 +85,43 @@ public sealed class AndroidTransferForegroundService : Service
 
     private static Notification BuildProgressNotification(Context context)
     {
-        var builder = new NotificationCompat.Builder(context, ChannelId)
-            .SetContentTitle("SwiftDrop transfer in progress")
-            .SetContentText("Keep SwiftDrop available while the local transfer is active.")
-            .SetSmallIcon(Resource.Mipmap.appicon)
-            .SetOngoing(true)
-            .SetOnlyAlertOnce(true)
-            .SetCategory(NotificationCompat.CategoryProgress)
-            .SetPriority((int)NotificationPriority.Low);
+        using var builder = new NotificationCompat.Builder(context, ChannelId);
+        _ = builder.SetContentTitle("SwiftDrop transfer in progress");
+        _ = builder.SetContentText("Keep SwiftDrop available while the local transfer is active.");
+        _ = builder.SetSmallIcon(Resource.Mipmap.appicon);
+        _ = builder.SetOngoing(true);
+        _ = builder.SetOnlyAlertOnce(true);
+        _ = builder.SetCategory(NotificationCompat.CategoryProgress);
+        _ = builder.SetPriority((int)NotificationPriority.Low);
+
         var pending = CreateLaunchPendingIntent(context);
-        if (pending is not null) builder.SetContentIntent(pending);
-        return builder.Build();
+        if (pending is not null) _ = builder.SetContentIntent(pending);
+
+        return builder.Build()
+            ?? throw new InvalidOperationException("Android notification builder returned no progress notification.");
     }
 
     private static PendingIntent? CreateLaunchPendingIntent(Context context)
     {
-        var launchIntent = context.PackageManager?.GetLaunchIntentForPackage(context.PackageName!);
+        var packageName = context.PackageName;
+        if (string.IsNullOrWhiteSpace(packageName)) return null;
+
+        var launchIntent = context.PackageManager?.GetLaunchIntentForPackage(packageName);
         if (launchIntent is null) return null;
+
         var flags = PendingIntentFlags.UpdateCurrent;
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.M) flags |= PendingIntentFlags.Immutable;
+        if (OperatingSystem.IsAndroidVersionAtLeast(23)) flags |= PendingIntentFlags.Immutable;
         return PendingIntent.GetActivity(context, 0, launchIntent, flags);
     }
 
     private static void EnsureChannel(Context context)
     {
-        if (Build.VERSION.SdkInt < BuildVersionCodes.O) return;
-        var manager = (NotificationManager?)context.GetSystemService(NotificationService);
+        if (!OperatingSystem.IsAndroidVersionAtLeast(26)) return;
+
+        var manager = context.GetSystemService(NotificationService) as NotificationManager;
         if (manager is null) return;
-        var channel = new NotificationChannel(
+
+        using var channel = new NotificationChannel(
             ChannelId,
             "SwiftDrop transfers",
             NotificationImportance.Low)
