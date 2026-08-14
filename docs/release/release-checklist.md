@@ -7,13 +7,17 @@ This checklist is a release gate, not a statement that the listed checks have al
 ## Source and dependency review
 
 - [ ] The exact release-candidate commit is identified and frozen for validation.
-- [ ] `main`/candidate CI is green for documentation integrity, portable restore, build, tests, localization validation, Apple integration metadata validation, benchmark compile, platform compile jobs, CodeQL, repository hygiene, and release-readiness aggregation.
-- [ ] `SwiftDrop.App`, the iOS `SwiftDrop.ShareExtension`, `SwiftDrop.Core`, tests, and benchmark dependency graphs are generated from the exact restored candidate.
-- [ ] `dotnet package list --project <project> --include-transitive --vulnerable --format json` is run/reviewed for every shipped/runtime project and required target framework, and the release-readiness JSON audit artifacts are retained with the release evidence.
-- [ ] Dependency provenance, supported target frameworks, licenses, notice obligations, and security advisories are reviewed.
+- [ ] `main`/candidate CI is green for documentation integrity, Python validation-helper tests, portable restore/build/tests, localization validation, Apple integration metadata validation, benchmark compile, platform compile/audit jobs, CodeQL, repository hygiene, and release-readiness aggregation.
+- [ ] `SwiftDrop.App` target graphs for Android, Windows, Mac Catalyst, and iOS, the iOS `SwiftDrop.ShareExtension`, `SwiftDrop.Core`, tests, and benchmark dependency graphs are generated from the exact restored candidate.
+- [ ] Machine-readable package/vulnerability reports use explicit `--format json --output-version 1`; vulnerable views include transitive packages and are validated with `scripts/validate_nuget_vulnerability_report.py` rather than accepted solely because JSON was produced.
+- [ ] Exact-candidate release-readiness artifacts `dependency-audit`, `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit` are retained.
+- [ ] Every retained dependency-audit bundle contains its expected JSON reports and deterministic `manifest.json`; file lengths and SHA-256 digests are independently checked before archival.
+- [ ] Dependency provenance, supported target frameworks, licenses, notice obligations, and security advisories are manually reviewed; automation is not treated as complete license/provenance evidence.
+- [ ] Restored/source dependency evidence is compared with the final signed/package artifacts so hosted simulator/unpackaged graphs are not silently substituted for shipped-binary evidence.
+- [ ] `docs/release/dependency-evidence.md` matches the workflow artifact names, report format, validator behavior, manifest schema, and current release-review process.
 - [ ] No secrets, signing keys, PFX/P12 files, keystores, provisioning secrets, tokens, pairing invitations, local databases, or real transferred files are committed.
 - [ ] No obsolete/dead batch compatibility handler can bypass stable transfer IDs; XAML and app call sites use the stable-ID coordinator API.
-- [ ] `CHANGELOG.md`, `PROJECT_STATUS.md`, `PRIVACY.md`, `THIRD_PARTY_NOTICES.md`, `NEXT_STEPS.md`, protocol/security/platform/testing docs, and `what_changed.md` match the exact candidate.
+- [ ] `CHANGELOG.md`, `PROJECT_STATUS.md`, `PRIVACY.md`, `THIRD_PARTY_NOTICES.md`, `NEXT_STEPS.md`, protocol/security/platform/testing/release docs, and `what_changed.md` match the exact candidate.
 
 ## Protocol, identity, and transport security
 
@@ -196,7 +200,7 @@ Complete `docs/testing/manual-test-matrix.md` for supported sender/receiver comb
 - [ ] Android signing material, Windows signing material, Apple signing/provisioning, and store credentials remain outside the repository.
 - [ ] Final Android AAB/APK, Windows package/MSIX, iOS/TestFlight build, and Mac Catalyst distribution artifact are tested after signing/packaging.
 - [ ] Apple App Group and iOS extension entitlements are present in signed iOS artifacts, not only source plist files.
-- [ ] Exact restored dependency/license/notice inventory is reviewed for final signed binaries.
+- [ ] Exact restored dependency/license/notice inventory is reviewed for final signed binaries and reconciled with the retained machine-readable evidence bundles.
 - [ ] Store privacy declarations, local-network/foreground-service/App Group explanations, screenshots, descriptions, support links, and release notes match actual behavior.
 - [ ] Git tag/release notes identify exact candidate commit and validation evidence.
 
