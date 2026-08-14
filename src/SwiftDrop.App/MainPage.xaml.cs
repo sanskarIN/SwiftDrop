@@ -393,6 +393,7 @@ public partial class MainPage : ContentPage
                 {
                     PickerTitle = AppText.Get("ChooseFilesToSend")
                 }))
+                .OfType<FileResult>()
                 .Where(x => !string.IsNullOrWhiteSpace(x.FullPath))
                 .Take(2048)
                 .ToArray();
