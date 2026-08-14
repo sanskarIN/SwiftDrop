@@ -1,0 +1,64 @@
+name: One-time documentation completion sync
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/one-time-documentation-completion.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Synchronize root documentation and ledger
+        run: python3 scripts/documentation_completion_sync.py
+
+      - name: Configure commit identity
+        run: |
+          git config user.name 'Sanskar'
+          git config user.email 'sanskarin@outlook.in'
+
+      - name: Commit README navigation
+        run: |
+          if ! git diff --quiet -- README.md; then
+            git add README.md
+            git commit -s -m 'docs(readme): link complete documentation surface'
+          fi
+
+      - name: Commit project status
+        run: |
+          if ! git diff --quiet -- PROJECT_STATUS.md; then
+            git add PROJECT_STATUS.md
+            git commit -s -m 'docs(status): record documentation completion pass'
+          fi
+
+      - name: Commit next-steps roadmap
+        run: |
+          if ! git diff --quiet -- NEXT_STEPS.md; then
+            git add NEXT_STEPS.md
+            git commit -s -m 'docs(roadmap): mark documentation scope complete'
+          fi
+
+      - name: Commit changelog
+        run: |
+          if ! git diff --quiet -- CHANGELOG.md; then
+            git add CHANGELOG.md
+            git commit -s -m 'docs(changelog): record complete documentation pass'
+          fi
+
+      - name: Commit engineering ledger
+        run: |
+          if ! git diff --quiet -- what_changed.md; then
+            git add what_changed.md
+            git commit -s -m 'docs(ledger): append documentation completion work'
+          fi
+
+      - name: Push focused documentation commits
+        run: git push origin HEAD:main
