@@ -26,7 +26,7 @@ public sealed class TransferHistoryMaintenanceTests
         }
         finally
         {
-            if (File.Exists(path)) File.Delete(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 
@@ -50,7 +50,7 @@ public sealed class TransferHistoryMaintenanceTests
         }
         finally
         {
-            if (File.Exists(path)) File.Delete(path);
+            SqliteTestDatabaseCleanup.Delete(path);
         }
     }
 }
