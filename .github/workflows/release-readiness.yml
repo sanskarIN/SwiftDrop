@@ -24,15 +24,18 @@ jobs:
       - run: ./scripts/verify-core.sh
       - name: Compile synthetic benchmark harness
         run: dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release
-      - name: Capture dependency graph
+      - name: Capture dependency and vulnerability reports
         run: |
           mkdir -p artifacts
-          dotnet list src/SwiftDrop.Core/SwiftDrop.Core.csproj package --include-transitive > artifacts/core-packages.txt
-          dotnet list tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj package --include-transitive > artifacts/test-packages.txt
-          dotnet list benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj package --include-transitive > artifacts/benchmark-packages.txt
+          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --format json > artifacts/core-packages.json
+          dotnet package list --project tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj --include-transitive --format json > artifacts/test-packages.json
+          dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --format json > artifacts/benchmark-packages.json
+          dotnet package list --project src/SwiftDrop.Core/SwiftDrop.Core.csproj --include-transitive --vulnerable --format json > artifacts/core-vulnerabilities.json
+          dotnet package list --project tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj --include-transitive --vulnerable --format json > artifacts/test-vulnerabilities.json
+          dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --vulnerable --format json > artifacts/benchmark-vulnerabilities.json
       - uses: actions/upload-artifact@v4
         with:
-          name: dependency-graph
+          name: dependency-audit
           path: artifacts/
 
   android-compile:
@@ -103,14 +106,15 @@ jobs:
       - name: Build iOS simulator app
         shell: bash
         run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID" -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements=
-      - name: Capture iOS extension dependency graph
+      - name: Capture iOS extension dependency and vulnerability reports
         shell: bash
         run: |
           mkdir -p artifacts
-          dotnet list src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj package --framework net10.0-ios --include-transitive > artifacts/share-extension-ios-packages.txt
+          dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --format json > artifacts/share-extension-ios-packages.json
+          dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --vulnerable --format json > artifacts/share-extension-ios-vulnerabilities.json
       - uses: actions/upload-artifact@v4
         with:
-          name: ios-share-extension-dependency-graph
+          name: ios-share-extension-dependency-audit
           path: artifacts/
 
   release-gate:
