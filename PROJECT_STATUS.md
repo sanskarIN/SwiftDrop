@@ -2,6 +2,21 @@
 
 Updated: 2026-08-14
 
+## August 14 release-evidence, verifier, and adversarial-test continuation
+
+- Added `scripts/validate_nuget_vulnerability_report.py` plus regression tests so a machine-readable NuGet report is not treated as clean merely because it is valid JSON; non-empty vulnerability collections now fail explicitly.
+- Added `scripts/create_dependency_evidence_manifest.py` plus regression tests; audit bundles now contain a deterministic schema-v1 manifest of report paths, exact byte lengths, and SHA-256 digests.
+- Normal CI pins Python 3.13, runs 10 Python helper tests, validates documentation/localization/Apple metadata, builds Core, runs the portable xUnit suite, builds benchmarks, and validates the Core vulnerable-package report.
+- Local Bash and PowerShell verification run the same helper/documentation/Core/audit gates. A dedicated Windows CI job now executes the PowerShell verifier so Windows-only parser/native-exit behavior is continuously exercised.
+- The first Windows-verifier execution exposed a PowerShell parser bug in `$LASTEXITCODE:` interpolation. Commit `080126a0` fixes it by explicitly delimiting the variable; the gate was kept rather than weakened.
+- Added deterministic randomized pairing canonicalization and strict-JSON fuzz/property regression tests. CI run `31784196373` passed **516/516** xUnit tests, 10 Python helper tests, documentation/localization/Apple validators, Core/benchmark builds, and a zero-finding machine-readable Core vulnerability audit.
+- Platform run `31783405975` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app builds; each target graph produced/validated vulnerable-package JSON and uploaded hashed dependency evidence.
+- The retained platform artifacts are `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit`. Their internal manifests were independently recomputed after download; all listed report byte lengths and SHA-256 digests matched. The Apple manifest covers six reports across Mac Catalyst, iOS app, and iOS Share Extension graphs.
+- Release-readiness self-test run `31783537853` passed portable verification, Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, iOS Simulator app, target dependency-audit uploads, and the final aggregate `release-gate`.
+- Release-readiness now also self-tests on `main`/pull-request changes to its verification/audit/evidence helpers while all `v*` tag pushes remain release-candidate triggers.
+- Added canonical `docs/release/dependency-evidence.md`; release process/checklist, CI/build documentation, docs index, and third-party notices now define stable JSON output version 1, exact artifact names, vulnerability validation, evidence manifests, and final signed-artifact comparison requirements.
+- These improvements strengthen reproducible source/restored-graph evidence. They still do not replace real signing, final package dependency/provenance/license review, physical device/network/provider/accessibility testing, Apple App Group/notarization, signed Windows MSIX behavior, or store/privacy checks.
+
 
 ## August 14 continuation hardening snapshot
 
@@ -305,7 +320,7 @@ Portable tests cover, among other areas:
 Portable verification evidence for the August 14 source head:
 
 - Core restore/build succeeded in Release configuration;
-- **511/511 portable tests passed**;
+- **516/516 portable tests passed**;
 - synthetic benchmark project compiled;
 - localization validation passed;
 - Apple integration metadata validation passed;
