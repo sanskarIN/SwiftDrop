@@ -1,6 +1,6 @@
 # SwiftDrop Release Checklist
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 
 This checklist is a release gate, not a statement that the listed checks have already passed. A source implementation or configured workflow is not production validation.
 
@@ -8,7 +8,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 
 - [ ] The exact release-candidate commit is identified and frozen for validation.
 - [ ] `main`/candidate CI is green for portable restore, build, tests, localization validation, Apple integration metadata validation, benchmark compile, platform compile jobs, CodeQL, repository hygiene, and release-readiness aggregation.
-- [ ] `SwiftDrop.App`, `SwiftDrop.ShareExtension`, `SwiftDrop.Core`, tests, and benchmark dependency graphs are generated from the exact restored candidate.
+- [ ] `SwiftDrop.App`, the iOS `SwiftDrop.ShareExtension`, `SwiftDrop.Core`, tests, and benchmark dependency graphs are generated from the exact restored candidate.
 - [ ] `dotnet list package --vulnerable` (or current supported equivalent) is reviewed in a connected development environment for every shipped/runtime project and target framework.
 - [ ] Dependency provenance, supported target frameworks, licenses, notice obligations, and security advisories are reviewed.
 - [ ] No secrets, signing keys, PFX/P12 files, keystores, provisioning secrets, tokens, pairing invitations, local databases, or real transferred files are committed.
@@ -68,7 +68,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 
 ## External-input staging safety
 
-- [ ] Android, Apple Share Extension, and Mac drop use the shared file-count/per-file/aggregate staging budget policy.
+- [ ] Android, iOS Share Extension, and Mac native drop use the shared file-count/per-file/aggregate staging budget policy.
 - [ ] Failed file staging does not incorrectly consume budget for later items.
 - [ ] Unicode/max-length external filenames stay byte-bounded and collision-safe.
 - [ ] External shared/dropped/opened content always reaches review state before transfer and is never auto-sent.
@@ -103,7 +103,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 ## iOS
 
 - [ ] Build with supported .NET MAUI/Xcode toolchain and Apple Developer signing.
-- [ ] Provision containing app and Share Extension with App Group `group.in.sanskar.swiftdrop`.
+- [ ] Provision containing app and iOS Share Extension with App Group `group.in.sanskar.swiftdrop`.
 - [ ] Verify app/extension bundle IDs, versions/build numbers, entitlements, extension point, and activation rules.
 - [ ] Verify local-network privacy prompt and Bonjour discovery on physical devices.
 - [ ] Verify canonical `swiftdrop://pair` activation in cold/warm starts.
@@ -119,16 +119,16 @@ This checklist is a release gate, not a statement that the listed checks have al
 
 ## macOS / Mac Catalyst
 
-- [ ] Build/sign Mac Catalyst app and Share Extension with supported Xcode/.NET MAUI toolchain.
-- [ ] Verify app-sandbox network client/server entitlements and shared App Group provisioning.
+- [ ] Build/sign the Mac Catalyst containing app with the supported Xcode/.NET MAUI toolchain.
+- [ ] Verify app-sandbox network client/server entitlements and any containing-app App Group entitlement required by the shipped configuration.
 - [ ] Verify Bonjour/local-network behavior and macOS firewall allow/block cases.
 - [ ] Verify document/open-file security-scoped staging under signed sandbox conditions.
-- [ ] Verify Share Extension App Group handoff under signed sandbox conditions.
 - [ ] Verify native `UIDropInteraction` for files, folders, text, and pairing links.
 - [ ] Verify dropped source security-scoped lifetime, link/reparse rejection, shared count/per-file/aggregate budget, bounded collision deconfliction, and no auto-send.
 - [ ] Delay native-drop provider file/text callbacks beyond the bounded response wait and verify cleanup instead of a hang.
 - [ ] Return provider before timeout but let copy continue longer and verify the response timer does not kill the active copy.
 - [ ] Verify VoiceOver, keyboard-only navigation, window resizing, and large text.
+- [ ] Verify notarization/store packaging for the containing app; no Mac Catalyst Share Extension is expected in the maintained architecture.
 
 ## Windows
 
@@ -192,10 +192,10 @@ Complete `docs/testing/manual-test-matrix.md` for supported sender/receiver comb
 
 ## Packaging and publication
 
-- [ ] App and Share Extension version/build numbers are consistent.
+- [ ] iOS app and Share Extension version/build numbers are consistent.
 - [ ] Android signing material, Windows signing material, Apple signing/provisioning, and store credentials remain outside the repository.
 - [ ] Final Android AAB/APK, Windows package/MSIX, iOS/TestFlight build, and Mac Catalyst distribution artifact are tested after signing/packaging.
-- [ ] Apple App Group and extension entitlements are present in signed artifacts, not only source plist files.
+- [ ] Apple App Group and iOS extension entitlements are present in signed iOS artifacts, not only source plist files.
 - [ ] Exact restored dependency/license/notice inventory is reviewed for final signed binaries.
 - [ ] Store privacy declarations, local-network/foreground-service/App Group explanations, screenshots, descriptions, support links, and release notes match actual behavior.
 - [ ] Git tag/release notes identify exact candidate commit and validation evidence.
