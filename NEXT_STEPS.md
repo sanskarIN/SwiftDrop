@@ -1,10 +1,10 @@
 # SwiftDrop Next Steps
 
-Updated: 2026-08-12
+Updated: 2026-08-14
 
-The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed Apple Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, or schema-v3 resume work as missing.
+The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed iOS Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, or schema-v3 resume work as missing.
 
-## Source work completed in the August 12 continuation
+## Source work completed through the August 14 continuation
 
 ### Canonical pairing capability transport
 
@@ -24,7 +24,7 @@ The current master-prompt source scope is implemented. This roadmap is intention
 - Sender manifest paths canonicalized to `/` on every OS.
 - Incoming wire manifest paths must already equal SwiftDrop's canonical sanitized form before authorization.
 - Malformed/noncanonical file paths therefore do not consume valid one-time transfer authorization.
-- Filename segments now have both 180 UTF-16 code-unit and 180 UTF-8 byte caps.
+- Filename segments have both 180 UTF-16 code-unit and 180 UTF-8 byte caps.
 - Collision names retain unique bounded markers even when the original name is already at the filename limit.
 
 ### Outgoing source and folder safety
@@ -44,7 +44,7 @@ The current master-prompt source scope is implemented. This roadmap is intention
 - Folder sources remain resumable.
 - Obsolete duplicate batch handlers were removed from `MainPage`.
 - Obsolete coordinator compatibility overload that implicitly generated a fresh ID was deleted.
-- Batch transfer IDs now use bounded ASCII token syntax.
+- Batch transfer IDs use bounded ASCII token syntax.
 
 ### Completed-item retry race closure
 
@@ -55,19 +55,36 @@ The current master-prompt source scope is implemented. This roadmap is intention
 ### External staging budgets and provider liveness
 
 - Added reusable Core `TransferStagingBudget` for file count, per-file bytes, aggregate bytes, commit-after-success behavior.
-- Apple Share Extension applies aggregate budget before copying an over-limit file.
+- iOS Share Extension applies aggregate budget before copying an over-limit file.
 - Android shares apply shared aggregate budget, treat negative provider size as unknown, cap unknown bytes to remaining aggregate budget, and preserve free-space reserve during unknown-length streaming.
 - Mac native drop uses the same staging-budget policy.
-- Share Extension and Mac native drop have bounded provider-response waits.
+- iOS Share Extension and Mac native drop have bounded provider-response waits.
 - Provider-response timeout does not incorrectly cancel a legitimate copy that already began.
 - Apple containing app validates exact physical App Group file set and preflights aggregate app-cache bytes before recopy.
+
+### August 14 build/test/platform hardening
+
+- Patched the bundled SQLite dependency path that blocked warnings-as-errors restore.
+- Repaired hidden Core compile defects and test-project wiring exposed after restore became healthy.
+- Restored and extended history maintenance behavior while keeping compatibility.
+- Tightened strict UTF-8 decoding, filename canonicalization/idempotence, and staging-budget boundaries.
+- Portable Core verification reached 511/511 passing tests and benchmark-project compilation.
+- Repaired Android foreground-service, multicast-lock, intent/share staging, and nullable binding code until Android Release compilation passed in hosted CI.
+- Removed unsupported `Entry.LineBreakMode` XAML usage.
+- Corrected the Share Extension to its supported iOS-only target; Mac Catalyst remains the containing desktop app plus native drag/drop path.
+- Removed stale Mac Catalyst extension entitlements and obsolete one-shot/duplicate workflows.
+- Updated Apple metadata validation to the iOS-only extension architecture.
+- Added hosted iOS simulator compilation that is certificate-independent while preserving real project entitlements for signed/device builds.
+- Added focused Windows target-matrix controls so Windows CI does not traverse unrelated Android/iOS/Mac Catalyst workloads.
+- Repaired WinUI activation/drag-event namespace ambiguities exposed by the first real Windows source compile.
+- Marked the localization XAML extension service-provider independent to remove repeated XAML compiler service-provider warnings.
 
 ### Documentation/test alignment
 
 - Protocol wire/security docs define canonical pairing/path/ID/resume representation.
 - Threat model includes source-tree links, canonical aliases, staging budgets, collision-byte limits, and repeated completed-item verification.
 - Security/manual/release test documents require the new invariants.
-- Public/project/platform status documents are being synchronized to the source freeze.
+- Public/project/platform status documents are synchronized as source/platform evidence is verified.
 
 ## P0 — Observe automated gates on the exact final candidate
 
@@ -76,21 +93,20 @@ Before a production tag, confirm the **exact final commit** has successful runs 
 1. portable Core restore/build;
 2. full portable xUnit suite;
 3. localization key/value/placeholder validation;
-4. Apple App Group/Share Extension metadata validation;
+4. Apple App Group/iOS Share Extension metadata validation;
 5. synthetic benchmark-project compilation;
 6. Android compile job;
 7. Windows compile job;
-8. Mac Catalyst Share Extension compile job;
-9. Mac Catalyst containing-app compile job;
-10. unsigned iOS Simulator Share Extension compile job;
-11. unsigned iOS Simulator containing-app compile job;
-12. CodeQL/security-hygiene jobs;
-13. release-readiness aggregate gate;
-14. exact dependency inventory artifacts.
+8. Mac Catalyst containing-app compile job;
+9. unsigned/certificate-independent iOS Simulator Share Extension compile job;
+10. unsigned/certificate-independent iOS Simulator containing-app compile job;
+11. CodeQL/security-hygiene jobs;
+12. release-readiness aggregate gate;
+13. exact dependency inventory artifacts.
 
 Do not infer a pass from missing status contexts. If the connector/API reports no check contexts, record **unknown/unreported** and inspect the Actions UI/logs directly before release.
 
-## P0 — Compile/test focus for this continuation's new Core boundaries
+## P0 — Compile/test focus for the hardened Core boundaries
 
 The exact candidate must compile/run tests covering:
 
@@ -120,7 +136,7 @@ The exact candidate must compile/run tests covering:
 The Apple source cannot be considered release-validated until the real provisioning/signing environment confirms:
 
 - App Group `group.in.sanskar.swiftdrop` exists in Apple Developer configuration;
-- containing app and Share Extension provisioning profiles include the same App Group;
+- containing iOS app and iOS Share Extension provisioning profiles include the same App Group;
 - app ID `in.sanskar.swiftdrop` and extension ID `in.sanskar.swiftdrop.share` are valid;
 - source entitlement/App Group metadata matches the signed artifact;
 - iOS Share Extension appears for supported file/image/movie/text/web URL inputs;
@@ -134,11 +150,11 @@ The Apple source cannot be considered release-validated until the real provision
 - containing app preflights aggregate validated package bytes before App Group→cache recopy;
 - multiple pending packages are not silently merged/deleted while one package is under review;
 - security-scoped provider representations remain valid long enough for bounded staging;
-- Mac Catalyst Share Extension works under release sandbox;
+- Mac Catalyst containing app works under release sandbox/App Group configuration;
 - Mac native drop works for files, folders, text, and pairing links;
 - Mac native-drop provider timeout behavior matches source semantics;
 - symlink/reparse inputs are rejected as designed;
-- notarization/TestFlight/store packaging embeds/signs the extension correctly.
+- notarization/TestFlight/store packaging signs/embeds the iOS extension correctly and signs the Mac Catalyst app correctly.
 
 ## P0 — Signed Android validation
 
@@ -279,7 +295,7 @@ For the exact signed candidate:
 
 - download dependency inventory artifacts from release-readiness;
 - inspect Core/App/test/benchmark dependencies;
-- inspect Share Extension iOS and Mac Catalyst dependency graphs;
+- inspect the iOS Share Extension dependency graph;
 - generate/review final third-party notices from the exact restored graph;
 - verify Apache-2.0 project license/NOTICE contents;
 - verify no signing/private-key/local-database artifacts entered the repository;
@@ -304,7 +320,7 @@ Do not label SwiftDrop production-verified until all of the following are true f
 - automated source gates pass;
 - all target apps/extensions compile under release workloads;
 - signed packages install/upgrade successfully;
-- Apple App Group/Share Extension provisioning is valid;
+- Apple App Group/iOS Share Extension provisioning is valid;
 - real provider/ContentResolver/native-drop paths match the staged budget/timeout semantics;
 - physical cross-device transfer/resume/path/link/network tests pass;
 - accessibility/localization checks pass;
