@@ -1,5 +1,6 @@
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Security;
+using SwiftDrop.Core.Transfer;
 
 namespace SwiftDrop.Core.Protocol;
 
