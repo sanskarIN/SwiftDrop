@@ -3,6 +3,14 @@
 ## Unreleased - 2026-08-14
 
 
+### Complete documentation and contributor/support reference
+
+- Added `docs/README.md` as the canonical documentation index.
+- Added installation/source-run, end-user workflow, settings, FAQ, networking/firewall, development, project-structure, CI-reference, release-process, versioning/compatibility, and diagnostics/bug-report guides.
+- Expanded troubleshooting across discovery/pairing/firewall/integrity/resume/storage and Android/iOS/Mac/Windows external-intake/build failure cases.
+- Expanded contribution, support, community conduct, security disclosure, and usage-term documents while preserving the source-compile versus signed/device/store readiness boundary.
+- Public documentation now maps each contract area to a canonical document and records how documentation must stay synchronized with source/tests/release evidence.
+
 ### Workflow/runtime and dependency-audit hardening
 
 - Upgraded maintained GitHub Actions to checkout v7, setup-dotnet v6, and CodeQL v4.
