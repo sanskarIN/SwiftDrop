@@ -9,7 +9,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] The exact release-candidate commit is identified and frozen for validation.
 - [ ] `main`/candidate CI is green for portable restore, build, tests, localization validation, Apple integration metadata validation, benchmark compile, platform compile jobs, CodeQL, repository hygiene, and release-readiness aggregation.
 - [ ] `SwiftDrop.App`, the iOS `SwiftDrop.ShareExtension`, `SwiftDrop.Core`, tests, and benchmark dependency graphs are generated from the exact restored candidate.
-- [ ] `dotnet list package --vulnerable` (or current supported equivalent) is reviewed in a connected development environment for every shipped/runtime project and target framework.
+- [ ] `dotnet package list --project <project> --include-transitive --vulnerable --format json` is run/reviewed for every shipped/runtime project and required target framework, and the release-readiness JSON audit artifacts are retained with the release evidence.
 - [ ] Dependency provenance, supported target frameworks, licenses, notice obligations, and security advisories are reviewed.
 - [ ] No secrets, signing keys, PFX/P12 files, keystores, provisioning secrets, tokens, pairing invitations, local databases, or real transferred files are committed.
 - [ ] No obsolete/dead batch compatibility handler can bypass stable transfer IDs; XAML and app call sites use the stable-ID coordinator API.
