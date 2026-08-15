@@ -1,0 +1,196 @@
+name: Performance history docs once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/swiftdrop-performance-docs-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refresh main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+      - name: Update storage schema documentation
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('docs/storage/database-schema.md')
+          s = p.read_text()
+          def one(old, new):
+              global s
+              c = s.count(old)
+              if c != 1: raise SystemExit(f'storage expected one match, found {c}: {old[:80]!r}')
+              s = s.replace(old, new)
+          one('Current schema version: **5**.', 'Current schema version: **6**.')
+          one('- `duration_ms` — optional measured elapsed duration in milliseconds, bounded to `0..604800000` (seven days). Legacy rows and events without an attributable measurement remain `NULL`.\n', '- `duration_ms` — optional measured elapsed duration in milliseconds, bounded to `0..604800000` (seven days). Legacy rows and events without an attributable measurement remain `NULL`.\n- `measured_bytes` — optional non-negative count of bytes actually attributable to the measured interval; it cannot exceed the logical `size_bytes`. This keeps resumed-transfer throughput from being calculated using bytes that were already present before the measured interval.\n')
+          one('The History performance summary derives throughput only from completed rows with positive size and positive measured duration. It does not infer values for legacy, rejected, skipped, or otherwise unmeasured rows. Aggregate byte counters saturate rather than overflow on extreme valid metadata.', 'The History performance summary derives throughput only from completed rows with positive measured bytes and positive measured duration. It requires `measured_bytes <= size_bytes` and does not infer values for legacy, rejected, skipped, or otherwise unmeasured rows. Aggregate byte counters saturate rather than overflow on extreme valid metadata.')
+          one('numeric byte/duration metadata is retained under the same local history-retention policy', 'numeric size/duration/measured-byte metadata is retained under the same local history-retention policy')
+          one('- **4 → 5:** add nullable, bounded `transfer_history.duration_ms`; existing history rows remain `NULL` so old records are never presented as measured performance samples. The migration defensively recreates the legacy history base table if a partially formed older database declares an old schema version without that table.\n', '- **4 → 5:** add nullable, bounded `transfer_history.duration_ms`; existing history rows remain `NULL` so old records are never presented as measured performance samples. The migration defensively recreates the legacy history base table if a partially formed older database declares an old schema version without that table.\n- **5 → 6:** add nullable, non-negative `transfer_history.measured_bytes`; existing v5 duration rows keep `measured_bytes=NULL`, preventing the upgrade from inventing a byte count for an interval whose actual transferred bytes were not recorded.\n')
+          one('8. Keep optional performance metadata bounded, attributable to a real measurement, and non-authorizing.', '8. Keep optional performance metadata bounded, attributable to a real measurement, and non-authorizing; measured bytes must never exceed the logical history size.')
+          p.write_text(s)
+      - name: Commit storage documentation
+        run: |
+          git add docs/storage/database-schema.md
+          git commit -m "docs(storage): document schema v6 measured bytes" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update performance measurement guide
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('docs/testing/performance-benchmarks.md')
+          s = p.read_text()
+          def one(old, new):
+              global s
+              c=s.count(old)
+              if c != 1: raise SystemExit(f'performance docs expected one match, found {c}: {old[:80]!r}')
+              s=s.replace(old,new)
+          one('Schema v5 adds optional `duration_ms` metadata to local Transfer History.', 'Schema v6 stores optional `duration_ms` plus `measured_bytes` metadata in local Transfer History.')
+          one('- the byte count is positive;\n- a positive elapsed duration was actually measured for that completed operation.', '- the actual `measured_bytes` count is positive and does not exceed the logical history size;\n- a positive elapsed duration was actually measured for that completed operation.')
+          one('Legacy rows, zero-byte transfers, rejected/skipped records, and rows without an attributable duration remain unmeasured.', 'Legacy rows, zero-byte transfers, rejected/skipped records, and rows without both an attributable duration and attributable byte count remain unmeasured.')
+          one('The History screen reports a **weighted aggregate throughput** over measured rows: total measured bytes divided by total measured elapsed time.', 'The History screen reports a **weighted aggregate throughput** over measured rows: total actual measured bytes divided by total measured elapsed time. For resumed files, only `logical size - negotiated resume offset` is recorded as measured bytes for that interval, so bytes already present before resume cannot inflate the rate.')
+          one('Performance history adds only bounded numeric duration metadata.', 'Performance history adds only bounded numeric duration and measured-byte metadata.')
+          p.write_text(s)
+      - name: Commit performance guide
+        run: |
+          git add docs/testing/performance-benchmarks.md
+          git commit -m "docs(performance): document resume-safe throughput math" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update privacy policy
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('PRIVACY.md')
+          s=p.read_text()
+          def one(old,new):
+              global s
+              c=s.count(old)
+              if c != 1: raise SystemExit(f'privacy expected one match, found {c}: {old[:90]!r}')
+              s=s.replace(old,new)
+          one('Transfer history contains metadata such as direction, peer display name, filename/description, size, timestamp, status, and integrity result.', 'Transfer history contains metadata such as direction, peer display name, filename/description, logical size, timestamp, status, integrity result, and—when actually measured—bounded elapsed duration plus the number of bytes attributable to that interval.')
+          one('History retention can be configured; zero-day retention clears retained history.', 'History retention can be configured; zero-day retention clears retained history. Performance calculations use only completed rows that contain both a positive measured duration and a valid positive measured-byte count. Resumed transfers record only bytes actually sent/received after the negotiated resume offset; legacy rows are never assigned invented measurements.')
+          one('SQLite schema version 4 stores bounded queue status/progress metadata', 'Current SQLite schema version 6 retains the bounded queue status/progress metadata introduced through schema v4')
+          one('The `completed_batch_items` table was introduced in SQLite schema version 3 and remains part of current schema version 4.', 'The `completed_batch_items` table was introduced in SQLite schema version 3 and remains part of current schema version 6.')
+          p.write_text(s)
+      - name: Commit privacy documentation
+        run: |
+          git add PRIVACY.md
+          git commit -m "docs(privacy): describe local performance metadata" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update versioning policy
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('docs/versioning-and-compatibility.md')
+          s=p.read_text()
+          def one(old,new):
+              global s
+              c=s.count(old)
+              if c != 1: raise SystemExit(f'versioning expected one match, found {c}: {old[:90]!r}')
+              s=s.replace(old,new)
+          one('The current SQLite schema version is **4**.', 'The current SQLite schema version is **6**.')
+          one('Storage compatibility is handled through explicit migrations. Current migration history includes trusted/history/diagnostic metadata in v1, queue metadata in v2, completed-batch resume metadata in v3, and bounded restart-safe queue operation/progress/item metadata in v4.', 'Storage compatibility is handled through explicit migrations. Current migration history includes trusted/history/diagnostic metadata in v1, queue metadata in v2, completed-batch resume metadata in v3, bounded restart-safe queue operation/progress/item metadata in v4, optional history duration in v5, and optional attributable measured-byte counts in v6.')
+          one('The v4 queue migration preserves legacy v3 rows with privacy-safe defaults.', 'The v4 queue migration preserves legacy v3 rows with privacy-safe defaults. The v4→v5→v6 history migrations preserve old rows with null performance fields rather than manufacturing measurements.')
+          p.write_text(s)
+      - name: Commit compatibility documentation
+        run: |
+          git add docs/versioning-and-compatibility.md
+          git commit -m "docs(compat): record schema v6 history evolution" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update user guide
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('docs/user-guide.md')
+          s=p.read_text()
+          def one(old,new):
+              global s
+              c=s.count(old)
+              if c != 1: raise SystemExit(f'user guide expected one match, found {c}: {old[:90]!r}')
+              s=s.replace(old,new)
+          one('History stores transfer metadata, not transferred file/text contents. Retention can be changed in Settings, including zero days for no retained history.', 'History stores transfer metadata, not transferred file/text contents. Retention can be changed in Settings, including zero days for no retained history. Completed transfers with real timing/byte measurements can show per-transfer duration/throughput plus a weighted History performance summary. Legacy and unmeasured rows remain unmeasured, and resumed-transfer rates use only bytes actually transferred after the resume offset.')
+          one('- Notifications are currently optional Android-only completion/failure notifications.', '- Completion/failure notifications are optional and off by default on Android, iOS, Mac Catalyst, and Windows; platform permission/system policy still applies.')
+          p.write_text(s)
+      - name: Commit user-guide documentation
+        run: |
+          git add docs/user-guide.md
+          git commit -m "docs(user): explain history performance dashboard" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update README
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('README.md')
+          s=p.read_text()
+          def one(old,new):
+              global s
+              c=s.count(old)
+              if c != 1: raise SystemExit(f'README expected one match, found {c}: {old[:90]!r}')
+              s=s.replace(old,new)
+          one('- Progress, batch throughput, and ETA presentation.\n', '- Progress, batch throughput, and ETA presentation.\n- Local History performance dashboard with measured completed-transfer duration, resume-safe actual-byte throughput, and weighted average throughput; legacy/unmeasured rows are never given invented rates.\n')
+          one('introduced in SQLite schema v3 and retained in current schema v4.', 'introduced in SQLite schema v3 and retained in current schema v6.')
+          one('Current SQLite schema version: **4**.', 'Current SQLite schema version: **6**.')
+          one('- transfer history;\n', '- transfer history with optional bounded completed-transfer duration and attributable measured-byte metadata;\n')
+          one('Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics.', 'Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization.')
+          one('- SQLite v0/v1/v2/v3→v4 migration, queue metadata, and corruption handling;', '- SQLite v0/v1/v2/v3/v4/v5→v6 migration, queue/history performance metadata, and corruption handling;')
+          one('including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, and optional local terminal notifications on Android/iOS/Mac Catalyst/Windows.', 'including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, resume-safe local History performance measurements, and optional local terminal notifications on Android/iOS/Mac Catalyst/Windows.')
+          p.write_text(s)
+      - name: Commit README documentation
+        run: |
+          git add README.md
+          git commit -m "docs(readme): document performance history dashboard" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update roadmap
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('NEXT_STEPS.md')
+          s=p.read_text()
+          marker='## August 15 final native-notification automated evidence\n'
+          section='''## August 15 performance-history source continuation\n\n- Local History now supports optional measured elapsed duration plus actual attributable measured bytes for completed operations.\n- SQLite schema is v6: v5 added bounded nullable `duration_ms`; v6 adds nullable non-negative `measured_bytes` without backfilling legacy rows.\n- Resumed file measurements use only bytes transferred after the negotiated resume offset, preventing logical file size from inflating throughput.\n- The Core analyzer rejects failed/unmeasured/impossible samples, uses saturating aggregate counters, and computes weighted throughput from total measured bytes divided by total measured duration.\n- History UI presents a weighted performance summary and per-row duration/rate only when a valid measurement exists, with English/Hindi resources.\n- This is local engineering telemetry under the existing History retention/privacy policy; it is not a fixed-speed guarantee and does not add peer endpoints, transfer content, pairing capabilities, credentials, certificates, or reusable authorization.\n- Representative-device and cross-network performance validation remains a physical release/post-v1 evidence task.\n\n'''
+          if marker not in s: raise SystemExit('roadmap insertion marker missing')
+          s=s.replace(marker, section+marker, 1)
+          s=s.replace('schema-v4 queue, or schema-v3 completed-batch resume work as missing.', 'schema-v6 local performance history, schema-v4 queue, or schema-v3 completed-batch resume work as missing.', 1)
+          s=s.replace('- schema v0/v1/v2/v3→v4 migration behavior;\n', '- schema v0/v1/v2/v3/v4/v5→v6 migration behavior;\n- performance-history duration/measured-byte bounds, legacy-null preservation, resumed-byte attribution, and impossible-sample rejection;\n', 1)
+          s=s.replace('- real database upgrade coverage from supported v1/v2/v3 states to schema v4;', '- real database upgrade coverage from supported v1/v2/v3/v4/v5 states to schema v6;', 1)
+          s=s.replace('- representative-device performance dashboard/history;\n', '- representative-device performance trend capture/export and synthetic-vs-real benchmark correlation using the implemented local History measurements;\n', 1)
+          p.write_text(s)
+      - name: Commit roadmap documentation
+        run: |
+          git add NEXT_STEPS.md
+          git commit -m "docs(roadmap): move performance dashboard into implemented source" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update project status
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('PROJECT_STATUS.md')
+          s=p.read_text()
+          marker='## August 15 final native-notification verification snapshot\n'
+          section='''## August 15 local performance-history continuation\n\n- Transfer History has been extended to SQLite schema **v6** with optional bounded `duration_ms` and optional attributable `measured_bytes`. Legacy v4/v5 rows retain null measurement fields rather than receiving synthetic values.\n- Completed single-file sender measurements use the actual negotiated bytes sent after resume; receiver single/batch-item measurements use bytes received after their resume offsets. Completed text sends use UTF-8 byte length.\n- Throughput is calculated only from completed rows with valid positive measured bytes and duration; impossible samples, failed/unmeasured rows, and zero-byte rows do not contribute.\n- The History UI shows localized English/Hindi per-row duration/rate plus a weighted aggregate rate computed from total measured bytes / total measured duration.\n- Performance metadata remains local and retention-bound, and adds no peer endpoint, transfer content, pairing capability/nonce, credential, certificate/private key, or reusable authorization.\n- Physical representative-device/network performance characterization remains external validation and is not inferred from hosted CI.\n\n'''
+          if marker not in s: raise SystemExit('status insertion marker missing')
+          p.write_text(s.replace(marker, section+marker, 1))
+      - name: Commit project status documentation
+        run: |
+          git add PROJECT_STATUS.md
+          git commit -m "docs(status): record schema v6 performance history" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update changelog
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('CHANGELOG.md')
+          s=p.read_text()
+          marker='## Unreleased - 2026-08-15\n\n'
+          section='''### Local History performance measurements\n\n- Added optional measured elapsed duration and actual attributable measured-byte metadata to Transfer History.\n- Advanced SQLite history storage through schema v5 (`duration_ms`) and schema v6 (`measured_bytes`) with backward-compatible null preservation for legacy rows.\n- Added resume-safe byte attribution so resumed file throughput is based only on bytes actually transferred after the negotiated offset.\n- Added a pure Core weighted-throughput analyzer with overflow-safe aggregation and rejection of failed, unmeasured, zero-byte, overlong-duration, and impossible measured-byte samples.\n- Added localized English/Hindi History performance summary plus per-transfer duration/throughput presentation.\n- Added migration/store/analyzer regressions covering legacy v4/v5 upgrades, duration/measured-byte bounds, resumed-transfer math, corrupted rows, aggregate overflow, and impossible in-memory samples.\n- Kept performance metadata inside the existing local History privacy/retention boundary with no new transfer content, endpoint, credential, certificate, pairing capability, or reusable authorization storage.\n\n'''
+          if marker not in s: raise SystemExit('changelog marker missing')
+          p.write_text(s.replace(marker, marker+section, 1))
+      - name: Commit changelog
+        run: |
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): record performance history feature" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Push documentation commits
+        run: git push origin HEAD:main
