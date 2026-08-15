@@ -123,3 +123,9 @@ Before a release changes a table incompatibly:
 8. Keep optional performance metadata bounded, attributable to a real measurement, and non-authorizing; measured bytes must never exceed the logical history size.
 
 The database is local application data, not a synchronization or cloud database.
+
+## Derived performance trend (no schema change)
+
+Schema version remains **v6**. Performance trends are calculated on demand from valid `transfer_history.duration_ms` and `transfer_history.measured_bytes` values already introduced by v5/v6; no trend table or export table is persisted.
+
+The cutoff query selects retained completed rows with positive bounded duration, positive measured bytes, and `measured_bytes <= size_bytes`, then the Core analyzer groups them into UTC daily buckets. CSV files are derived cache artifacts created only by an explicit export action and are not authoritative database state.
