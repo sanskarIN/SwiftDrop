@@ -2,6 +2,15 @@
 
 Updated: 2026-08-15
 
+
+## August 15 final in-repository bug/error audit snapshot
+
+- Final runtime source-changing head: `406c2cfb48c45e04cc34662776e67a68f167745d`; final source/test/release-trigger candidate before documentation synchronization: `6b1544b3a91ecfef2937a909f58a7e9faee31cff`.
+- The audit fixed resume filesystem mutation before validation, missing-positive-resume partial creation, external symlink/reparse staging, exact-expiry one-time pairing/authorization behavior, concurrent bounded-state admission races, exact discovered-peer expiry, and mDNS known-record RDATA over-read.
+- Release readiness now triggers for `src/**`, `tests/**`, `benchmarks/**`, the canonical solution/build inputs, and existing verification/audit/evidence helpers.
+- Portable verification is **569/569 xUnit tests** plus **26/26 Python helper tests**, with documentation/localization/Apple/Windows integration validators, Core/benchmark builds, and machine-readable vulnerability validation retained.
+- The final hosted platform/release evidence is recorded in `what_changed.md`; signed Android/Windows/Apple packages, real Apple provisioning/App Group, physical devices/networks/providers/storage, accessibility/localization, exact signed-artifact dependency/license/provenance, and store/privacy submission remain external release gates.
+
 ## August 15 local performance-history continuation
 
 - Transfer History has been extended to SQLite schema **v6** with optional bounded `duration_ms` and optional attributable `measured_bytes`. Legacy v4/v5 rows retain null measurement fields rather than receiving synthetic values.
