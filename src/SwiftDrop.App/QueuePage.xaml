@@ -15,11 +15,14 @@
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,0,0,8">
-            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="5">
               <Label Text="{Binding Label}" FontAttributes="Bold" />
               <Label Grid.Column="1" Text="{Binding State}" />
-              <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding TimingText}" FontSize="12" Opacity="0.7" />
-              <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Error}" FontSize="12" LineBreakMode="WordWrap" />
+              <Label Grid.Row="1" Text="{Binding OperationKind}" FontSize="12" Opacity="0.75" />
+              <Label Grid.Row="1" Grid.Column="1" Text="{Binding ProgressText}" FontSize="12" Opacity="0.8" HorizontalTextAlignment="End" />
+              <ProgressBar Grid.Row="2" Grid.ColumnSpan="2" Progress="{Binding ProgressFraction}" />
+              <Label Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding TimingText}" FontSize="12" Opacity="0.7" />
+              <Label Grid.Row="4" Grid.ColumnSpan="2" Text="{Binding Error}" FontSize="12" LineBreakMode="WordWrap" />
             </Grid>
           </Border>
         </DataTemplate>
