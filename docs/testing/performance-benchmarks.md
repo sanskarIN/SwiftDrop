@@ -53,3 +53,11 @@ The local History trend is an observational aid, not a benchmark guarantee. It g
 Automated tests verify UTC bucketing, window boundaries, resumed-byte attribution, saturation behavior, invariant CSV output, aggregate-only columns, duplicate/inconsistent bucket rejection, and the untruncated cutoff query.
 
 For release/post-v1 performance claims, collect representative-device and representative-network samples, export the aggregate trend, and correlate those results with the synthetic benchmark harness. Do not present hosted CI or the local trend as proof of universal transfer speed.
+
+## Local trend/export evidence
+
+The local History trend is an observational aid, not a benchmark guarantee. It groups valid completed measurements by UTC date and computes weighted throughput from actual measured bytes divided by measured elapsed time. Resumed transfers contribute only bytes transferred after the negotiated resume offset.
+
+Automated tests verify UTC bucketing, window boundaries, resumed-byte attribution, saturation behavior, invariant CSV output, aggregate-only columns, duplicate/inconsistent bucket rejection, and the untruncated cutoff query.
+
+For release/post-v1 performance claims, collect representative-device and representative-network samples, export the aggregate trend, and correlate those results with the synthetic benchmark harness. Do not present hosted CI or the local trend as proof of universal transfer speed.
