@@ -1,6 +1,6 @@
 # SwiftDrop Manual Test Matrix
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 Use synthetic disposable test files only. Never use secrets or irreplaceable personal files while validating development/release candidates.
 
@@ -252,15 +252,21 @@ Every failure must be bounded, must not freeze UI thread, must not silently repl
 
 ## SQLite/schema/privacy scenarios
 
-- Fresh database → schema v3.
-- Real copied v1 database → v3.
-- Real copied v2 database → v3.
+- Fresh database → schema v4.
+- Real copied v1 database → v4.
+- Real copied v2 database → v4.
+- Real copied v3 database with legacy queue rows → v4 without losing safe existing metadata.
 - Future schema version rejection.
 - Corrupt trust fingerprint row ignored.
-- Corrupt history/diagnostic/completion row does not break valid rows or grant trust/resume.
+- Corrupt history/diagnostic/completion/queue row does not break valid rows or grant trust/resume/authorization.
 - Privacy mode stores/redacts peer and file names.
 - Diagnostics redact paths/email/IP/endpoints/GUID/fingerprint/pair links.
-- Queue persistence contains generic labels/machine codes only.
+- Queue persistence uses the generic persisted label `Transfer`, bounded machine error codes, operation category, timestamps, progress basis points, and optional item counts only.
+- Queue progress remains in `0..10000`; completed item count never exceeds total count.
+- Start with persisted `Queued`/`Running` rows carrying partial progress; restart and confirm they become `Interrupted` while retaining safe last-known progress/context.
+- Confirm restart never automatically replays an interrupted queue row and a new transfer attempt requires fresh pairing/authorization.
+- Confirm queue schema contains no nonce/token/certificate/private-key/host/port/source-path/destination-path/content/reusable-authorization field.
+- Cancel queue initialization or a caller-cancelled best-effort metadata write and confirm cancellation does not permanently disable later queue persistence in the same app session.
 - Completed-batch metadata contains hashed receive-root identity, not absolute receive root.
 - Completed-batch source path is the canonical protocol path while destination path remains local receiver metadata and is re-confined/re-hashed before reuse.
 - Clearing app data/history behaves as documented.
@@ -282,6 +288,7 @@ Every failure must be bounded, must not freeze UI thread, must not silently repl
 - English UI/dialog/runtime statuses.
 - Hindi UI/dialog/runtime statuses and wrapping.
 - Confirm progress/status meaning does not rely on color alone.
+- Confirm queue operation category, percentage/item counts, progress bar, interrupted state, timing, and error context remain readable at large text sizes and in Hindi.
 
 ## Release evidence
 
