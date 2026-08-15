@@ -52,7 +52,7 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task PerformanceQueryReturnsOnlyCompletedMeasuredRowsAtOrAfterCutoff()
+    public async Task PerformanceQueryReturnsOnlyCompletedMeasuredSamplesAtOrAfterCutoff()
     {
         var now = DateTimeOffset.UtcNow;
         var cutoff = now.AddHours(-4);
@@ -75,34 +75,38 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
             "duration-only", "sent", "Desktop", "duration.bin", 1_000,
             now.AddMinutes(-20), "completed", true, 500, null));
 
-        var rows = await _store.GetPerformanceEntriesSinceAsync(cutoff);
+        var samples = await _store.GetPerformanceSamplesSinceAsync(cutoff);
 
-        Assert.Equal(["older-in-window", "newer"], rows.Select(row => row.Id).ToArray());
-        Assert.All(rows, row => Assert.Equal("completed", row.Status));
-        Assert.All(rows, row => Assert.True(row.DurationMilliseconds > 0));
-        Assert.All(rows, row => Assert.True(row.MeasuredBytes > 0));
+        Assert.Equal(2, samples.Count);
+        Assert.Equal([1_000L, 2_000L], samples.Select(sample => sample.LogicalSizeBytes).ToArray());
+        Assert.Equal([500L, 1_000L], samples.Select(sample => sample.DurationMilliseconds).ToArray());
+        Assert.Equal([1_000L, 2_000L], samples.Select(sample => sample.MeasuredBytes).ToArray());
+        Assert.All(samples, sample => Assert.True(sample.IsValid));
     }
 
     [Fact]
-    public async Task PerformanceQueryIncludesRowExactlyAtCutoff()
+    public async Task PerformanceQueryIncludesSampleExactlyAtCutoff()
     {
         var cutoff = DateTimeOffset.UtcNow.AddHours(-1);
         await _store.AddAsync(new TransferHistoryEntry(
             "boundary", "sent", "Desktop", "boundary.bin", 100,
             cutoff, "completed", true, 100, 100));
 
-        var row = Assert.Single(await _store.GetPerformanceEntriesSinceAsync(cutoff));
+        var sample = Assert.Single(await _store.GetPerformanceSamplesSinceAsync(cutoff));
 
-        Assert.Equal("boundary", row.Id);
+        Assert.Equal(cutoff.UtcDateTime, sample.TimestampUtc.UtcDateTime);
+        Assert.Equal(100, sample.LogicalSizeBytes);
+        Assert.Equal(100, sample.DurationMilliseconds);
+        Assert.Equal(100, sample.MeasuredBytes);
     }
 
     [Fact]
     public async Task PerformanceQueryRejectsInvalidCutoff()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            _store.GetPerformanceEntriesSinceAsync(DateTimeOffset.UnixEpoch.AddTicks(-1)));
+            _store.GetPerformanceSamplesSinceAsync(DateTimeOffset.UnixEpoch.AddTicks(-1)));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-            _store.GetPerformanceEntriesSinceAsync(DateTimeOffset.UtcNow.AddDays(3)));
+            _store.GetPerformanceSamplesSinceAsync(DateTimeOffset.UtcNow.AddDays(3)));
     }
 
     [Fact]
