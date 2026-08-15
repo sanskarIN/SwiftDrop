@@ -17,7 +17,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] `docs/release/dependency-evidence.md` matches the workflow artifact names, report format, validator behavior, manifest schema, and current release-review process.
 - [ ] No secrets, signing keys, PFX/P12 files, keystores, provisioning secrets, tokens, pairing invitations, local databases, or real transferred files are committed.
 - [ ] No obsolete/dead batch compatibility handler can bypass stable transfer IDs; XAML and app call sites use the stable-ID coordinator API.
-- [ ] Current SQLite schema is v4 and documentation/tests/migrations agree on the v0/v1/v2/v3→v4 upgrade contract.
+- [ ] Current SQLite schema is v6 and documentation/tests/migrations agree on the v0/v1/v2/v3/v4/v5→v6 upgrade contract, including null-preserving legacy performance fields.
 - [ ] `CHANGELOG.md`, `PROJECT_STATUS.md`, `PRIVACY.md`, `THIRD_PARTY_NOTICES.md`, `NEXT_STEPS.md`, protocol/security/platform/testing/release docs, and `what_changed.md` match the exact candidate.
 
 ## Protocol, identity, and transport security
@@ -67,7 +67,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] Folder manifest ordering is deterministic for an unchanged source tree.
 - [ ] Stable batch IDs are retained across pause/failure retry and changed for a new explicit send.
 - [ ] Active app batch controls use the stable-ID path; the removed compatibility overload cannot create a fresh ID per retry.
-- [ ] `completed_batch_items`, introduced in schema v3 and retained in current schema v4, can skip only a still-present file matching the same transfer/root/source/length/SHA-256.
+- [ ] `completed_batch_items`, introduced in schema v3 and retained in current schema v6, can skip only a still-present file matching the same transfer/root/source/length/SHA-256.
 - [ ] Modifying/removing a previously completed destination before retry prevents false completed reuse.
 - [ ] Modifying/removing a previously completed destination after the retry plan but before its item ACK is caught by the second completed-item verification.
 
@@ -84,14 +84,16 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] No transferred file/text content is uploaded to a SwiftDrop-operated service.
 - [ ] Clipboard is read only after explicit user action.
 - [ ] Transfer bytes/text contents, private keys, reusable pairing/transfer authorization, pairing nonces, queue peer endpoints, and queue source/destination paths are not stored in SQLite.
-- [ ] `completed_batch_items`, introduced in schema v3 and retained in v4, stores only bounded resume metadata and a hashed receive-root identity.
+- [ ] `completed_batch_items`, introduced in schema v3 and retained in current schema v6, stores only bounded resume metadata and a hashed receive-root identity.
 - [ ] Completed-batch source path is canonical protocol identity; local destination metadata is re-confined/re-hashed before reuse.
-- [ ] Schema-v4 queue persistence stores only generic persisted labels, bounded state/error/operation/timestamp/progress/item metadata and never replays authorization after restart.
+- [ ] The queue persistence contract introduced through schema v4 and retained in schema v6 stores only generic persisted labels, bounded state/error/operation/timestamp/progress/item metadata and never replays authorization after restart.
 - [ ] Queue progress remains bounded to `0..10000`; completed item count does not exceed total count.
 - [ ] Persisted `Queued`/`Running` rows become `Interrupted` on restart while retaining safe last-known progress/context and requiring fresh authorization for any new attempt.
 - [ ] Caller cancellation during queue initialization/best-effort persistence does not permanently disable later metadata persistence in the same app session.
 - [ ] Privacy mode redacts peer/file history labels and privacy-sensitive diagnostic identifiers.
-- [ ] Optional Android completion/failure notification text remains generic and content-free.
+- [ ] Schema-v6 History performance fields are optional/bounded; measured bytes never exceed logical size, resumed transfers count only post-offset bytes, legacy/unmeasured rows are not assigned rates, and invalid optional measurements cannot change the underlying transfer outcome.
+- [ ] History retention/clear behavior removes performance metadata together with its owning history rows; numeric performance metadata adds no peer endpoint, content, credential, certificate, pairing capability, or reusable authorization.
+- [ ] Optional Android/iOS/Mac Catalyst/Windows completion/failure notification text remains generic and content-free.
 - [ ] `PRIVACY.md` and store privacy declarations match final binaries.
 
 ## Android
@@ -175,6 +177,10 @@ Complete `docs/testing/manual-test-matrix.md` for supported sender/receiver comb
 - [ ] trust, revoke, identity reset, and identity-regeneration re-pair behavior;
 - [ ] receive-root change while listener is active;
 - [ ] queue restart/interrupted metadata behavior, recovered progress/item display, and no stale authorization replay.
+- [ ] normal completed file/text History samples display measured duration/rate where attributable;
+- [ ] resumed-file History samples use only actual bytes transferred after the negotiated offset;
+- [ ] zero-byte/failed/cancelled/paused/rejected/legacy rows do not display fabricated throughput;
+- [ ] weighted History summary and English/Hindi presentation are validated on representative devices.
 
 ## Restricted-network and lifecycle validation
 
