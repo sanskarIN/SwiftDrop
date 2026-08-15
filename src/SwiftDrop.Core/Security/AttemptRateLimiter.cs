@@ -25,17 +25,26 @@ public sealed class AttemptRateLimiter
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         if (key.Length > 256) return false;
 
-        if (!_attempts.ContainsKey(key) && _attempts.Count >= _maxKeys)
+        if (!_attempts.TryGetValue(key, out var queue))
         {
             lock (_cleanupGate)
             {
-                PruneExpired(now);
-                if (!_attempts.ContainsKey(key) && _attempts.Count >= _maxKeys)
-                    return false;
+                if (!_attempts.TryGetValue(key, out queue))
+                {
+                    if (_attempts.Count >= _maxKeys)
+                    {
+                        PruneExpired(now);
+                        if (_attempts.Count >= _maxKeys)
+                            return false;
+                    }
+
+                    queue = new Queue<DateTimeOffset>();
+                    if (!_attempts.TryAdd(key, queue))
+                        queue = _attempts[key];
+                }
             }
         }
 
-        var queue = _attempts.GetOrAdd(key, static _ => new Queue<DateTimeOffset>());
         lock (queue)
         {
             PruneQueue(queue, now);
