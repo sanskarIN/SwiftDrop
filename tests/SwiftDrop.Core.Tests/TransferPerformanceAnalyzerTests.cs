@@ -1,5 +1,6 @@
 using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
+using SwiftDrop.Core.Storage;
 
 namespace SwiftDrop.Core.Tests;
 
@@ -94,6 +95,50 @@ public sealed class TransferPerformanceAnalyzerTests
         Assert.Equal(0, summary.MeasuredTransfers);
         Assert.Equal(0d, summary.AverageBytesPerSecond);
         Assert.Equal(0d, TransferPerformanceAnalyzer.BytesPerSecond(invalid));
+    }
+
+    [Fact]
+    public void NormalizeOptionalMeasurement_AcceptsValidSampleAndRoundsUpSubMillisecondDuration()
+    {
+        var measurement = TransferPerformanceAnalyzer.NormalizeOptionalMeasurement(
+            TimeSpan.FromTicks(TimeSpan.TicksPerMillisecond / 2),
+            logicalSizeBytes: 1_000,
+            measuredBytes: 250);
+
+        Assert.NotNull(measurement);
+        Assert.Equal(1, measurement.DurationMilliseconds);
+        Assert.Equal(250, measurement.MeasuredBytes);
+    }
+
+    [Theory]
+    [InlineData(0, 1_000, 250)]
+    [InlineData(-1, 1_000, 250)]
+    [InlineData(1, -1, 1)]
+    [InlineData(1, 1_000, 0)]
+    [InlineData(1, 1_000, -1)]
+    [InlineData(1, 1_000, 1_001)]
+    public void NormalizeOptionalMeasurement_DropsInvalidOptionalSamples(
+        long durationMilliseconds,
+        long logicalSizeBytes,
+        long measuredBytes)
+    {
+        var measurement = TransferPerformanceAnalyzer.NormalizeOptionalMeasurement(
+            TimeSpan.FromMilliseconds(durationMilliseconds),
+            logicalSizeBytes,
+            measuredBytes);
+
+        Assert.Null(measurement);
+    }
+
+    [Fact]
+    public void NormalizeOptionalMeasurement_DropsOverlongDurationWithoutThrowing()
+    {
+        var measurement = TransferPerformanceAnalyzer.NormalizeOptionalMeasurement(
+            TimeSpan.FromMilliseconds(TransferHistoryStore.MaxDurationMilliseconds + 1d),
+            logicalSizeBytes: 1_000,
+            measuredBytes: 1_000);
+
+        Assert.Null(measurement);
     }
 
     [Fact]
