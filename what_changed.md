@@ -3256,3 +3256,13 @@ Notification failure remains deliberately non-authoritative: permission, registr
 - Production readiness must still be evidenced externally from signed artifacts and real environments: Android AAB/APK signing/install/upgrade/policy/notification behavior; Windows signed MSIX install/update/protocol/firewall/app-notification registration/activation; Apple Developer App Group/profiles, signed iOS Share Extension/provider behavior, iOS/Mac notification behavior, Mac signing/sandbox/notarization; physical cross-device/network/storage/low-space/lifecycle/SecureStorage tests; accessibility/localization on real assistive technologies; exact signed-artifact dependency/license/provenance reconciliation; and final store/privacy declarations.
 - Hosted source validation must not be described as proof of those signed/device/store requirements.
 
+## 197. Final cleaned-main verification after defect-audit ledger
+
+- After Sections 187–196 were written and the defect-audit trigger/workflow/writer were removed, `main` reached clean evidence head `429b26e626d819c6e741d9817e68f327e2595d9a`.
+- CI run **31878772423** completed successfully on that exact head across both the Ubuntu Core job and Windows PowerShell portable verifier. The maintained contract remained **569/569 xUnit tests** plus **26/26 Python helper tests**, documentation/localization/Apple/Windows integration validation, Core/benchmark builds, and machine-readable portable vulnerability validation.
+- CodeQL run **31878772418** completed successfully on the same head.
+- Security-hygiene run **31878772419** completed successfully on the same head.
+- `.github/workflows` contained exactly the five maintained workflows: `ci.yml`, `codeql.yml`, `platform-builds.yml`, `release-readiness.yml`, and `security-hygiene.yml` before this documentation-only appendix helper was staged.
+- This appendix and its helper cleanup do not change runtime source `406c2cfb48c45e04cc34662776e67a68f167745d` or the final source/test/release-trigger candidate `6b1544b3a91ecfef2937a909f58a7e9faee31cff`.
+- Signed package/device/network/provider/accessibility/store validation remains external release evidence and is not replaced by hosted source checks.
+
