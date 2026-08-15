@@ -490,3 +490,11 @@ Open GitHub issue search returned no open issues at the time of the sweep.
 - Contents API writes do not expose an independent author/committer-email override; focused commits use `Signed-off-by: Sanskar <sanskarin@outlook.in>`.
 
 See `NEXT_STEPS.md` for release validation priorities and `what_changed.md` for the complete engineering ledger.
+
+## August 15 aggregate performance-trend export
+
+SwiftDrop now derives a rolling 30-day UTC performance trend from valid completed History measurements and can export it as a deterministic aggregate-only CSV through the operating-system share sheet. The query path is cutoff-based rather than UI-limit based, so all retained valid measurements in the selected window can contribute.
+
+The export contains only UTC date, measured transfer count, measured bytes, measured duration, and weighted bytes/second. It does not expose file/device/path/network/authentication/content fields and introduces no new database schema or remote telemetry.
+
+Portable coverage for the corrected source is **559/559 xUnit tests** plus **26/26 Python helper tests**, including a permanent cross-layer trend/export contract. Exact final platform/release run IDs are recorded in `what_changed.md` after hosted jobs complete. Representative-device and cross-network benchmark correlation remains external evidence.
