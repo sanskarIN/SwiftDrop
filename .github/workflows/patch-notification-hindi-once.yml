@@ -16,6 +16,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Refresh latest main
+        shell: bash
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
       - name: Make notification denial wording platform neutral
         shell: bash
         run: |
