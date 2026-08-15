@@ -291,3 +291,9 @@ Source implementation and hosted compilation are not production certification. R
 The performance trend is a derived read model, not a new persistence model. `TransferHistoryStore.GetPerformanceEntriesSinceAsync` selects all retained valid completed measurements at/after a UTC cutoff without the normal recent-row UI limit. `TransferPerformanceTrendAnalyzer` groups these records by UTC calendar date and uses actual `measured_bytes` plus `duration_ms` to compute weighted daily throughput.
 
 `TransferPerformanceTrendCsvExporter` serializes only aggregate date/count/byte/duration/rate fields with invariant formatting. `TransferHistoryService` writes the derived CSV to app cache on explicit request, best-effort deletes older matching cached exports, and `HistoryPage` hands the file to the OS share sheet. No new SQLite table, cloud telemetry path, peer endpoint, row identifier, file/device metadata, or reusable authorization is introduced.
+
+## History performance trend derivation and export
+
+The performance trend is a derived read model, not a new persistence model. `TransferHistoryStore.GetPerformanceEntriesSinceAsync` selects all retained valid completed measurements at/after a UTC cutoff without the normal recent-row UI limit. `TransferPerformanceTrendAnalyzer` groups these records by UTC calendar date and uses actual `measured_bytes` plus `duration_ms` to compute weighted daily throughput.
+
+`TransferPerformanceTrendCsvExporter` serializes only aggregate date/count/byte/duration/rate fields with invariant formatting. `TransferHistoryService` writes the derived CSV to app cache on explicit request, best-effort deletes older matching cached exports, and `HistoryPage` hands the file to the OS share sheet. No new SQLite table, cloud telemetry path, peer endpoint, row identifier, file/device metadata, or reusable authorization is introduced.
