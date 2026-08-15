@@ -18,6 +18,7 @@ class PerformanceTrendExportContractTests(unittest.TestCase):
         analyzer = self.read("src/SwiftDrop.Core/Diagnostics/TransferPerformanceTrendAnalyzer.cs")
         self.assertIn("TransferPerformanceAnalyzer.IsValidMeasurement(entry)", analyzer)
         self.assertIn("DateOnly.FromDateTime(entry.TimestampUtc.UtcDateTime)", analyzer)
+        self.assertIn("entry.TimestampUtc.ToUniversalTime() > windowEndUtc", analyzer)
         self.assertIn("entry.MeasuredBytes!.Value", analyzer)
         self.assertIn("entry.DurationMilliseconds!.Value", analyzer)
         self.assertIn("SaturatingAdd", analyzer)
