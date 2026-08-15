@@ -3094,3 +3094,74 @@ Notification failure remains deliberately non-authoritative: permission, registr
 - Clean-main CI run **31874085156** passed both Ubuntu Core and Windows portable-verifier jobs after the documentation/helper cleanup state.
 - Clean-main CodeQL run **31874085174** completed successfully; security-hygiene run **31874085159** also completed successfully.
 - The repository still requires signed-package and physical/provider/network/filesystem/accessibility/store validation before a production-readiness claim. Hosted CI does not prove Android package/provider behavior, Apple provisioning/App Group/notarization, Windows signed MSIX/notification activation, real-device notification delivery, representative-device/network performance, exact signed-artifact dependency/license/provenance, or store/privacy submission acceptance.
+
+## 178. Reusable daily performance trend
+
+- Added a portable rolling History performance trend with a default **30-day** window and a guarded maximum of **3650 days**.
+- Daily buckets use UTC calendar dates and accept only valid completed measurements; legacy, failed, cancelled, rejected, paused, zero-byte, missing-duration, missing-measured-byte, and otherwise invalid rows do not create fabricated trend points.
+- Throughput uses actual attributable `measured_bytes`, not logical file size, so resumed transfers remain mathematically correct.
+- Daily throughput is weighted from aggregate measured bytes divided by aggregate measured duration, with saturating counters protecting extreme valid totals from integer overflow.
+- The analyzer rejects timestamps after the exact UTC window-end instant, including clock-skewed samples later on the same UTC date.
+
+## 179. Identifier-free trend projection
+
+- Added `TransferPerformanceSample`, containing only `TimestampUtc`, `LogicalSizeBytes`, `DurationMilliseconds`, and `MeasuredBytes`.
+- `TransferHistoryStore.GetPerformanceSamplesSinceAsync` projects exactly `timestamp_utc`, `size_bytes`, `duration_ms`, and `measured_bytes` from SQLite.
+- The trend query is cutoff-based and intentionally has no `LIMIT`, so it is not truncated by the normal recent-History UI cap.
+- SQL eligibility requires completed status, non-negative logical size, bounded positive duration, positive measured bytes, and `measured_bytes <= size_bytes`.
+- History row IDs, direction, peer/device names, filenames, paths, endpoints, hashes, transfer identifiers, pairing material, credentials, and content are never materialized into the trend pipeline.
+- SQLite remains schema **v6**; no trend/export table or cloud telemetry persistence was added.
+
+## 180. Deterministic aggregate-only CSV export
+
+- Added `TransferPerformanceTrendCsvExporter` with the exact five-column contract: `date_utc,measured_transfers,measured_bytes,measured_duration_ms,weighted_bytes_per_second`.
+- Export order, UTC dates, integer values, and floating-point rates use deterministic invariant formatting.
+- The exporter accepts aggregate trend points rather than raw History rows and rejects duplicate UTC buckets, non-positive aggregate measurements, and throughput values inconsistent with measured bytes/duration.
+- The CSV contains no filename, peer/device name, direction, row ID, path, endpoint, hash, token, nonce, certificate/private key, transferred text/content, or reusable authorization.
+
+## 181. Local History trend preview and export lifecycle
+
+- History now shows a localized rolling 30-day trend and up to the seven most recent measured UTC days, newest first.
+- `Export aggregate CSV` is enabled only when measured trend data exists and opens the operating-system share sheet after explicit user action.
+- SwiftDrop writes the aggregate CSV to app cache as UTF-8 without BOM and best-effort deletes older matching SwiftDrop trend exports before creating a new one.
+- Clearing History and configuring zero-day History retention also best-effort remove SwiftDrop-owned cached trend exports, so derived local export files follow the History privacy lifecycle.
+- The export path performs no HTTP request, analytics upload, background telemetry, account synchronization, or remote persistence.
+
+## 182. Localization, documentation, and roadmap synchronization
+
+- Added English and Hindi strings for trend title/description, no-measurement guidance, recent-day preview lines, aggregate export action, share title, and export failure handling with localization key/placeholder parity.
+- Updated `README.md`, `PRIVACY.md`, `NEXT_STEPS.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `BUILDING.md`, `docs/architecture.md`, `docs/user-guide.md`, `docs/storage/database-schema.md`, `docs/testing/performance-benchmarks.md`, `docs/testing/manual-test-matrix.md`, `docs/testing/security-test-plan.md`, `docs/testing/ci-reference.md`, `docs/release/release-checklist.md`, and `docs/release/release-process.md`.
+- Removed a duplicated/stale architecture trend section and replaced the obsolete full-History-row query reference with the identifier-free projection contract.
+- The source-level aggregate trend/export P2 item is complete; representative-device/cross-network evidence and synthetic-vs-real benchmark correlation remain real external performance-validation work.
+
+## 183. Regression coverage and defect closure
+
+- Added Core tests for UTC grouping, offset handling, resumed measured-byte math, exact end-instant exclusion, invalid/out-of-window sample exclusion, saturation, window bounds, deterministic CSV formatting, aggregate privacy columns, duplicate/inconsistent/non-positive point rejection, and identifier-free storage cutoff behavior.
+- Added permanent `scripts/tests/test_performance_trend_export_contract.py` covering identifier-free aggregation, exact UTC end filtering, aggregate-only CSV, untruncated numeric-only SQL projection, cache/History-clear lifecycle, absence of HTTP/telemetry wiring, OS share-sheet integration, and English/Hindi UI resources.
+- The first verifier caught a test-only named-parameter casing error (`integrityVerified` vs `IntegrityVerified`); it was fixed rather than weakening the verifier.
+- A later review found and fixed future same-day clock-skew inclusion, and a privacy review replaced full History-row materialization with the numeric/timestamp-only `TransferPerformanceSample` projection.
+- Portable coverage is now **26/26 Python helper tests** and **559/559 xUnit tests**.
+
+## 184. Exact final runtime platform evidence
+
+- Exact final application/runtime source head: `9e637b909550ea433bf0c453774d6ab20ba7f605`.
+- Maintained platform run **31876069688** completed successfully across Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app, including target dependency vulnerability audits and evidence uploads.
+- Platform dependency-evidence artifact digests recorded by GitHub:
+  - `android-dependency-audit`: `sha256:52112f24feb10bf33167aac4717e02813fdf155769b9efc34678796ba401c494`
+  - `windows-dependency-audit`: `sha256:0424717261b276a273f108725e0c2280552f28f3a1d780bf730e6284bec325cb`
+  - `apple-dependency-audit`: `sha256:8e0bc7a36b9e1a6bfdbcad584ade30c68a458d38c4fe656c22d0401ba87fd7e0`
+- No application/runtime source file changed after `9e637b909550ea433bf0c453774d6ab20ba7f605`; later commits in this continuation are regression-contract, documentation, ledger, and temporary-helper cleanup only.
+
+## 185. Release-readiness and cleaned-branch evidence
+
+- Final source+portable-contract candidate: `3df4a50836a64655fbf1fb990d0946198f32b52b`.
+- Release-readiness run **31876116068** completed successfully across Core/tests, Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, iOS Simulator containing app, dependency audits/uploads, and final `release-gate`.
+- Its portable contract passed **26/26 Python helper tests**, **559/559 xUnit tests**, documentation/localization/Apple/Windows integration validation, Core/benchmark compilation, and zero vulnerable-package findings in maintained portable reports.
+- Release-readiness artifact digests recorded by GitHub:
+  - `dependency-audit`: `sha256:ae30f65ac569174663e18481db5021c36dfb95e90bd76fd40030a37b802e8e42`
+  - `android-dependency-audit`: `sha256:b6b2ae6218db5548cff8a1f3f0e649e50d72fe742f26910d7a70ecfafb989a2d`
+  - `windows-dependency-audit`: `sha256:6ee3928470c965fc6f747e7a94beea32db4fc49e734d797096741eea351a9c73`
+  - `apple-dependency-audit`: `sha256:64d1ce3c3f08111e762342eda7ac7d9e88fc203635afd7c65f1d76b6934bfed3`
+- Final cleaned-main CI run **recorded after ledger-helper removal in Section 186**, CodeQL run **recorded after ledger-helper removal in Section 186**, and security-hygiene run **recorded after ledger-helper removal in Section 186** are the post-ledger/helper-removal branch evidence.
+- Production readiness still requires signed-package, physical-device/provider/network/filesystem/accessibility/localization, representative-device performance correlation, exact signed-artifact dependency/license/provenance, Apple provisioning/notarization, Windows signed MSIX activation, and store/privacy submission validation. Hosted CI does not prove those external gates.
+

@@ -498,3 +498,7 @@ SwiftDrop now derives a rolling 30-day UTC performance trend from valid complete
 The export contains only UTC date, measured transfer count, measured bytes, measured duration, and weighted bytes/second. It does not expose file/device/path/network/authentication/content fields and introduces no new database schema or remote telemetry. The trend storage query itself is identifier-free and projects only timestamp/size/duration/measured-byte fields; exact-window filtering also excludes clock-skewed samples later than the requested UTC end instant.
 
 Portable coverage for the corrected source is **559/559 xUnit tests** plus **26/26 Python helper tests**, including a permanent cross-layer trend/export contract. Exact final platform/release run IDs are recorded in `what_changed.md` after hosted jobs complete. Representative-device and cross-network benchmark correlation remains external evidence.
+
+- Exact runtime platform evidence for this continuation: run `31876069688` on runtime head `9e637b909550ea433bf0c453774d6ab20ba7f605`.
+- Release-readiness evidence: run `31876116068` on source+contract head `3df4a50836a64655fbf1fb990d0946198f32b52b`, with **26/26 Python helper tests** and **559/559 xUnit tests** plus Android/Windows/Apple compile/audit gates and final release gate.
+- Cleaned-branch evidence after ledger/helper removal: CI `recorded after ledger-helper removal in Section 186`, CodeQL `recorded after ledger-helper removal in Section 186`, security hygiene `recorded after ledger-helper removal in Section 186`.
