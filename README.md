@@ -192,7 +192,7 @@ Queue metadata can retain a bounded non-secret operation category, update timest
 
 SQLite does **not** store transferred file bytes, transferred text, private keys, pairing invitations/nonces, reusable session/transfer authorization, queue peer endpoints, queue source/destination paths, source absolute paths, or receive-root absolute paths for resume state.
 
-Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. Persisted queue labels remain generic rather than recording transfer filenames/text.
+Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. Persisted queue labels remain generic rather than recording transfer filenames/text.
 
 Optional terminal notification text is also deliberately generic and does not place transfer-specific identifiers/content into OS notification history.
 
@@ -237,6 +237,11 @@ Portable tests include:
 - shared transfer staging-budget policy;
 - exact Apple share-package physical file sets;
 - discovery fuzz/truncation/pointer-loop/duplicate metadata;
+- mDNS record-RDATA boundary isolation, including rejection of names that would read into a following record;
+- exact-expiry behavior for one-time pairing/transfer authorizations and discovered-peer presence;
+- concurrent bounded-state admission for rate-limiter peer keys and one-time authorization nonces;
+- resume failure paths that reject invalid/missing staged state without creating destination directories or partial files;
+- external staging symlink/reparse rejection through the same regular-source safety policy used by direct sends;
 - session-drain races;
 - privacy redaction;
 - UTF-8 rune-safe text truncation.
@@ -245,7 +250,7 @@ Configured GitHub Actions include:
 
 - documentation integrity validation;
 - **26 Python validation-helper regression tests**, including NuGet evidence helpers, packaged-integration validators, performance-history measurement contracts, and aggregate performance-trend export contracts;
-- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **559 xUnit tests**;
+- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **569 xUnit tests**;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;
