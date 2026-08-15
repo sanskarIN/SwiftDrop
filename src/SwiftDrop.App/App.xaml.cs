@@ -6,17 +6,20 @@ namespace SwiftDrop.App;
 public partial class App : Application
 {
     private readonly MainPage _mainPage;
+    private readonly TransferNotificationService _notifications;
     private readonly EventHandler _externalInputChanged;
 
     public App(
         AppSettingsService settings,
         AppearanceService appearance,
+        TransferNotificationService notifications,
         IServiceProvider services)
     {
         InitializeComponent();
         appearance.Apply(settings.Load());
         ExternalInputInbox.PruneStagedCache(TimeSpan.FromHours(24));
         _mainPage = services.GetRequiredService<MainPage>();
+        _notifications = notifications;
         _externalInputChanged = OnExternalInputChanged;
         ExternalInputInbox.Changed += _externalInputChanged;
     }
@@ -79,5 +82,6 @@ public partial class App : Application
             window.Destroying -= OnWindowDestroying;
         }
         await _mainPage.DisposeAsync();
+        _notifications.Dispose();
     }
 }
