@@ -32,6 +32,8 @@ class PerformanceTrendExportContractTests(unittest.TestCase):
         self.assertIn(expected_header, exporter)
         self.assertIn('ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)', exporter)
         self.assertIn('ToString("R", CultureInfo.InvariantCulture)', exporter)
+        self.assertIn("TransferPerformanceTrendPoint", exporter)
+        self.assertNotIn("TransferHistoryEntry", exporter)
         for forbidden in (
             "peer_device_name",
             "file_name",
@@ -62,7 +64,10 @@ class PerformanceTrendExportContractTests(unittest.TestCase):
         self.assertIn("FileSystem.CacheDirectory", history_service)
         self.assertIn("CleanupPreviousPerformanceTrendExports", history_service)
         self.assertIn("encoderShouldEmitUTF8Identifier: false", history_service)
+        self.assertNotIn("HttpClient", history_service)
+        self.assertNotIn("TelemetryClient", history_service)
         self.assertIn("Share.Default.RequestAsync", page)
+        self.assertIn("new ShareFileRequest", page)
         self.assertIn("HistoryPerformanceTrendShareTitle", page)
 
     def test_history_trend_ui_and_localizations_are_complete(self) -> None:
