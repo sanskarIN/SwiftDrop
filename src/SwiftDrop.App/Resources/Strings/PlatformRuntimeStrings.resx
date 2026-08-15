@@ -18,4 +18,8 @@
   <data name="DeviceIdentityRefreshedFormat" xml:space="preserve"><value>SwiftDrop created a new local device ID and certificate because the previous certificate could not be safely reused ({0}). Other devices that trusted the previous certificate must pair with this device again. Received files, transfer history, and your local trusted-device list were not deleted.</value></data>
   <data name="TransferCompletedNotification" xml:space="preserve"><value>Transfer completed successfully.</value></data>
   <data name="TransferFailedNotification" xml:space="preserve"><value>A transfer failed. Open SwiftDrop to review the status.</value></data>
+  <data name="NotificationSupportAndroid" xml:space="preserve"><value>Android completion/failure notifications are opt-in. Android 13+ notification permission is requested only when you enable this setting and save.</value></data>
+  <data name="NotificationSupportApple" xml:space="preserve"><value>Apple completion/failure notifications are opt-in. SwiftDrop requests alert and sound permission only when you enable this setting and save.</value></data>
+  <data name="NotificationSupportWindows" xml:space="preserve"><value>Windows completion/failure app notifications are opt-in and contain only generic transfer status, not filenames or transfer contents.</value></data>
+  <data name="NotificationSupportUnavailable" xml:space="preserve"><value>Optional completion/failure system notifications are not implemented on this target. Transfer status remains available inside SwiftDrop.</value></data>
 </root>
