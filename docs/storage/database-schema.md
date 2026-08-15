@@ -6,7 +6,7 @@ Current database path in the MAUI application:
 
 `FileSystem.AppDataDirectory/swiftdrop.db`
 
-Current schema version: **5**.
+Current schema version: **6**.
 
 ## `trusted_peers`
 
@@ -37,10 +37,11 @@ Columns:
 - `status` — completed, failed, cancelled, paused, rejected, not-selected, etc.
 - `integrity_verified` — whether completed file integrity was verified.
 - `duration_ms` — optional measured elapsed duration in milliseconds, bounded to `0..604800000` (seven days). Legacy rows and events without an attributable measurement remain `NULL`.
+- `measured_bytes` — optional non-negative count of bytes actually attributable to the measured interval; it cannot exceed the logical `size_bytes`. This keeps resumed-transfer throughput from being calculated using bytes that were already present before the measured interval.
 
-The History performance summary derives throughput only from completed rows with positive size and positive measured duration. It does not infer values for legacy, rejected, skipped, or otherwise unmeasured rows. Aggregate byte counters saturate rather than overflow on extreme valid metadata.
+The History performance summary derives throughput only from completed rows with positive measured bytes and positive measured duration. It requires `measured_bytes <= size_bytes` and does not infer values for legacy, rejected, skipped, or otherwise unmeasured rows. Aggregate byte counters saturate rather than overflow on extreme valid metadata.
 
-Retention pruning is controlled by local settings. A zero-day retention setting clears retained history rather than creating hidden permanent history. Privacy mode continues to redact peer/file display fields; numeric byte/duration metadata is retained under the same local history-retention policy and does not include peer endpoints, transfer content, pairing capabilities, or credentials.
+Retention pruning is controlled by local settings. A zero-day retention setting clears retained history rather than creating hidden permanent history. Privacy mode continues to redact peer/file display fields; numeric size/duration/measured-byte metadata is retained under the same local history-retention policy and does not include peer endpoints, transfer content, pairing capabilities, or credentials.
 
 ## `diagnostic_events`
 
@@ -104,6 +105,7 @@ The table stores metadata only. A retry does not trust this row by itself: the c
 - **2 → 3:** create completed-batch item metadata and index.
 - **3 → 4:** extend queue metadata with operation kind, update timestamp, bounded progress basis points, and optional item counts; legacy rows receive safe defaults (`operation_kind='Transfer'`, progress `0`, nullable counts).
 - **4 → 5:** add nullable, bounded `transfer_history.duration_ms`; existing history rows remain `NULL` so old records are never presented as measured performance samples. The migration defensively recreates the legacy history base table if a partially formed older database declares an old schema version without that table.
+- **5 → 6:** add nullable, non-negative `transfer_history.measured_bytes`; existing v5 duration rows keep `measured_bytes=NULL`, preventing the upgrade from inventing a byte count for an interval whose actual transferred bytes were not recorded.
 
 The migration manager applies versions sequentially inside transactions, rejects a database whose `PRAGMA user_version` is newer than the application supports, and has automated tests for version-zero migration, v1/v2 upgrade paths, legacy v3 queue-row migration, legacy v4 history-row migration, idempotence, and future-version rejection.
 
@@ -118,6 +120,6 @@ Before a release changes a table incompatibly:
 5. Add migration, validation, and rollback/recovery notes/tests.
 6. Treat persisted queue rows as status/progress metadata, never as reusable transfer authorization.
 7. Keep persisted progress bounded and item-count relationships internally consistent.
-8. Keep optional performance metadata bounded, attributable to a real measurement, and non-authorizing.
+8. Keep optional performance metadata bounded, attributable to a real measurement, and non-authorizing; measured bytes must never exceed the logical history size.
 
 The database is local application data, not a synchronization or cloud database.
