@@ -24,7 +24,7 @@ elseif (Get-Command py -ErrorAction SilentlyContinue) {
     $pythonPrefix = @('-3')
 }
 else {
-    throw 'Python 3 is required to validate documentation, localization, Apple integration metadata, and NuGet audit reports.'
+    throw 'Python 3 is required to validate documentation, localization, Apple/Windows integration metadata, and NuGet audit reports.'
 }
 
 function Invoke-Python {
@@ -39,6 +39,7 @@ try {
     Invoke-Python -CommandArguments @('scripts/validate_documentation.py')
     Invoke-Python -CommandArguments @('scripts/validate_localization.py')
     Invoke-Python -CommandArguments @('scripts/validate_apple_integration.py')
+    Invoke-Python -CommandArguments @('scripts/validate_windows_integration.py')
 
     Invoke-CheckedNative -FilePath 'dotnet' -CommandArguments @('restore', 'src/SwiftDrop.Core/SwiftDrop.Core.csproj')
     Invoke-CheckedNative -FilePath 'dotnet' -CommandArguments @('restore', 'tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj')
