@@ -37,7 +37,7 @@ Transferred file bytes and transferred text contents are not stored in SQLite.
 
 ## Transfer history and privacy mode
 
-Transfer history contains metadata such as direction, peer display name, filename/description, size, timestamp, status, and integrity result.
+Transfer history contains metadata such as direction, peer display name, filename/description, logical size, timestamp, status, integrity result, and—when actually measured—bounded elapsed duration plus the number of bytes attributable to that interval.
 
 When privacy mode is enabled:
 
@@ -46,11 +46,11 @@ When privacy mode is enabled:
 - diagnostic read/export paths redact common identifying tokens including paths, email addresses, IP addresses/endpoints, GUIDs, certificate fingerprints, and SwiftDrop pairing URIs;
 - queue persistence remains generic and never stores filenames/source paths or transferred text.
 
-History retention can be configured; zero-day retention clears retained history.
+History retention can be configured; zero-day retention clears retained history. Performance calculations use only completed rows that contain both a positive measured duration and a valid positive measured-byte count. Resumed transfers record only bytes actually sent/received after the negotiated resume offset; legacy rows are never assigned invented measurements.
 
 ## Restart-safe transfer queue metadata
 
-SQLite schema version 4 stores bounded queue status/progress metadata so recent work remains understandable after an application restart without making stale work automatically executable.
+Current SQLite schema version 6 retains the bounded queue status/progress metadata introduced through schema v4 so recent work remains understandable after an application restart without making stale work automatically executable.
 
 A queue metadata row may contain:
 
@@ -69,7 +69,7 @@ Ordinary progress persistence is coarsened to bounded progress buckets plus stat
 
 ## Verified batch-resume metadata
 
-The `completed_batch_items` table was introduced in SQLite schema version 3 and remains part of current schema version 4. It allows an interrupted batch to avoid resending a file that was already fully verified/finalized before the interruption.
+The `completed_batch_items` table was introduced in SQLite schema version 3 and remains part of current schema version 6. It allows an interrupted batch to avoid resending a file that was already fully verified/finalized before the interruption.
 
 A completed-batch metadata row can contain:
 
