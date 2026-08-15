@@ -23,14 +23,14 @@ public static class TransferPerformanceAnalyzer
                 continue;
 
             completedRecords++;
-            completedBytes = checked(completedBytes + entry.SizeBytes);
+            completedBytes = SaturatingAdd(completedBytes, entry.SizeBytes);
 
             if (entry.SizeBytes <= 0 || entry.DurationMilliseconds is not > 0)
                 continue;
 
             measuredTransfers++;
-            measuredBytes = checked(measuredBytes + entry.SizeBytes);
-            measuredDurationMilliseconds = checked(measuredDurationMilliseconds + entry.DurationMilliseconds.Value);
+            measuredBytes = SaturatingAdd(measuredBytes, entry.SizeBytes);
+            measuredDurationMilliseconds = SaturatingAdd(measuredDurationMilliseconds, entry.DurationMilliseconds.Value);
         }
 
         var averageBytesPerSecond = measuredDurationMilliseconds <= 0
@@ -57,6 +57,9 @@ public static class TransferPerformanceAnalyzer
 
         return entry.SizeBytes * 1000d / entry.DurationMilliseconds.Value;
     }
+
+    private static long SaturatingAdd(long left, long right)
+        => right > 0 && left > long.MaxValue - right ? long.MaxValue : left + right;
 }
 
 public sealed record TransferPerformanceSummary(
