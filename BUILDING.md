@@ -1,6 +1,6 @@
 # Building SwiftDrop
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 SwiftDrop targets .NET 10 and .NET MAUI.
 
@@ -44,11 +44,14 @@ These verify:
 - canonical documentation files and local Markdown link integrity;
 - English/Hindi localization catalogs and placeholder parity;
 - Apple App Group/iOS Share Extension project/entitlement/version invariants;
+- Windows package protocol/private-network/app-notification registration/source invariants;
 - Core restore/build;
 - portable tests;
 - benchmark-project compilation;
 - machine-readable Core direct/transitive vulnerable-package JSON using schema version 1;
 - explicit rejection of any vulnerability entries or malformed vulnerability-report structure.
+
+The helper suite currently contains **16 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, and Windows packaged-notification integration validation. The Windows validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration ordering, startup registration for an already-enabled preference, placeholder-free English/Hindi terminal notification messages, preservation of `privateNetworkClientServer`, and rejection of `internetClient`.
 
 Normal `ci.yml` executes this portable contract on both Ubuntu and Windows: the Ubuntu job runs the individual canonical gates directly and the Windows job executes `scripts/verify-core.ps1`. Windows execution is required because it exercises PowerShell parsing/native exit handling, Windows filesystem semantics, and Microsoft.Data.Sqlite native-handle behavior that Linux execution alone cannot prove.
 
@@ -63,6 +66,7 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 python3 scripts/validate_documentation.py
 python3 scripts/validate_localization.py
 python3 scripts/validate_apple_integration.py
+python3 scripts/validate_windows_integration.py
 ```
 
 ## Stable compiler policy
@@ -118,7 +122,7 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Releas
 
 The maintained platform/release workflows additionally capture and validate the `net10.0-android` containing-app direct/transitive dependency graph and upload its package/vulnerability JSON plus hash manifest.
 
-Android production release still requires a private release keystore, signing configuration, AAB/APK generation, install/upgrade testing, and Play Console/store checks.
+Android production release still requires a private release keystore, signing configuration, AAB/APK generation, install/upgrade testing, Play Console/store checks, and physical notification permission/delivery validation when optional terminal notifications are enabled.
 
 ## Windows
 
@@ -149,7 +153,15 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -c Release `
 
 The override properties narrow this validation command to the Windows TFM; normal product builds still retain the full target matrix. `WindowsPackageType=None` and `GenerateAppxPackageOnBuild=false` intentionally validate source/XAML/WinUI compilation without claiming MSIX readiness.
 
-Maintained hosted validation also captures/validates the focused Windows target dependency graph and uploads its JSON reports plus SHA-256 evidence manifest. Production packaging still requires the real signing certificate/package identity, signed MSIX generation, install/update validation, protocol activation, capability checks, and final dependency review of the actual signed package.
+Before a packaged Windows release, also run the portable package/source validator:
+
+```powershell
+python scripts/validate_windows_integration.py
+```
+
+It proves the repository's `Package.appxmanifest`, local-only capability posture, notification activation CLSIDs/arguments, notification registration source contract, and generic localized message resources are internally consistent. It does **not** exercise actual COM/toast registration from an installed signed package.
+
+Maintained hosted validation also captures/validates the focused Windows target dependency graph and uploads its JSON reports plus SHA-256 evidence manifest. Production packaging still requires the real signing certificate/package identity, signed MSIX generation, install/update validation, `swiftdrop://` protocol activation, app-notification registration/activation, Windows notification settings/deny behavior, capability checks, and final dependency review of the actual signed package.
 
 ## Apple prerequisites
 
@@ -194,7 +206,7 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Re
 
 Maintained hosted validation captures/validates Mac Catalyst containing-app dependency/vulnerability JSON as part of the Apple dependency evidence bundle.
 
-Mac Catalyst external intake uses the containing app's normal document/file flows and native `UIDropInteraction`. Release validation must confirm sandbox/network/App Group entitlements used by the containing app, native drop, signing, notarization, and store packaging.
+Mac Catalyst external intake uses the containing app's normal document/file flows and native `UIDropInteraction`. Release validation must confirm sandbox/network/App Group entitlements used by the containing app, native drop, local notification authorization/presentation, signing, notarization, and store packaging.
 
 ## iOS Simulator app + Share Extension
 
@@ -215,7 +227,7 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --
 
 The maintained Apple job generates separate direct/transitive package and vulnerable-package JSON reports for the iOS containing app and iOS Share Extension, validates both vulnerable-package reports, and includes them with Mac Catalyst reports beneath one hashed Apple evidence manifest.
 
-Simulator compilation checks source/API compatibility only. Physical iOS devices, archives, TestFlight and App Store distribution require Apple signing, provisioning, App Group configuration, extension runtime validation, and final dependency comparison against the actual signed archive/package.
+Simulator compilation checks source/API compatibility only. Physical iOS devices, archives, TestFlight and App Store distribution require Apple signing, provisioning, App Group configuration, extension runtime validation, local notification authorization/presentation validation, and final dependency comparison against the actual signed archive/package.
 
 ## Apple runtime validation
 
@@ -228,7 +240,9 @@ Before a signed release verify:
 5. imported content is shown for review and never automatically sent;
 6. stale/malformed/symlinked App Group packages are rejected/pruned;
 7. the App Group works in the signed iOS app/extension configuration;
-8. Mac Catalyst native drag/drop remains independent of the iOS Share Extension and works under signed sandbox rules.
+8. opt-in local completion/failure notification permission, disabled state, foreground presentation, background/system delivery, and generic content are correct on iOS;
+9. Mac Catalyst native drag/drop remains independent of the iOS Share Extension and works under signed sandbox rules;
+10. Mac Catalyst local notification authorization/presentation works under the signed sandbox/system notification configuration.
 
 ## Synthetic performance harness
 
@@ -244,10 +258,11 @@ See `docs/testing/performance-benchmarks.md`.
 
 GitHub Actions is configured for:
 
-- validation-helper regression tests;
+- 16 validation-helper regression tests;
 - documentation integrity validation;
 - localization validation;
 - Apple integration metadata validation;
+- Windows packaged notification/protocol/capability metadata validation;
 - two-OS portable Core/test/benchmark/audit verification (Ubuntu and Windows PowerShell);
 - CodeQL/security hygiene;
 - direct/transitive NuGet vulnerability auditing on restore;
@@ -258,7 +273,7 @@ GitHub Actions is configured for:
 - certificate-independent iOS Simulator Share Extension + containing-app compile plus separate iOS app/extension dependency evidence;
 - deterministic SHA-256 manifests for retained dependency-report bundles;
 - concurrency controls that cancel superseded same-ref CI/platform/security analysis runs while preserving the newest branch evidence;
-- release-readiness self-validation when its workflow/helper inputs change;
+- release-readiness self-validation when its workflow/portable-verifier/audit/evidence/Windows-integration helper inputs change;
 - aggregate release-readiness gate.
 
 A configured workflow is not proof it passed. Confirm the exact release-candidate run before publishing.
@@ -270,6 +285,7 @@ Successful source compilation and dependency-audit evidence do not replace:
 - signed install/upgrade checks;
 - Apple App Group provisioning;
 - physical-device iOS Share Extension/native-drop behavior;
+- signed Android/iOS/Mac Catalyst/Windows optional notification permission, registration, presentation, and system-settings behavior;
 - real peer-to-peer transfer/network/resume tests;
 - accessibility/localization validation;
 - exact final signed-artifact dependency/license/provenance review;
