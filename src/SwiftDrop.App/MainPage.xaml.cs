@@ -491,7 +491,7 @@ public partial class MainPage : ContentPage
             _viewModel.TransferStatus = _pausedSinglePath is null
                 ? AppText.Get("SendingStatus")
                 : AppText.Get("ResumingStatus");
-            await _transfers.SendAsync(
+            var sendResult = await _transfers.SendAsync(
                 remote,
                 info.FullName,
                 new Progress<double>(x => _viewModel.TransferProgress = x),
@@ -499,7 +499,15 @@ public partial class MainPage : ContentPage
             _viewModel.TransferProgress = 1;
             _pausedSinglePath = null;
             _viewModel.TransferStatus = AppText.Get("CompletedVerifiedStatus");
-            await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "completed", true, duration: stopwatch.Elapsed);
+            await _history.AddAsync(
+                "sent",
+                remote.DeviceName,
+                info.Name,
+                info.Length,
+                "completed",
+                true,
+                duration: stopwatch.Elapsed,
+                measuredBytes: sendResult.TransferredBytes);
         }
         catch (OperationCanceledException)
         {
@@ -608,7 +616,8 @@ public partial class MainPage : ContentPage
                 Encoding.UTF8.GetByteCount(text),
                 "completed",
                 false,
-                duration: textStopwatch.Elapsed);
+                duration: textStopwatch.Elapsed,
+                measuredBytes: Encoding.UTF8.GetByteCount(text));
             TextSnippetEditor.Text = string.Empty;
             _viewModel.TextTransferStatus = AppText.Get("TextDelivered");
         }
