@@ -5,6 +5,7 @@ namespace SwiftDrop.Core.Security;
 public sealed class OneTimeAuthorizationStore
 {
     private readonly ConcurrentDictionary<string, long> _entries = new(StringComparer.Ordinal);
+    private readonly object _admissionGate = new();
     private readonly int _maximumEntries;
 
     public OneTimeAuthorizationStore(int maximumEntries = 1024)
@@ -23,11 +24,16 @@ public sealed class OneTimeAuthorizationStore
         if (expiresUtc <= now)
             throw new ArgumentOutOfRangeException(nameof(expiresUtc), "Authorization expiration must be in the future.");
 
-        PruneExpired(now);
-        if (_entries.Count >= _maximumEntries && !_entries.ContainsKey(nonce))
-            throw new InvalidOperationException("Too many active one-time authorizations.");
-        if (!_entries.TryAdd(nonce, expiresUtc.UtcDateTime.Ticks))
-            throw new InvalidOperationException("Authorization nonce is already active.");
+        lock (_admissionGate)
+        {
+            PruneExpired(now);
+            if (_entries.ContainsKey(nonce))
+                throw new InvalidOperationException("Authorization nonce is already active.");
+            if (_entries.Count >= _maximumEntries)
+                throw new InvalidOperationException("Too many active one-time authorizations.");
+            if (!_entries.TryAdd(nonce, expiresUtc.UtcDateTime.Ticks))
+                throw new InvalidOperationException("Authorization nonce is already active.");
+        }
     }
 
     public bool TryConsume(string? nonce, DateTimeOffset? nowUtc = null)
