@@ -22,5 +22,27 @@ jobs:
           git reset --hard origin/main
           git config user.name "Sanskar"
           git config user.email "sanskarin@outlook.in"
+      - name: Bind immutable evidence
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/swiftdrop-finalize-performance-trend-ledger.py')
+          text = path.read_text(encoding='utf-8')
+          values = {
+              '__PLATFORM_ANDROID__': 'sha256:52112f24feb10bf33167aac4717e02813fdf155769b9efc34678796ba401c494',
+              '__PLATFORM_WINDOWS__': 'sha256:0424717261b276a273f108725e0c2280552f28f3a1d780bf730e6284bec325cb',
+              '__PLATFORM_APPLE__': 'sha256:8e0bc7a36b9e1a6bfdbcad584ade30c68a458d38c4fe656c22d0401ba87fd7e0',
+              '__RELEASE_PORTABLE__': 'sha256:ae30f65ac569174663e18481db5021c36dfb95e90bd76fd40030a37b802e8e42',
+              '__RELEASE_ANDROID__': 'sha256:b6b2ae6218db5548cff8a1f3f0e649e50d72fe742f26910d7a70ecfafb989a2d',
+              '__RELEASE_WINDOWS__': 'sha256:6ee3928470c965fc6f747e7a94beea32db4fc49e734d797096741eea351a9c73',
+              '__RELEASE_APPLE__': 'sha256:64d1ce3c3f08111e762342eda7ac7d9e88fc203635afd7c65f1d76b6934bfed3',
+              '__FINAL_CI__': 'recorded after ledger-helper removal in Section 186',
+              '__FINAL_CODEQL__': 'recorded after ledger-helper removal in Section 186',
+              '__FINAL_SECURITY__': 'recorded after ledger-helper removal in Section 186',
+          }
+          for old, new in values.items():
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
       - name: Finalize aggregate performance trend ledger
         run: python3 .github/swiftdrop-finalize-performance-trend-ledger.py
