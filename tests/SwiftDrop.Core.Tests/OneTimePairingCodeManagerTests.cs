@@ -30,6 +30,17 @@ public sealed class OneTimePairingCodeManagerTests
     }
 
     [Fact]
+    public void TryConsume_RejectsCodeAtExactExpiryInstant()
+    {
+        var now = new DateTimeOffset(2026, 8, 15, 9, 30, 0, TimeSpan.Zero);
+        var manager = new OneTimePairingCodeManager(TimeSpan.FromSeconds(30));
+        var snapshot = manager.Create(now);
+
+        Assert.Equal(now.AddSeconds(30), snapshot.ExpiresUtc);
+        Assert.False(manager.TryConsume(snapshot.Code, snapshot.ExpiresUtc));
+    }
+
+    [Fact]
     public void Create_ReplacesPreviousCode()
     {
         var now = DateTimeOffset.UtcNow;
