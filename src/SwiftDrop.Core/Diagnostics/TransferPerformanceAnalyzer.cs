@@ -57,6 +57,24 @@ public static class TransferPerformanceAnalyzer
         return entry.MeasuredBytes!.Value * 1000d / entry.DurationMilliseconds!.Value;
     }
 
+    public static TransferPerformanceMeasurement? NormalizeOptionalMeasurement(
+        TimeSpan? duration,
+        long logicalSizeBytes,
+        long? measuredBytes)
+    {
+        if (duration is null || duration.Value <= TimeSpan.Zero)
+            return null;
+        if (duration.Value > TimeSpan.FromMilliseconds(TransferHistoryStore.MaxDurationMilliseconds))
+            return null;
+        if (logicalSizeBytes < 0 || measuredBytes is not > 0 || measuredBytes > logicalSizeBytes)
+            return null;
+
+        var durationMilliseconds = (long)Math.Ceiling(duration.Value.TotalMilliseconds);
+        return durationMilliseconds is > 0 and <= TransferHistoryStore.MaxDurationMilliseconds
+            ? new TransferPerformanceMeasurement(durationMilliseconds, measuredBytes.Value)
+            : null;
+    }
+
     private static bool IsValidMeasurement(TransferHistoryEntry entry)
         => string.Equals(entry.Status, "completed", StringComparison.Ordinal) &&
            entry.SizeBytes >= 0 &&
@@ -67,6 +85,8 @@ public static class TransferPerformanceAnalyzer
     private static long SaturatingAdd(long left, long right)
         => right > 0 && left > long.MaxValue - right ? long.MaxValue : left + right;
 }
+
+public sealed record TransferPerformanceMeasurement(long DurationMilliseconds, long MeasuredBytes);
 
 public sealed record TransferPerformanceSummary(
     int TotalRecords,
