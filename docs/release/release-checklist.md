@@ -229,3 +229,11 @@ Do not describe a candidate as production-ready until required automated gates, 
 - [ ] `scripts/validate_windows_integration.py` passes and confirms matching CLSIDs, exact activation arguments, handler-before-register ordering, local-only capability posture, and placeholder-free terminal messages.
 - [ ] No platform notification contains filename/peer/path/content/pairing/transfer-ID/authorization data.
 - [ ] Permission, registration, presentation, or activation failure cannot alter a transfer's success/failure state.
+
+## Performance trend/export candidate checks
+
+- [ ] Confirm the exact candidate passes the 26-helper/559-xUnit portable contract and target compile/audit matrix.
+- [ ] Perform full/resumed measured transfers on representative physical devices and verify UTC daily trend math.
+- [ ] Export the aggregate CSV and verify exact documented columns plus absence of file/device/path/network/auth/content identifiers.
+- [ ] Verify OS share-sheet behavior, cancellation, repeated export/cache cleanup, History clear/prune behavior, English/Hindi presentation, large text, keyboard, and screen-reader access.
+- [ ] Correlate representative-device/network trend evidence with synthetic benchmark results before making performance claims.
