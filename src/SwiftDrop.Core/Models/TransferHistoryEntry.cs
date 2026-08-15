@@ -9,4 +9,5 @@ public sealed record TransferHistoryEntry(
     DateTimeOffset TimestampUtc,
     string Status,
     bool IntegrityVerified,
-    long? DurationMilliseconds = null);
+    long? DurationMilliseconds = null,
+    long? MeasuredBytes = null);
