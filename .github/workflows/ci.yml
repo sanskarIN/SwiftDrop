@@ -31,6 +31,8 @@ jobs:
         run: python3 scripts/validate_localization.py
       - name: Validate Apple integration metadata
         run: python3 scripts/validate_apple_integration.py
+      - name: Validate Windows package integration metadata
+        run: python3 scripts/validate_windows_integration.py
       - run: dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
       - run: dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release --no-restore
       - run: dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
