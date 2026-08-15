@@ -178,3 +178,11 @@ Only pair with devices you recognize. Compare fingerprints when shown. Review in
 ---
 
 **Made by the Sanskar**
+
+## Export the local performance trend
+
+Open **History** to view the rolling 30-day performance trend. SwiftDrop shows up to the seven most recent UTC days that have valid measured completed transfers. A day is omitted when it has no valid measured sample; SwiftDrop does not invent a zero-speed sample for legacy, failed, cancelled, rejected, paused, zero-byte, or otherwise unmeasured operations.
+
+When measured trend data exists, choose **Export aggregate CSV**. SwiftDrop creates a local cache file and opens the operating-system share sheet. The CSV contains only aggregate UTC date/count/bytes/duration/weighted-rate fields and intentionally excludes filenames, peer/device names, directions, paths, addresses, transfer content, pairing material, and credentials.
+
+The export reflects retained History. History retention, pruning, clearing, and privacy behavior therefore remain the source-of-truth controls; the export does not enable background or cloud analytics.
