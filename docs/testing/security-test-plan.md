@@ -1,6 +1,6 @@
 # SwiftDrop Security Test Plan
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 This plan complements automated unit tests and the manual cross-platform transfer matrix. Execute it against the exact release candidate before public/store distribution. Use synthetic test files, synthetic identities, disposable receive roots, and disposable App Group/cache content only.
 
@@ -114,7 +114,7 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Change the receive root and verify completed-item metadata from the old root cannot authorize/skip data in the new root.
 - Start a completely new explicit send of identical files and verify it receives a new transfer ID and normal collision-safe duplicate-send behavior.
 - Corrupt completed-batch SQLite rows and verify they do not become authorization or false completion.
-- Verify schema-v3 completed-item metadata never contains the absolute receive root, pairing nonce/code, certificate private key, or transferred content.
+- Verify `completed_batch_items`, introduced in schema v3 and retained in schema v4, never contains the absolute receive root, pairing nonce/code, certificate private key, or transferred content.
 - Validate cumulative storage requirements for large batches and checked-arithmetic overflow boundaries.
 
 ## Text and clipboard
@@ -200,9 +200,16 @@ The maintained Mac Catalyst architecture is the containing desktop app plus nati
 
 ## Local metadata and privacy
 
+- Inspect a fresh/upgrade SQLite database and confirm current schema version is 4.
+- Verify v0/v1/v2/v3 databases migrate to v4 according to the supported migration contract; preserve safe legacy v3 queue rows with defaults.
 - Inspect SQLite after representative operations and confirm it contains metadata only.
 - Verify privacy mode hides/redacts peer/file history and sensitive diagnostic identifiers at write/read/export boundaries.
-- Verify queue metadata contains generic labels/state/timestamps/bounded error codes only and stale active rows become `Interrupted` after restart.
+- Verify queue metadata stores only generic labels, state/timestamps, bounded machine error codes, bounded operation categories, progress basis points, and optional item counts.
+- Verify queue progress is monotonic and bounded to `0..10000`; completed item count does not exceed total count when both are known.
+- Verify queue schema has no nonce/token/certificate/private-key/host/port/source-path/destination-path/content/reusable-authorization field.
+- Seed queued/running rows with safe progress, restart SwiftDrop, and confirm they become `Interrupted` while retaining safe progress/context and without automatic replay.
+- Verify another transfer attempt after restart still requires fresh pairing/authorization.
+- Cancel queue initialization or a caller-cancelled best-effort queue metadata write and confirm later queue persistence remains available; ordinary caller cancellation must not be interpreted as storage corruption.
 - Verify completed-batch metadata is bounded/pruned and stores a hashed receive-root key rather than an absolute path.
 - Verify completed-batch source paths remain canonical protocol paths while destination paths remain local receiver metadata re-confined before reuse.
 - Verify malformed/corrupted trust/history/diagnostic/queue/resume rows fail closed and do not break valid rows where corruption tolerance is intended.
@@ -217,7 +224,7 @@ The maintained Mac Catalyst architecture is the containing desktop app plus nati
 - Review direct/transitive licenses and third-party notice obligations from the exact release graph.
 - Verify Apple app/iOS extension IDs, App Group, versions, entitlements, activation rules, project reference, and solution inclusion with repository validation tooling and the signed artifacts.
 - Verify no obsolete compatibility/dead transfer handler is wired from XAML after the stable-ID cleanup.
-- Treat cryptographic, authentication, trust, canonical-path, source-link, App Group, protocol-framing, staging-budget, or resume-metadata changes as security-sensitive and require focused review.
+- Treat cryptographic, authentication, trust, canonical-path, source-link, App Group, protocol-framing, staging-budget, queue-persistence, or resume-metadata changes as security-sensitive and require focused review.
 - Verify the restored application dependency graph uses the intended .NET 10 MAUI servicing baseline and does not reintroduce the previously blocked vulnerable SQLite native dependency.
 
 ## Release evidence
