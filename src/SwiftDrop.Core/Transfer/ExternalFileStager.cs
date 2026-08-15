@@ -17,8 +17,7 @@ public static class ExternalFileStager
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationRoot);
         if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
 
-        var source = new FileInfo(Path.GetFullPath(sourcePath));
-        if (!source.Exists) throw new FileNotFoundException("Shared source file is unavailable.", source.FullName);
+        var source = TransferSourceSafety.GetRegularFile(sourcePath);
         if (source.Length < 0 || source.Length > maximumBytes)
             throw new InvalidDataException("Shared source exceeds the staging size limit.");
 
