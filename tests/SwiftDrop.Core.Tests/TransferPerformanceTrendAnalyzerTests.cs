@@ -141,7 +141,7 @@ public sealed class TransferPerformanceTrendAnalyzerTests
             logicalSize,
             timestamp,
             status,
-            integrityVerified: true,
+            IntegrityVerified: true,
             durationMilliseconds,
             measuredBytes);
 }
