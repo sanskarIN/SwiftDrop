@@ -5,16 +5,19 @@
              x:Class="SwiftDrop.App.HistoryPage"
              Title="{x:Static services:AppText.TransferHistory}">
   <Grid RowDefinitions="Auto,*,Auto" Padding="20" RowSpacing="14">
-    <VerticalStackLayout Grid.Row="0" Spacing="6">
+    <VerticalStackLayout Grid.Row="0" Spacing="8">
       <Label Text="{x:Static services:AppText.TransferHistory}" FontSize="30" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
       <Label Text="{x:Static services:AppText.HistoryDescription}" Opacity="0.75" />
       <Label Text="{Binding Status}" FontSize="12" Opacity="0.7" />
+      <Border StrokeShape="RoundRectangle 12" Padding="12">
+        <Label Text="{Binding PerformanceStatus}" FontSize="13" LineBreakMode="WordWrap" />
+      </Border>
     </VerticalStackLayout>
     <CollectionView x:Name="HistoryList" Grid.Row="1" ItemsSource="{Binding Items}" EmptyView="{x:Static services:AppText.HistoryEmpty}">
       <CollectionView.ItemTemplate>
         <DataTemplate>
           <Border StrokeShape="RoundRectangle 14" Padding="14" Margin="0,5">
-            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="4">
               <Label Grid.Row="0" Grid.Column="0" Text="{Binding FileNameText}" FontAttributes="Bold" LineBreakMode="MiddleTruncation" />
               <Button Grid.Row="0" Grid.Column="1" Text="{x:Static services:AppText.Delete}" CommandParameter="{Binding Id}" Clicked="DeleteClicked" />
               <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding PeerDeviceNameText}" />
@@ -23,6 +26,10 @@
                 <Label Text="{Binding SizeText}" FontSize="12" Opacity="0.7" />
                 <Label Text="{Binding StatusText}" FontSize="12" Opacity="0.7" />
                 <Label Text="{Binding TimestampText}" FontSize="12" Opacity="0.7" />
+              </HorizontalStackLayout>
+              <HorizontalStackLayout Grid.Row="3" Grid.ColumnSpan="2" Spacing="12">
+                <Label Text="{Binding DurationText}" FontSize="12" Opacity="0.7" />
+                <Label Text="{Binding ThroughputText}" FontSize="12" Opacity="0.7" />
               </HorizontalStackLayout>
             </Grid>
           </Border>
