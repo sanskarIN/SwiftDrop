@@ -26,7 +26,7 @@ Normal CI also executes the repository's Python helper regression tests:
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
-The current helper suite contains **21 tests**. It covers:
+The current helper suite contains **26 tests**. It covers:
 
 - NuGet vulnerability-report interpretation;
 - deterministic dependency-evidence manifest generation;
@@ -155,8 +155,11 @@ It runs on:
 
 - manual `workflow_dispatch`;
 - `v*` tags;
+- production source under `src/**`;
+- portable tests under `tests/**` and benchmark inputs under `benchmarks/**`;
+- solution/build inputs (`SwiftDrop.slnx`, `Directory.Build.props`, `global.json`, `NuGet.config`);
 - changes to the release workflow or its portable verification/audit/evidence/Windows-integration helper scripts on `main`;
-- pull requests to `main` that change those release-gate inputs.
+- pull requests to `main` that change the same candidate-affecting inputs.
 
 The explicit `scripts/validate_windows_integration.py` path trigger means a future Windows package-notification contract change cannot modify the validator without re-exercising the release-readiness self-test.
 
@@ -258,7 +261,7 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
-The local verification scripts include 21 helper tests, documentation/localization/Apple/Windows validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.
+The local verification scripts include 26 helper tests, documentation/localization/Apple/Windows validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.
 
 The PowerShell verifier checks `$LASTEXITCODE` for native commands rather than assuming PowerShell exception behavior will convert every nonzero native exit into a terminating error.
 
@@ -298,7 +301,7 @@ This writes a path-sorted manifest of evidence JSON file byte lengths and SHA-25
 
 ### Green portable CI proves
 
-- all 16 Python validation helpers pass their regression tests;
+- all 26 Python validation helpers pass their regression tests;
 - the canonical documentation set exists and its checked local Markdown links resolve;
 - the current portable source restores under the workflow environment;
 - Core compiles under the configured .NET SDK;
@@ -370,14 +373,8 @@ Always prefer the latest exact-candidate workflow results when preparing an actu
 
 **Made by the Sanskar**
 
-## Aggregate performance trend/export contract
+## Current aggregate and final-hardening contract
 
-Portable validation now includes **26 Python helper tests** and **559 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
+Portable validation now includes **26 Python helper tests** and **569 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
 
-The Core suite additionally covers daily bucketing, resume-safe measured-byte math, UTC offset behavior, out-of-window/invalid sample exclusion, saturating aggregates, window bounds, deterministic CSV formatting, duplicate/inconsistent bucket rejection, and History store cutoff-query behavior.
-
-## Aggregate performance trend/export contract
-
-Portable validation now includes **26 Python helper tests** and **559 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
-
-The Core suite additionally covers daily bucketing, resume-safe measured-byte math, UTC offset behavior, out-of-window/invalid sample exclusion, saturating aggregates, window bounds, deterministic CSV formatting, duplicate/inconsistent bucket rejection, and History store cutoff-query behavior.
+The Core suite additionally covers daily bucketing/resume-safe measured-byte math plus the final hardening regressions for resume filesystem side effects, external source-link staging, exact one-time credential/discovery expiry, bounded concurrent security-state admission, and mDNS record-boundary parsing.
