@@ -71,6 +71,43 @@ public sealed class TransferHistoryStore
         return results;
     }
 
+    public async Task<IReadOnlyList<TransferHistoryEntry>> GetPerformanceEntriesSinceAsync(
+        DateTimeOffset cutoffUtc,
+        CancellationToken ct = default)
+    {
+        if (cutoffUtc < DateTimeOffset.UnixEpoch || cutoffUtc > DateTimeOffset.UtcNow.AddDays(2))
+            throw new ArgumentOutOfRangeException(nameof(cutoffUtc));
+
+        var results = new List<TransferHistoryEntry>();
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync(ct);
+        await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms, measured_bytes
+            FROM transfer_history
+            WHERE timestamp_utc >= $cutoff
+              AND status = 'completed'
+              AND size_bytes >= 0
+              AND duration_ms IS NOT NULL
+              AND duration_ms > 0
+              AND duration_ms <= $maxDuration
+              AND measured_bytes IS NOT NULL
+              AND measured_bytes > 0
+              AND measured_bytes <= size_bytes
+            ORDER BY timestamp_utc ASC;
+            """;
+        command.Parameters.AddWithValue("$cutoff", cutoffUtc.UtcDateTime.ToString("O"));
+        command.Parameters.AddWithValue("$maxDuration", MaxDurationMilliseconds);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            var entry = TryReadEntry(reader);
+            if (entry is not null) results.Add(entry);
+        }
+        return results;
+    }
+
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
         ValidateToken(id, nameof(id), 128);
