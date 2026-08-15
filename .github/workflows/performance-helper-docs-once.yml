@@ -1,0 +1,58 @@
+name: Performance helper docs once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/swiftdrop-performance-helper-docs-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refresh main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+      - name: Update build guide helper count
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('BUILDING.md')
+          s=p.read_text()
+          old='The helper suite currently contains **16 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, and Windows packaged-notification integration validation.'
+          new='The helper suite currently contains **21 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, Windows packaged-notification integration validation, and the cross-layer schema-v6 performance-history contract (storage/analyzer/resume-byte attribution/UI-localization wiring).'
+          if s.count(old)!=1: raise SystemExit('BUILDING helper-count anchor mismatch')
+          p.write_text(s.replace(old,new,1))
+      - name: Commit build guide
+        run: |
+          git add BUILDING.md
+          git commit -m "docs(build): record performance contract helper tests" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Update CI reference helper count
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('docs/testing/ci-reference.md')
+          s=p.read_text()
+          old='''The current helper suite contains **16 tests**. It covers:\n\n- NuGet vulnerability-report interpretation;\n- deterministic dependency-evidence manifest generation;\n- Windows packaged app-notification integration validation, including matching toast/COM CLSIDs, activation arguments, local-only capability posture, placeholder-free generic notification text, startup registration, and handler-before-register ordering.\n'''
+          new='''The current helper suite contains **21 tests**. It covers:\n\n- NuGet vulnerability-report interpretation;\n- deterministic dependency-evidence manifest generation;\n- Windows packaged app-notification integration validation, including matching toast/COM CLSIDs, activation arguments, local-only capability posture, placeholder-free generic notification text, startup registration, and handler-before-register ordering;\n- the schema-v6 performance-history cross-layer contract, including separate duration/measured-byte persistence, weighted analyzer semantics, resume-safe sender/receiver byte attribution, and History UI/localization wiring.\n'''
+          if s.count(old)!=1: raise SystemExit('CI reference helper section mismatch')
+          s=s.replace(old,new,1)
+          old2='The local verification scripts include 16 helper tests, documentation/localization/Apple/Windows validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.'
+          new2='The local verification scripts include 21 helper tests, documentation/localization/Apple/Windows validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.'
+          if s.count(old2)!=1: raise SystemExit('CI reference local helper count mismatch')
+          p.write_text(s.replace(old2,new2,1))
+      - name: Commit CI reference
+        run: |
+          git add docs/testing/ci-reference.md
+          git commit -m "docs(ci): record performance-history contract tests" -m "Signed-off-by: Sanskar <sanskarin@outlook.in>"
+      - name: Push documentation commits
+        run: git push origin HEAD:main
