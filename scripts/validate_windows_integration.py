@@ -136,7 +136,9 @@ def assert_notification_source(root: Path) -> None:
         fail("Missing TransferNotificationService.cs")
     source = path.read_text(encoding="utf-8")
     required_fragments = (
+        "if (_settings.Load().NotificationsEnabled)",
         "AppNotificationManager.Default",
+        "manager.NotificationInvoked += OnWindowsNotificationInvoked;",
         "manager.Register();",
         "_windowsManager!.Show(notification);",
         'AppText.Get(success ? "TransferCompletedNotification" : "TransferFailedNotification")',
@@ -144,6 +146,11 @@ def assert_notification_source(root: Path) -> None:
     for fragment in required_fragments:
         if fragment not in source:
             fail(f"Windows notification source contract missing: {fragment}")
+
+    handler_index = source.index("manager.NotificationInvoked += OnWindowsNotificationInvoked;")
+    register_index = source.index("manager.Register();")
+    if handler_index > register_index:
+        fail("Windows NotificationInvoked handler must be attached before Register()")
 
 
 def validate(root: Path) -> None:
@@ -167,11 +174,11 @@ def main() -> int:
 
     try:
         validate(root)
-    except (ET.ParseError, OSError, RuntimeError) as exc:
+    except (ET.ParseError, OSError, RuntimeError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
 
-    print("Windows protocol, private-network capability, app-notification registration, and generic notification text are internally consistent.")
+    print("Windows protocol, private-network capability, app-notification registration, startup handler ordering, and generic notification text are internally consistent.")
     return 0
 
 
