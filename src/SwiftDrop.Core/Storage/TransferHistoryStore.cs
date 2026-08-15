@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
 
 namespace SwiftDrop.Core.Storage;
@@ -71,20 +72,20 @@ public sealed class TransferHistoryStore
         return results;
     }
 
-    public async Task<IReadOnlyList<TransferHistoryEntry>> GetPerformanceEntriesSinceAsync(
+    public async Task<IReadOnlyList<TransferPerformanceSample>> GetPerformanceSamplesSinceAsync(
         DateTimeOffset cutoffUtc,
         CancellationToken ct = default)
     {
         if (cutoffUtc < DateTimeOffset.UnixEpoch || cutoffUtc > DateTimeOffset.UtcNow.AddDays(2))
             throw new ArgumentOutOfRangeException(nameof(cutoffUtc));
 
-        var results = new List<TransferHistoryEntry>();
+        var results = new List<TransferPerformanceSample>();
         await using var connection = new SqliteConnection(_connectionString);
         await connection.OpenAsync(ct);
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms, measured_bytes
+            SELECT timestamp_utc, size_bytes, duration_ms, measured_bytes
             FROM transfer_history
             WHERE timestamp_utc >= $cutoff
               AND status = 'completed'
@@ -102,8 +103,8 @@ public sealed class TransferHistoryStore
         await using var reader = await command.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            var entry = TryReadEntry(reader);
-            if (entry is not null) results.Add(entry);
+            var sample = TryReadPerformanceSample(reader);
+            if (sample is not null) results.Add(sample);
         }
         return results;
     }
@@ -161,6 +162,23 @@ public sealed class TransferHistoryStore
                 reader.IsDBNull(9) ? null : reader.GetInt64(9));
             ValidateEntry(entry);
             return entry;
+        }
+        catch (Exception ex) when (ex is FormatException or InvalidCastException or ArgumentException or OverflowException)
+        {
+            return null;
+        }
+    }
+
+    private static TransferPerformanceSample? TryReadPerformanceSample(SqliteDataReader reader)
+    {
+        try
+        {
+            var sample = new TransferPerformanceSample(
+                DateTimeOffset.Parse(reader.GetString(0), null, System.Globalization.DateTimeStyles.RoundtripKind),
+                reader.GetInt64(1),
+                reader.GetInt64(2),
+                reader.GetInt64(3));
+            return sample.IsValid ? sample : null;
         }
         catch (Exception ex) when (ex is FormatException or InvalidCastException or ArgumentException or OverflowException)
         {
