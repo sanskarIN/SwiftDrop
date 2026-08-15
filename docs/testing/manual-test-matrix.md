@@ -307,3 +307,14 @@ For each test set retain:
 - retest result.
 
 Manual validation is release evidence, not a substitute for automated regression tests; discovered repeatable defects should become automated tests where practical.
+
+## Native terminal notification matrix
+
+Use synthetic transfers and ensure the notification preference starts disabled after a settings reset.
+
+- Android: enable notifications, exercise Android 13+ permission allow/deny where applicable, complete/fail a transfer, and confirm the terminal message is generic and transfer result is unaffected by permission/delivery failure.
+- iOS: enable notifications, verify alert/sound authorization allow/deny, foreground banner/sound presentation, background/system delivery, disabled preference behavior, English/Hindi text, and no transfer-specific content.
+- Mac Catalyst: repeat Apple authorization/presentation tests under the signed sandbox and system notification settings.
+- Windows signed package: verify clean-install/update toast/COM registration, activation, startup registration when the saved preference is already enabled, notification settings suppression, disable/re-enable behavior, and generic English/Hindi content.
+- On every platform confirm notification text contains no filename, peer name, path, transferred text/content, pairing link/nonce/fingerprint/code, transfer ID, or reusable authorization.
+- Force or simulate notification registration/presentation failure where practical and confirm queue/history transfer state still records the actual transfer outcome.

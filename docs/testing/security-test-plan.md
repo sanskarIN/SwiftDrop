@@ -241,3 +241,15 @@ Record:
 - retest result after each fix.
 
 A candidate is not security-validated merely because source compiles or unit tests pass.
+
+## Native notification privacy and lifecycle
+
+- Verify optional terminal notifications are disabled by default and require explicit user enable.
+- Verify completion/failure bodies are generic localized resource values with no dynamic format placeholders.
+- Confirm no filename, peer/device name, path, transfer content, pairing capability/nonce/code/fingerprint, transfer ID, or reusable authorization reaches OS notification history.
+- Confirm Apple notification authorization is local alert/sound only and does not register a remote-push token or require a relay service.
+- Confirm Apple foreground notification presentation works only through the retained notification-center delegate and cleanup does not crash shutdown.
+- Confirm Windows retains `privateNetworkClientServer`, does not add `internetClient`, and uses matching toast/COM CLSIDs plus the expected activation arguments.
+- Confirm Windows attaches `NotificationInvoked` before `Register()` and registers at startup when the persisted preference is already enabled.
+- Confirm notification permission/registration/show failure never changes the underlying transfer result.
+- Run `scripts/validate_windows_integration.py` and all Windows validator regression tests before candidate packaging.

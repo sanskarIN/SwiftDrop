@@ -2,6 +2,17 @@
 
 ## Unreleased - 2026-08-15
 
+### Cross-platform native terminal notifications
+
+- Extended the existing opt-in Android terminal notification feature to iOS, Mac Catalyst, and Windows without adding a third-party notification package.
+- Apple notifications use local `UNUserNotificationCenter` alert/sound authorization requested only after explicit enable; a retained delegate presents enabled generic banner/sound notifications while the app is foregrounded.
+- Windows notifications use Windows App SDK app notifications with packaged toast/COM activation metadata, handler-before-register ordering, startup registration for an already-enabled preference, and unregister-on-shutdown cleanup.
+- Added localized English/Hindi generic completion/failure messages and localized platform guidance; notification-denial wording is platform-neutral.
+- Kept terminal notifications privacy-minimal: no filename, peer name, path, transfer content, pairing capability/fingerprint, transfer ID, or reusable authorization is placed in notification text.
+- Added `scripts/validate_windows_integration.py` and six regression tests to enforce Windows notification CLSID/activation/capability/source ordering/privacy invariants.
+- Portable verification now runs 16 Python helper tests plus the Windows integration validator on Ubuntu and Windows, while the existing portable xUnit suite remains 522 tests.
+- Release readiness now self-tests when the Windows integration validator changes and restores the explicit Apple shared-Core runtime used by the maintained green platform workflow.
+
 ### Restart-safe queue progress and schema-v4 persistence
 
 - Hardened queue persistence cancellation handling so caller cancellation during initialization or best-effort metadata writes does not mark SQLite persistence permanently unavailable for the app session.

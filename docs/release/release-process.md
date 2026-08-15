@@ -293,4 +293,16 @@ Source completeness, hosted compilation, clean vulnerable-package reports, and m
 
 ---
 
+## Native notification candidate validation
+
+For any candidate that ships optional terminal notifications:
+
+1. run both Apple and Windows integration validators through the portable gate;
+2. confirm the 16 Python helper tests and 522 xUnit tests pass;
+3. inspect the final Windows packaged manifest/COM activation metadata rather than relying on unpackaged source compile alone;
+4. verify signed Android/iOS/Mac Catalyst/Windows notification permission/registration/presentation behavior on real targets;
+5. verify English/Hindi terminal messages remain generic and contain no transfer-specific identifiers/content;
+6. verify notification denial/failure never changes transfer correctness;
+7. rebuild and repeat invalidated signed/package notification evidence after any notification-source/manifest/resource change.
+
 **Made by the Sanskar**

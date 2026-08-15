@@ -2898,5 +2898,77 @@ This does **not** convert hosted/source evidence into a production-ready claim. 
 - exact final signed-artifact dependency/license/provenance reconciliation;
 - store/privacy metadata and submission checks.
 
+---
+
+# 163. Native terminal notifications across maintained targets
+
+The next post-v1 source enhancement moved optional completion/failure system notifications from Android-only support to every maintained SwiftDrop product target while preserving the existing privacy-first opt-in model.
+
+- Android retains the existing local terminal-notification path.
+- iOS and Mac Catalyst use the platform User Notifications framework.
+- Windows uses Windows App SDK app notifications.
+- The preference remains off by default.
+- Permission/registration/presentation failure is best-effort and cannot change the underlying transfer outcome.
+
+# 164. Apple authorization and foreground presentation
+
+Apple containing-app behavior now requests only alert/sound local-notification authorization after explicit user enable. A strongly retained `UNUserNotificationCenterDelegate` returns banner/sound presentation options so an enabled terminal notification can be visible while SwiftDrop is foregrounded. The delegate is removed/disposed during application shutdown.
+
+The implementation does not register a remote-push token, add a relay service, or place transfer-specific data in the notification body. Signed iOS/Mac Catalyst authorization, foreground/background/system-settings behavior remains a release gate.
+
+# 165. Windows packaged app-notification lifecycle
+
+Windows uses `AppNotificationManager.Default` and `AppNotificationBuilder`. The package manifest now contains a `windows.toastNotificationActivation` extension and matching COM server/class using CLSID `A630B8B4-6522-4EA0-9BBE-A2C7C40BB839`, executable `$targetnametoken$.exe`, and activation arguments `----AppNotificationActivated:`.
+
+Registration behavior is lifecycle-safe:
+
+- `NotificationInvoked` is attached before `Register()`;
+- an already-enabled saved notification preference registers during service startup;
+- showing a terminal notification reuses/ensures registration;
+- shutdown removes the handler and calls `Unregister()`;
+- registration/show failures remain isolated from transfer correctness.
+
+The package retains `privateNetworkClientServer` and does not add `internetClient`. Signed MSIX install/update/activation remains external release evidence.
+
+# 166. Notification privacy and localization
+
+English/Hindi resource catalogs now contain placeholder-free generic completion/failure notification bodies plus localized platform support guidance. The former Android-specific permission-denial explanation was replaced with platform-neutral English/Hindi wording.
+
+Terminal notification text intentionally excludes filenames, peer/device names, source/destination paths, transferred text/file content, pairing invitations/nonces/codes/fingerprints, transfer IDs, and reusable authorization/credentials.
+
+# 167. Portable Windows integration validator
+
+Added `scripts/validate_windows_integration.py` and dedicated regression coverage. The validator checks:
+
+- one `swiftdrop` protocol registration;
+- `privateNetworkClientServer` is retained and `internetClient` is absent;
+- exactly one packaged toast activation extension and one COM notification server;
+- valid/matching toast and COM CLSIDs;
+- exact notification activation arguments;
+- generic nonempty placeholder-free English/Hindi terminal messages;
+- Windows notification source contains startup registration;
+- `NotificationInvoked` is attached before `Register()`;
+- notification show uses the generic resource keys.
+
+Six Windows validator tests now cover a valid contract, CLSID mismatch, forbidden Internet capability, placeholder injection, incorrect handler/register order, and missing startup registration. Together with the existing audit/evidence helper tests, the Python helper suite is now **16 tests**. Bash, PowerShell, normal CI, and release readiness execute the Windows validator.
+
+# 168. Focused notification and verification commit trail
+
+Key commits:
+
+- `308ecc0e110e707c9a4feb53b77dd9cce9d75e5a` — native Apple/Windows notification service support;
+- `16273054ea8b5540921a6df458f2a749ecd5c4e1` — enable native notification opt-in across targets;
+- `e7c5d9e15e9326acea9a8cae8d06a2b99ec05b5a` / `18df19940ce693225d23465b698e11675fe56ec6` — generic English/Hindi terminal messages;
+- `3af5636624fdfceab03be024dced3b2ef05121c0` — Windows packaged notification activation metadata;
+- `d2f2c5b867d451f300eeb41d7030cdcbfee7f526` — native notification registration cleanup;
+- `2315d4d5fa34242a05018a5bd3493bb424004b70` — Apple foreground presentation delegate;
+- `5d6f215c57f23d8ec657e41183c64f77976e0d6b` / `0221630bd57434054f9a0125c06bb0cc2e655c07` — Windows validator and initial tests;
+- `f48e9721761a2345cffcbd5a0e1c18177988b225` / `d0458b20cbc672cc13f6458d558f8817e5ccc648` — platform-neutral English/Hindi denial wording;
+- `12c64e44e1de55dfa0421a67b35ee25a2774a0bd` / `ef54cfa7bd269ba2c69f753d7f91f2b4193efe79` / `23104e4d1bf8810a39f56d7dda7f4584dc018583` — localized notification support guidance;
+- `c3bd4d9fd5389a56fd203a5e4edb31033631181a` — Windows startup registration when preference is already enabled;
+- `b3eab15d2f04462ff60f5bd9014acfb7ef490353` / `335eb067a3799e15ec96a3b1b7bee12614332ff6` — startup/order validator hardening and tests;
+- `bca13792b41b85464ac357b267c32667b79798c2` — normal CI integration;
+- `594e586dcda99d75b4d79da0ce9362813e28d4f5` — release-readiness Apple shared-Core restore correction discovered by the new self-test sequence.
+
 
 **Made by the Sanskar**

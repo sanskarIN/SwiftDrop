@@ -2,6 +2,17 @@
 
 Updated: 2026-08-15
 
+## August 15 native terminal notification continuation
+
+- Optional completion/failure system notifications are implemented in source across Android, iOS, Mac Catalyst, and Windows and remain off by default.
+- Apple uses local User Notifications alert/sound authorization after explicit opt-in, retains a notification-center delegate for foreground presentation, and does not introduce remote-push registration or a cloud notification service.
+- Windows uses Windows App SDK app notifications with matching packaged toast/COM activation metadata, startup registration for an already-enabled preference, handler-before-register ordering, and deterministic unregister on shutdown.
+- Notification bodies are generic English/Hindi catalog strings without format placeholders or transfer-specific identifiers/content.
+- Settings guidance and permission-denial messages are localized and platform-neutral.
+- `scripts/validate_windows_integration.py` protects Windows protocol/private-network/notification package and source invariants; six dedicated validator tests raise the Python helper suite to 16 tests.
+- Bash, PowerShell, normal CI, and release readiness execute the Windows integration validator.
+- Signed-device/package notification authorization, delivery/presentation, Windows COM activation, system notification settings, and install/update behavior remain release-validation gates.
+
 ## August 15 final queue-v4 verification snapshot
 
 - Exact runtime/source-changing head is `67fc3feaa506b16d11307afa9da8ca9d151f6d22`. The final source fix prevents caller cancellation from permanently disabling restart-safe queue persistence and sanitizes persisted exception-type error codes to the bounded machine-code contract.
@@ -100,6 +111,7 @@ Updated: 2026-08-15
 - Pause/cancel/fresh-pair resume.
 - Stable batch IDs plus verified already-completed-item reuse so an interrupted batch does not resend finalized files under collision-renamed names.
 - Configurable queue/concurrency plus restart-safe status/progress/item metadata; persisted queue context is never reusable authorization.
+- Optional generic completion/failure system notifications on Android, iOS, Mac Catalyst, and Windows.
 - Windows custom receive folder and native files/folders/text/pair-link drag/drop.
 - Android bounded share-sheet intake.
 - iOS/Mac Catalyst file URL/document opening.
@@ -396,24 +408,19 @@ The repository source contains the local-transfer product scope, iOS Share Exten
 
 These are deliberate platform/release boundaries or optional future enhancements rather than hidden TODO implementations:
 
-1. **Optional completion/failure system notifications outside Android**
-   - Android implementation exists.
-   - Unsupported targets disable the optional preference instead of pretending notifications exist.
-   - Native Apple/Windows notifications are optional post-v1 work, not transfer correctness/security.
-
-2. **Mobile background continuation**
+1. **Mobile background continuation**
    - SwiftDrop does not claim arbitrary sockets survive OS suspension.
    - Any additional continuation must use store-compliant supported platform mechanisms and be physically validated.
 
-3. **Malware scanning**
+2. **Malware scanning**
    - SwiftDrop provides extension-risk warnings and transport integrity, not a fake cross-platform malware scanner.
    - Platform malware APIs should only be added where a trustworthy supported API exists.
 
-4. **Performance numbers**
+3. **Performance numbers**
    - Synthetic benchmark source exists.
    - Real Wi-Fi/TLS/device throughput/CPU/memory figures require representative hardware.
 
-5. **Final binary third-party notices**
+4. **Final binary third-party notices**
    - Workflow inventories dependencies.
    - Exact licenses/notices must be reviewed against the restored signed-release graph.
 

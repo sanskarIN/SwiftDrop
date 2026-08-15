@@ -212,3 +212,14 @@ Complete `docs/testing/manual-test-matrix.md` for supported sender/receiver comb
 ## Production-ready rule
 
 Do not describe a candidate as production-ready until required automated gates, signed-package checks, physical cross-device/network matrix, accessibility/localization checks, dependency/license review, and store/privacy review are complete for that exact commit.
+
+## Native terminal notification release gate
+
+- [ ] Notification preference defaults to Off and persists correctly when explicitly enabled/disabled.
+- [ ] Android 13+ permission allow/deny and generic terminal delivery are verified on a signed build.
+- [ ] Signed iOS verifies alert/sound authorization, foreground banner/sound, background/system delivery, system settings denial, generic English/Hindi text, and disabled preference behavior.
+- [ ] Signed Mac Catalyst verifies the same local-notification behavior under the release sandbox/system settings.
+- [ ] Windows signed package/MSIX verifies toast/COM registration, clean install/update, notification activation, startup registration for an already-enabled preference, system-settings suppression, and uninstall/update cleanup behavior.
+- [ ] `scripts/validate_windows_integration.py` passes and confirms matching CLSIDs, exact activation arguments, handler-before-register ordering, local-only capability posture, and placeholder-free terminal messages.
+- [ ] No platform notification contains filename/peer/path/content/pairing/transfer-ID/authorization data.
+- [ ] Permission, registration, presentation, or activation failure cannot alter a transfer's success/failure state.

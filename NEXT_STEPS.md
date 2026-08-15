@@ -17,6 +17,17 @@ The current master-prompt source scope is implemented. This roadmap is intention
 
 ## Source work completed through the August 15 continuation
 
+### Native completion/failure notifications completed on August 15
+
+- Optional terminal completion/failure notifications are now implemented on Android, iOS, Mac Catalyst, and Windows and remain off by default.
+- Android retains its existing local terminal-notification path and explicit Android 13+ permission request on opt-in.
+- iOS/Mac Catalyst use local `UNUserNotificationCenter` alert/sound authorization requested only after opt-in. A strongly retained delegate enables enabled generic banners/sound while SwiftDrop is foregrounded.
+- Windows uses Windows App SDK `AppNotificationManager`/`AppNotificationBuilder`; registration is restored at startup when the saved preference is enabled, `NotificationInvoked` is attached before `Register()`, and shutdown unregisters cleanly.
+- The packaged Windows manifest contains matching toast/COM notification CLSIDs and the expected app-notification activation argument while retaining `privateNetworkClientServer` and not adding `internetClient`.
+- English/Hindi completion/failure messages are generic and placeholder-free, so system notifications do not include filenames, peer names, paths, transferred content, pairing data, transfer IDs, or reusable authorization.
+- Notification permission/registration/presentation failure remains best-effort and cannot change the underlying transfer result.
+- A portable Windows integration validator plus six dedicated regression tests enforce the package/source/privacy contract; the full Python helper suite is now 16 tests.
+
 ### Rich restart-safe transfer queue persistence completed on August 15
 
 - SQLite schema version 4 extends `transfer_queue_metadata` with bounded `operation_kind`, `updated_utc`, `progress_basis_points`, `item_count`, and `completed_item_count` fields.
@@ -215,6 +226,8 @@ The Apple source cannot be considered release-validated until the real provision
 - Mac native drop works for files, folders, text, and pairing links;
 - Mac native-drop provider timeout behavior matches source semantics;
 - symlink/reparse inputs are rejected as designed;
+- iOS notification opt-in/denial, foreground banner/sound, background/system delivery, disabled preference, generic English/Hindi text, and system notification settings behave correctly on signed devices;
+- Mac Catalyst notification authorization/presentation behaves correctly under the signed sandbox/system settings;
 - notarization/TestFlight/store packaging signs/embeds the iOS extension correctly and signs the Mac Catalyst app correctly.
 
 ## P0 — Signed Android validation
@@ -227,6 +240,7 @@ The Apple source cannot be considered release-validated until the real provision
 - partial provider failure followed by valid item, confirming failed copy does not consume budget;
 - foreground data-sync service behavior;
 - Android 13+ notification permission behavior when optional notifications are enabled;
+- optional terminal notifications remain generic, disabled-by-default, and do not affect transfer results when permission/delivery fails;
 - multicast-lock/discovery behavior on physical Wi-Fi;
 - canonical folder transfer paths to Windows/iOS/Mac receivers;
 - backup remains disabled for app-local metadata;
@@ -243,6 +257,8 @@ The Apple source cannot be considered release-validated until the real provision
 - Windows folder sender emits `/` wire manifest paths;
 - Windows→Android, Windows→iOS, and Windows→Mac folder transfers negotiate exact matching paths;
 - maximum-length/Unicode/collision filenames remain bounded/distinct on NTFS/package runtime;
+- signed package notification toast/COM registration and activation survive clean install/update;
+- already-enabled notification preference registers at startup, system notification settings can deny/suppress delivery safely, and generic notifications contain no transfer-specific content;
 - keyboard/Narrator/high-contrast/large-text behavior.
 
 ## P0 — Cross-device transfer matrix
@@ -367,9 +383,8 @@ For the exact signed candidate:
 
 ## P2 — Optional post-v1 enhancements
 
-These are optional product improvements, not missing correctness work in the current master-prompt scope. Rich restart-safe transfer queue persistence has now moved out of this list because it is implemented in source.
+These are optional product improvements, not missing correctness work in the current master-prompt scope. Rich restart-safe transfer queue persistence and native terminal notifications have now moved out of this list because they are implemented in source.
 
-- native optional completion/failure system notifications on iOS/Mac Catalyst/Windows;
 - additional OS-supported background continuation where store policy permits it;
 - broader localization beyond English/Hindi;
 - representative-device performance dashboard/history;
