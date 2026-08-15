@@ -2840,12 +2840,12 @@ A final repository-wide current-state sweep found several documents that still d
 
 Focused commits:
 
-- `3e7dd988bd50613b5781863219811394730dc8f4` — public README aligned with schema v4, restart-safe queue progress, and the 522-test current contract;
-- `9f2e76f13188e6139173cc7b85be87ac5100ad40` — architecture/local metadata description aligned with schema v4 and cancellation semantics;
-- `cdcc0fd7dc783264bb1baa102011be67a31108f8` — manual test matrix expanded for v0/v1/v2/v3→v4 migration, queue progress/restart/privacy/cancellation behavior;
+- `8209b13c84d481dcd8b9fa7934e9f5772d384658` — public README aligned with schema v4, restart-safe queue progress, and the 522-test current contract;
+- `bc04419ac2c0c90929fb5ad2deb3da2f31e43a1b` — architecture/local metadata description aligned with schema v4 and cancellation semantics;
+- `f1e6f9593aae3a598e36f91b181b21066a5e9565` — manual test matrix expanded for v0/v1/v2/v3→v4 migration, queue progress/restart/privacy/cancellation behavior;
 - `701ca698aa1a22beb3cb64bd6a4f5dc3277efe9e` — security test plan aligned to the schema-v4 non-authorizing queue boundary;
 - `234371b7d7d35844a07b400f32ff6e5b9c60168a` — release checklist requires schema-v4 migration/privacy/restart/cancellation checks;
-- the release-process update made the exact same v4 queue requirements part of candidate freeze, physical validation, accessibility, and privacy review.
+- `fe0b73022ccc8a66585c5a07b34c6ebef9556b7f` — release process made the same v4 queue requirements part of candidate freeze, physical validation, accessibility, and privacy review.
 
 The documentation intentionally continues to say that `completed_batch_items` was **introduced in schema v3** while correctly stating that the **current schema is v4**.
 
