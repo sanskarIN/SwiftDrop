@@ -26,7 +26,7 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
     {
         var entry = new TransferHistoryEntry(
             Guid.NewGuid().ToString("N"), "sent", "Desktop", "hello.txt", 42,
-            DateTimeOffset.UtcNow, "completed", true);
+            DateTimeOffset.UtcNow, "completed", true, 1_250);
 
         await _store.AddAsync(entry);
         var rows = await _store.GetRecentAsync();
@@ -35,6 +35,18 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
         Assert.Equal(entry.Id, row.Id);
         Assert.Equal("hello.txt", row.FileName);
         Assert.True(row.IntegrityVerified);
+        Assert.Equal(1_250, row.DurationMilliseconds);
+    }
+
+    [Fact]
+    public async Task LegacyStyleEntryWithoutDurationRoundTripsNull()
+    {
+        await _store.AddAsync(new TransferHistoryEntry(
+            "legacy-style", "received", "Phone", "photo.jpg", 100,
+            DateTimeOffset.UtcNow, "completed", true));
+
+        var row = Assert.Single(await _store.GetRecentAsync());
+        Assert.Null(row.DurationMilliseconds);
     }
 
     [Fact]
@@ -49,7 +61,7 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AddRejectsNegativeSizeAndControlMetadata()
+    public async Task AddRejectsNegativeSizeControlMetadataAndInvalidDuration()
     {
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             _store.AddAsync(new TransferHistoryEntry(
@@ -58,24 +70,34 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
         await Assert.ThrowsAsync<ArgumentException>(() =>
             _store.AddAsync(new TransferHistoryEntry(
                 "bad-name", "sent", "Phone\nInjected", "file.txt", 1, DateTimeOffset.UtcNow, "failed", false)));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            _store.AddAsync(new TransferHistoryEntry(
+                "bad-duration-negative", "sent", "Phone", "file.txt", 1,
+                DateTimeOffset.UtcNow, "completed", true, -1)));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            _store.AddAsync(new TransferHistoryEntry(
+                "bad-duration-large", "sent", "Phone", "file.txt", 1,
+                DateTimeOffset.UtcNow, "completed", true, TransferHistoryStore.MaxDurationMilliseconds + 1)));
     }
 
     [Fact]
     public async Task CorruptedPersistedRow_IsSkippedWithoutHidingValidRows()
     {
         var valid = new TransferHistoryEntry(
-            "valid", "received", "Phone", "photo.jpg", 10, DateTimeOffset.UtcNow, "completed", true);
+            "valid", "received", "Phone", "photo.jpg", 10, DateTimeOffset.UtcNow, "completed", true, 250);
         await _store.AddAsync(valid);
 
         var cs = new SqliteConnectionStringBuilder { DataSource = _path }.ToString();
         await using (var db = new SqliteConnection(cs))
         {
             await db.OpenAsync();
-            var cmd = db.CreateCommand();
+            using var cmd = db.CreateCommand();
             cmd.CommandText = """
                 INSERT INTO transfer_history
-                (id,direction,peer_device_name,file_name,size_bytes,timestamp_utc,status,integrity_verified)
-                VALUES('corrupt','received','Phone','bad.bin',1,'not-a-date','completed',1);
+                (id,direction,peer_device_name,file_name,size_bytes,timestamp_utc,status,integrity_verified,duration_ms)
+                VALUES('corrupt','received','Phone','bad.bin',1,'not-a-date','completed',1,100);
                 """;
             await cmd.ExecuteNonQueryAsync();
         }
