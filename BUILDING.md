@@ -51,7 +51,7 @@ These verify:
 - machine-readable Core direct/transitive vulnerable-package JSON using schema version 1;
 - explicit rejection of any vulnerability entries or malformed vulnerability-report structure.
 
-The helper suite currently contains **21 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, Windows packaged-notification integration validation, and the cross-layer schema-v6 performance-history contract (storage/analyzer/resume-byte attribution/UI-localization wiring). The Windows validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration ordering, startup registration for an already-enabled preference, placeholder-free English/Hindi terminal notification messages, preservation of `privateNetworkClientServer`, and rejection of `internetClient`.
+The helper suite currently contains **26 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, Windows packaged-notification integration validation, and the cross-layer schema-v6 performance-history contract (storage/analyzer/resume-byte attribution/UI-localization wiring). The Windows validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration ordering, startup registration for an already-enabled preference, placeholder-free English/Hindi terminal notification messages, preservation of `privateNetworkClientServer`, and rejection of `internetClient`.
 
 Normal `ci.yml` executes this portable contract on both Ubuntu and Windows: the Ubuntu job runs the individual canonical gates directly and the Windows job executes `scripts/verify-core.ps1`. Windows execution is required because it exercises PowerShell parsing/native exit handling, Windows filesystem semantics, and Microsoft.Data.Sqlite native-handle behavior that Linux execution alone cannot prove.
 
@@ -258,7 +258,7 @@ See `docs/testing/performance-benchmarks.md`.
 
 GitHub Actions is configured for:
 
-- 16 validation-helper regression tests;
+- 26 validation-helper regression tests;
 - documentation integrity validation;
 - localization validation;
 - Apple integration metadata validation;
@@ -273,7 +273,7 @@ GitHub Actions is configured for:
 - certificate-independent iOS Simulator Share Extension + containing-app compile plus separate iOS app/extension dependency evidence;
 - deterministic SHA-256 manifests for retained dependency-report bundles;
 - concurrency controls that cancel superseded same-ref CI/platform/security analysis runs while preserving the newest branch evidence;
-- release-readiness self-validation when its workflow/portable-verifier/audit/evidence/Windows-integration helper inputs change;
+- release-readiness validation for source, tests, project/benchmark inputs, workflow changes, and portable/audit/evidence/Windows-integration helpers;
 - aggregate release-readiness gate.
 
 A configured workflow is not proof it passed. Confirm the exact release-candidate run before publishing.
@@ -293,10 +293,6 @@ Successful source compilation and dependency-audit evidence do not replace:
 
 Follow `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, `docs/release/release-checklist.md`, and `docs/release/dependency-evidence.md`.
 
-## Current portable performance-trend contract
+## Current portable final-audit contract
 
-The maintained portable verifier currently runs **26 Python helper tests** and **559 xUnit tests**. The helper suite includes the aggregate History performance-trend/export contract in addition to documentation, localization, platform-integration, NuGet evidence, and prior performance-history checks.
-
-## Current portable performance-trend contract
-
-The maintained portable verifier currently runs **26 Python helper tests** and **559 xUnit tests**. The helper suite includes the aggregate History performance-trend/export contract in addition to documentation, localization, platform-integration, NuGet evidence, and prior performance-history checks.
+The maintained portable verifier currently runs **26 Python helper tests** and **569 xUnit tests**. In addition to the aggregate History performance-trend/export contract, the final regression set covers resume side-effect boundaries, regular-file staging enforcement, exact one-time credential expiry, bounded concurrent security-state admission, discovery expiry, and strict mDNS RDATA isolation.
