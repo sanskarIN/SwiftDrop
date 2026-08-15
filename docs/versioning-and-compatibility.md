@@ -66,9 +66,13 @@ Relaxing canonicality can create alias/replay/cross-platform ambiguity and must 
 
 ## Local database schema version
 
-The current SQLite schema version is **3**.
+The current SQLite schema version is **4**.
 
-Storage compatibility is handled through explicit migrations. Changes must update:
+Storage compatibility is handled through explicit migrations. Current migration history includes trusted/history/diagnostic metadata in v1, queue metadata in v2, completed-batch resume metadata in v3, and bounded restart-safe queue operation/progress/item metadata in v4.
+
+The v4 queue migration preserves legacy v3 rows with privacy-safe defaults. Rich queue metadata remains status/progress context only: it does not persist pairing nonces, reusable authorization/session tokens, certificates/private keys, peer endpoints, transfer contents, or source/destination paths.
+
+Changes must update:
 
 - migration code;
 - migration/corruption tests;
@@ -76,6 +80,20 @@ Storage compatibility is handled through explicit migrations. Changes must updat
 - privacy documentation if stored data categories change.
 
 A schema bump should not be made casually; it must have a defined prior-version migration path or an explicit safe reset policy.
+
+## Queue restart compatibility
+
+A persisted queue row can retain safe state, operation category, timestamps, bounded progress, and item counts across restart. Existing `Queued`/`Running` rows are marked `Interrupted` on startup rather than automatically resumed.
+
+Compatibility rules for queue persistence therefore require:
+
+- safe defaults for older rows;
+- bounded/validated progress and item relationships;
+- no persisted reusable pairing/transfer authorization;
+- no automatic stale-work replay;
+- fresh authorization for a new retry attempt.
+
+If a future version changes queue semantics, retaining progress/history must never become a shortcut around current authentication, pairing, or consent requirements.
 
 ## Batch resume compatibility
 
@@ -168,7 +186,7 @@ Use both automated and manual evidence:
 
 - portable unit/integration tests;
 - protocol compatibility tests;
-- SQLite migration tests;
+- SQLite migration tests, including supported prior schemas through v4;
 - hosted target compile matrix;
 - signed package update/install tests;
 - cross-version/cross-platform physical transfer tests when releasing a compatibility-affecting change.
