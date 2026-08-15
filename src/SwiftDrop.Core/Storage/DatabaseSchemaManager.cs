@@ -134,6 +134,18 @@ public static class DatabaseSchemaManager
         if (version < 5)
         {
             await ApplyMigrationAsync(connection, """
+                CREATE TABLE IF NOT EXISTS transfer_history (
+                    id TEXT PRIMARY KEY,
+                    direction TEXT NOT NULL,
+                    peer_device_name TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
+                    timestamp_utc TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    integrity_verified INTEGER NOT NULL CHECK(integrity_verified IN (0, 1))
+                );
+                CREATE INDEX IF NOT EXISTS ix_transfer_history_timestamp ON transfer_history(timestamp_utc DESC);
+
                 ALTER TABLE transfer_history
                     ADD COLUMN duration_ms INTEGER NULL
                         CHECK(duration_ms IS NULL OR (duration_ms >= 0 AND duration_ms <= 604800000));
