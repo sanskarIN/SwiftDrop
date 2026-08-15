@@ -16,4 +16,6 @@
   <data name="FolderRecursiveStatus" xml:space="preserve"><value>भेजते समय फ़ोल्डर को पुनरावर्ती रूप से पढ़ा जाएगा। खाली फ़ोल्डर ट्रांसफ़र नहीं होते क्योंकि SwiftDrop फ़ाइल सामग्री और relative paths ट्रांसफ़र करता है।</value></data>
   <data name="DeviceIdentityRefreshed" xml:space="preserve"><value>डिवाइस पहचान ताज़ा की गई</value></data>
   <data name="DeviceIdentityRefreshedFormat" xml:space="preserve"><value>SwiftDrop ने नया स्थानीय device ID और certificate बनाया क्योंकि पिछला certificate सुरक्षित रूप से पुनः उपयोग नहीं किया जा सका ({0})। जिन अन्य डिवाइसों ने पुराने certificate पर भरोसा किया था, उन्हें फिर से पेयर करना होगा। प्राप्त फ़ाइलें, ट्रांसफ़र इतिहास और आपकी स्थानीय trusted-device सूची नहीं हटाई गई।</value></data>
+  <data name="TransferCompletedNotification" xml:space="preserve"><value>ट्रांसफ़र सफलतापूर्वक पूरा हो गया।</value></data>
+  <data name="TransferFailedNotification" xml:space="preserve"><value>एक ट्रांसफ़र विफल हुआ। स्थिति देखने के लिए SwiftDrop खोलें।</value></data>
 </root>
