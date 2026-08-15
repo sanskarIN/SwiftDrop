@@ -2,6 +2,16 @@
 
 Updated: 2026-08-15
 
+
+## August 15 final in-repository defect-closure pass
+
+- The final source-level bug/error audit is complete across transfer/resume, external staging, one-time credentials, bounded security state, discovery/mDNS parsing, persistence, platform integration, and release automation.
+- Fixed invalid/missing resume-state filesystem side effects, external symlink/reparse staging, exact-expiry inconsistencies, concurrent rate-limiter/authorization capacity races, exact discovery expiry, and cross-record mDNS RDATA reads.
+- Release readiness now runs automatically for production source, tests, benchmark/build inputs, and its verification/audit/evidence inputs instead of only a narrow helper-script set.
+- Portable regression coverage is **569 xUnit tests** plus **26 Python helper tests**.
+- No additional mandatory source feature is intentionally left on the repository roadmap. New source work should be driven by a reproducible defect, dependency/platform change, or deliberately scoped post-v1 feature.
+- Production release still requires the signed/package/device/network/provider/accessibility/store evidence listed below; hosted source validation cannot substitute for those external gates.
+
 ## August 15 aggregate performance-trend export continuation
 
 - The source-level History trend/export P2 item is complete: SwiftDrop derives rolling 30-day UTC buckets from valid completed measurements and exports a deterministic aggregate-only CSV on explicit user action.
