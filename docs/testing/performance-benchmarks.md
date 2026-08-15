@@ -1,8 +1,12 @@
-# SwiftDrop synthetic performance benchmarks
+# SwiftDrop performance measurement
+
+SwiftDrop uses two separate forms of performance evidence: a synthetic Core benchmark harness and optional local transfer-duration samples in Transfer History. Neither is a promise of fixed transfer speed.
+
+## Synthetic benchmark harness
 
 The benchmark harness measures repeatable local CPU/storage operations without reading user files, contacting network peers, or storing transfer content outside a uniquely named temporary directory.
 
-## Run
+### Run
 
 ```bash
 dotnet run --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Release -- --size-mib 128 --iterations 3
@@ -10,7 +14,7 @@ dotnet run --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj
 
 The harness emits JSON containing the operating system, .NET version, processor count, options, SHA-256 throughput, batch-manifest validation rate, and portable path-sanitation rate.
 
-## Safety bounds
+### Safety bounds
 
 - `--size-mib`: 1–4096 MiB.
 - `--iterations`: 1–20.
@@ -18,8 +22,26 @@ The harness emits JSON containing the operating system, .NET version, processor 
 - Cleanup is constrained to the harness's unique temporary directory.
 - No user-selected file, clipboard data, pairing invitation, certificate, private key, history database, or network peer is accessed.
 
+## Transfer History performance samples
+
+Schema v5 adds optional `duration_ms` metadata to local Transfer History. A performance sample is eligible for throughput calculation only when all of the following are true:
+
+- the history status is `completed`;
+- the byte count is positive;
+- a positive elapsed duration was actually measured for that completed operation.
+
+Legacy rows, zero-byte transfers, rejected/skipped records, and rows without an attributable duration remain unmeasured. The application does not manufacture timing data for them.
+
+The History screen reports a **weighted aggregate throughput** over measured rows: total measured bytes divided by total measured elapsed time. This avoids giving a tiny transfer the same statistical weight as a large transfer. Per-row duration and throughput are shown only for measured completed rows.
+
+Elapsed timing uses monotonic `Stopwatch` measurements in the live transfer path. For outgoing single-file operations the measured interval covers the queued send operation as invoked by the page; incoming file and accepted batch-item measurements cover the actual receive-stream operation. Because protocol setup, resume offsets, storage, Wi-Fi/TLS behavior, and platform scheduling differ between paths, these numbers are observational diagnostics rather than standardized benchmarks.
+
+Performance history adds only bounded numeric duration metadata. It does not add peer IP/port information, pairing nonces, tokens, certificates, private keys, transfer content, or reusable authorization. Peer/file display fields continue to follow the existing history privacy-mode and retention rules.
+
 ## Release use
 
-Record results for representative release hardware and compare like-for-like runs. Do not treat a single CI runner result as a device-performance guarantee. At minimum measure Android, Windows, iOS, and macOS release candidates on representative hardware, and separately measure full peer-to-peer transfer throughput because storage hashing alone does not model Wi-Fi, TLS, platform scheduling, or receiver write performance.
+Record synthetic results for representative release hardware and compare like-for-like runs. Do not treat a single CI runner result as a device-performance guarantee. At minimum measure Android, Windows, iOS, and macOS release candidates on representative hardware, and separately measure full peer-to-peer transfer throughput because storage hashing alone does not model Wi-Fi, TLS, platform scheduling, or receiver write performance.
 
-Large-file validation should additionally observe peak memory and confirm that transfer code continues to stream rather than allocating a whole file. Benchmark data is engineering evidence, not a promise of a fixed transfer speed.
+When using History samples during release testing, compare similar devices, network conditions, file sizes, resume state, and sender/receiver roles. Do not combine unrelated environments into a marketing performance claim.
+
+Large-file validation should additionally observe peak memory and confirm that transfer code continues to stream rather than allocating a whole file. Benchmark and history data are engineering evidence, not a guarantee of a fixed transfer speed.
