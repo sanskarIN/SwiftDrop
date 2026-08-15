@@ -2643,3 +2643,179 @@ The repository now additionally proves:
 Still external/candidate-specific: production signing and packaging; physical Android/iOS/device-to-device transfer testing; signed App Group/Share Extension behavior; Windows MSIX install/update/protocol/firewall validation; Mac sandbox/notarization; real restricted-network/provider/lifecycle/low-storage testing; accessibility/localization on actual assistive technologies; exact final signed-artifact dependency/license/provenance reconciliation; and store/privacy publication checks.
 
 **Made by the Sanskar**
+
+---
+
+# 152. August 15 post-v1 queue persistence continuation
+
+The next source-level post-v1 enhancement was selected from the existing optional roadmap rather than reimplementing already-completed master-prompt scope. The target was richer restart-safe transfer queue persistence **without persisting reusable transfer authorization**.
+
+Implemented behavior:
+
+- queue metadata now retains a bounded non-secret operation category;
+- queue metadata now retains the most recent safe update timestamp;
+- progress is represented as integer basis points in the inclusive range `0..10000`;
+- optional total/completed item counts can be retained;
+- file, batch, and text sender flows report progress into the shared queue service;
+- ordinary progress persistence is deliberately coarsened to 5% buckets, while state/item-count transitions remain persistable;
+- stale `Queued`/`Running` work is still converted to `Interrupted` at application restart;
+- recovered progress/context remains visible, but stale work is never auto-replayed.
+
+This closes the former `NEXT_STEPS.md` P2 item for richer transfer queue persistence.
+
+# 153. SQLite schema v4 and migration work
+
+`DatabaseSchemaManager.CurrentVersion` was advanced from 3 to **4**.
+
+The `transfer_queue_metadata` table now includes:
+
+- `operation_kind`;
+- `updated_utc`;
+- `progress_basis_points`;
+- `item_count`;
+- `completed_item_count`.
+
+The v3→v4 migration preserves existing queue rows and supplies safe defaults (`operation_kind='Transfer'`, progress `0`, nullable counts). The migration remains sequential and transactional and keeps a self-contained base queue-table creation path for artificial/partial prior-version databases used by compatibility tests.
+
+Validation now enforces:
+
+- allowed queue states;
+- allowed bounded operation categories (`Transfer`, `File`, `Batch`, `Text`, `Receive`);
+- bounded identifiers/labels/error codes;
+- creation/update timestamp relationships;
+- progress in `0..10000`;
+- non-negative item counts;
+- completed count not greater than total count when both are known.
+
+Relevant focused commits:
+
+- `3db15d1afd8b880b545271e92fcd68233730d657` — enrich restart-safe queue metadata model;
+- `c1eb55c86f15ae48c7a9ffb8bb85c7df6200fd70` — add schema-v4 migration;
+- `ccef2188cc2782a22d86cc1c78da7a88fd1837fe` — persist queue progress/operation context;
+- `287dca8fde5526dd9dee19d7cbdb74837081d09a` — make the v4 migration self-contained.
+
+# 154. Restart safety and authorization boundary
+
+The richer queue persistence was intentionally designed **not** to become a transfer-resume authorization store.
+
+Persisted queue labels remain the generic value `Transfer`, even when the non-private in-memory UI can display a filename. The queue table does not store:
+
+- transferred file bytes;
+- transferred text;
+- source paths;
+- destination paths;
+- peer IP/host values;
+- peer ports;
+- pairing invitation text;
+- pairing nonces;
+- reusable bearer/session/transfer tokens;
+- peer certificates;
+- private keys;
+- reusable credentials.
+
+Automated schema coverage explicitly checks that queue columns do not introduce names containing `nonce`, `token`, `certificate`, `host`, or `port`.
+
+On restart, stale active entries are marked `Interrupted` and retain only their safe last-known context/progress. A retry still requires fresh pairing/authorization through the normal product workflow.
+
+# 155. Sender integration and queue UI
+
+`TransferQueueService` now supports progress-aware execution while keeping existing execution overloads compatible.
+
+Implementation details include:
+
+- serialized persistence through a dedicated semaphore;
+- monotonic in-memory progress (`Math.Max` against prior progress);
+- coarse persistence buckets of 500 basis points (5%);
+- state transition persistence for queued/running/completed/failed/cancelled/interrupted states;
+- terminal completion normalized to 100%;
+- best-effort persistence that does not change transfer success/failure semantics;
+- progress callbacks that never overwrite a newer terminal entry with stale state.
+
+`TransferCoordinator` integration now categorizes and reports:
+
+- single file → `File`, one item;
+- multi-file/folder batch → `Batch`, batch byte fraction plus completed/total items;
+- text snippet → `Text`, one item.
+
+`QueueViewModel` and `QueuePage.xaml` now expose:
+
+- operation category;
+- queue state;
+- persisted/recovered progress fraction;
+- percentage plus completed/total item counts where available;
+- a visual progress bar;
+- timing and bounded error context.
+
+Focused commits:
+
+- `1b7a45d3a38d08f43143bb46b79cb8e29d394439` — implement progress-aware queue recovery/persistence;
+- `37de59a381b59670424379fabd345d89038d74b6` — feed sender progress into the queue;
+- `9d0b4b88041fc884a5df65b134dd1f14c8279838` — close an overload-recursion/compile-risk found during review;
+- `0d27f9f93f2ef69b0b619801512b2b02f435605d` — expose queue progress from the view model;
+- `0d580d2a5847af2e258998faaf829e6981ef5f14` — render operation/progress in queue XAML.
+
+# 156. Schema and metadata regression coverage
+
+Storage regression coverage was expanded for the v4 contract.
+
+`DatabaseSchemaManagerTests` now covers:
+
+- version-zero database creation through current schema;
+- v1→current migration;
+- v2→current migration;
+- legacy v3 queue-row migration without data loss;
+- current-version idempotence;
+- future-version rejection;
+- presence of all new v4 queue columns.
+
+`TransferQueueMetadataStoreTests` now covers:
+
+- rich metadata round-trip;
+- operation kind;
+- progress fraction;
+- total/completed item counts;
+- interrupted-state conversion while preserving progress;
+- deletion of terminal rows;
+- invalid state/error/operation/progress/item relationships;
+- explicit absence of authorization/endpoint-oriented queue schema fields.
+
+Focused test commits:
+
+- `834ee66c07d3e1a2ccc729d1af1529ac794edb12` — schema-v4 migration coverage;
+- `2742c43534716d28d29350d0a9c23af62892e9d3` — rich metadata and privacy-boundary coverage.
+
+# 157. Documentation synchronization for schema v4
+
+The current-state documentation was corrected so it no longer describes schema v3 as the latest schema after the queue enhancement.
+
+Updated references include:
+
+- `docs/storage/database-schema.md` — current schema 4, queue fields, migrations 0→1→2→3→4, completed-batch table history, and no-authorization rules;
+- `NEXT_STEPS.md` — moved rich queue persistence from optional P2 into completed August 15 work and added v4 validation requirements;
+- `PRIVACY.md` — documented restart-safe queue metadata, coarse progress persistence, and excluded authorization/content/endpoints;
+- `docs/versioning-and-compatibility.md` — current schema 4 and queue restart compatibility contract;
+- `CHANGELOG.md` — new August 15 unreleased section;
+- `PROJECT_STATUS.md` — current schema/status/UI/testing/release-boundary synchronization.
+
+Focused documentation commits:
+
+- `cb0065b83d63ab4cb10fc6e981424aa44151587b` — storage schema documentation;
+- `6d4868b983e44d8dc9ee9ed3c2a130a603e48025` — roadmap synchronization;
+- `8dd52e8ce30aa835303b4e5f55de5f5af0e71250` — privacy contract;
+- `af6a26335f94a08266287b6184d00423bf48cccf` — compatibility contract;
+- `d374bfeefa0ce014e4828feb9c06430369cca4b0` — changelog synchronization;
+- `d1d9a2c3b9200b4e8c5b35eff1f4c32a244f185a` — project-status synchronization.
+
+# 158. Validation evidence boundary for this continuation
+
+The August 14 exact-head baseline remains historically valid evidence: portable tests were green on both Ubuntu and Windows and the maintained Android/focused-Windows/Mac-Catalyst/iOS platform matrix was green before this new queue source work.
+
+The August 15 source-changing platform run `31866920059` was launched from source head `0d580d2a5847af2e258998faaf829e6981ef5f14`. At the time this ledger append was prepared, its focused Windows build/audit had already completed successfully while Android and Apple jobs were still running. Newer documentation commits intentionally do not relabel older source evidence as an exact-final-head pass.
+
+Regular CI, CodeQL, and security-hygiene runs for the newest main-head documentation/source state were queued/running while this ledger append was prepared. Their final conclusions must be recorded from GitHub Actions evidence rather than guessed.
+
+A temporary one-run ledger helper was attempted only to preserve the long file by appending in place, but GitHub rejected that workflow before creating a job. It made no ledger modification and was removed immediately in commit `4c49d1ced68d9c99d02654c3832b81d3b8063db5`. The ledger was then updated directly without deleting or shortening any earlier numbered section.
+
+The project therefore remains classified as **source-complete for the current master-prompt scope plus this implemented optional queue enhancement, with release validation still external/candidate-specific**. Signed packaging, real devices/providers/networks/filesystems, accessibility/localization validation, final dependency/license/provenance reconciliation, App Group/notarization, and store/privacy checks remain outside what source-only edits can honestly complete.
+
+**Made by the Sanskar**
