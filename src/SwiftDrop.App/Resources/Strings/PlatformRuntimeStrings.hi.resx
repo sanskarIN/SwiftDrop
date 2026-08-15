@@ -18,4 +18,8 @@
   <data name="DeviceIdentityRefreshedFormat" xml:space="preserve"><value>SwiftDrop ने नया स्थानीय device ID और certificate बनाया क्योंकि पिछला certificate सुरक्षित रूप से पुनः उपयोग नहीं किया जा सका ({0})। जिन अन्य डिवाइसों ने पुराने certificate पर भरोसा किया था, उन्हें फिर से पेयर करना होगा। प्राप्त फ़ाइलें, ट्रांसफ़र इतिहास और आपकी स्थानीय trusted-device सूची नहीं हटाई गई।</value></data>
   <data name="TransferCompletedNotification" xml:space="preserve"><value>ट्रांसफ़र सफलतापूर्वक पूरा हो गया।</value></data>
   <data name="TransferFailedNotification" xml:space="preserve"><value>एक ट्रांसफ़र विफल हुआ। स्थिति देखने के लिए SwiftDrop खोलें।</value></data>
+  <data name="NotificationSupportAndroid" xml:space="preserve"><value>Android पूर्ण/विफल नोटिफिकेशन वैकल्पिक हैं। Android 13+ नोटिफिकेशन अनुमति केवल तब माँगी जाती है जब आप यह सेटिंग चालू करके सहेजते हैं।</value></data>
+  <data name="NotificationSupportApple" xml:space="preserve"><value>Apple पूर्ण/विफल नोटिफिकेशन वैकल्पिक हैं। SwiftDrop alert और sound की अनुमति केवल तब माँगता है जब आप यह सेटिंग चालू करके सहेजते हैं।</value></data>
+  <data name="NotificationSupportWindows" xml:space="preserve"><value>Windows पूर्ण/विफल app notifications वैकल्पिक हैं और इनमें केवल सामान्य ट्रांसफ़र स्थिति होती है, फ़ाइल नाम या ट्रांसफ़र सामग्री नहीं।</value></data>
+  <data name="NotificationSupportUnavailable" xml:space="preserve"><value>इस लक्ष्य पर वैकल्पिक पूर्ण/विफल सिस्टम नोटिफिकेशन लागू नहीं हैं। ट्रांसफ़र स्थिति SwiftDrop के अंदर उपलब्ध रहती है।</value></data>
 </root>
