@@ -1,0 +1,26 @@
+name: Finalize performance trend ledger once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/swiftdrop-performance-trend-ledger-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refresh main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+      - name: Finalize aggregate performance trend ledger
+        run: python3 .github/swiftdrop-finalize-performance-trend-ledger.py
