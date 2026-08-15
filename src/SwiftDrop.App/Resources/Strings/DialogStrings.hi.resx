@@ -38,7 +38,7 @@
   <data name="FolderPickerUnavailableMessage" xml:space="preserve"><value>इस प्लेटफ़ॉर्म पर SwiftDrop व्यापक स्टोरेज अनुमति माँगने के बजाय प्राप्त फ़ाइलों को अपने निजी Received फ़ोल्डर में रखता है।</value></data>
   <data name="FolderSelectionFailed" xml:space="preserve"><value>फ़ोल्डर चयन विफल</value></data>
   <data name="NotificationPermissionNotGranted" xml:space="preserve"><value>नोटिफिकेशन अनुमति नहीं मिली</value></data>
-  <data name="NotificationPermissionNotGrantedMessage" xml:space="preserve"><value>SwiftDrop वैकल्पिक पूर्ण/विफल नोटिफिकेशन के बिना भी सामान्य रूप से ट्रांसफ़र करेगा। आवश्यक foreground transfer status Android के प्लेटफ़ॉर्म नियमों द्वारा नियंत्रित होता है।</value></data>
+  <data name="NotificationPermissionNotGrantedMessage" xml:space="preserve"><value>SwiftDrop वैकल्पिक पूर्ण/विफल नोटिफिकेशन के बिना भी सामान्य रूप से ट्रांसफ़र करेगा। किसी भी आवश्यक ट्रांसफ़र-स्थिति नोटिफिकेशन को ऑपरेटिंग सिस्टम अलग से नियंत्रित करता है।</value></data>
   <data name="Saved" xml:space="preserve"><value>सहेजा गया</value></data>
   <data name="SavedSettingsMessage" xml:space="preserve"><value>सेटिंग्स और डिवाइस नाम इस डिवाइस पर सहेज दिए गए हैं।</value></data>
   <data name="SavedLanguageChangedMessage" xml:space="preserve"><value>सेटिंग्स और डिवाइस नाम सहेज दिए गए हैं। नई खुलने वाली स्क्रीन चुनी हुई भाषा उपयोग करेंगी; पहले से खुली स्क्रीन को ताज़ा करने के लिए SwiftDrop पुनः प्रारंभ करें।</value></data>
