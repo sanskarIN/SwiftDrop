@@ -63,7 +63,14 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
         _subscribed = false;
     }
 
-    public sealed record QueueRow(string Label, string State, string TimingText, string Error)
+    public sealed record QueueRow(
+        string Label,
+        string OperationKind,
+        string State,
+        double ProgressFraction,
+        string ProgressText,
+        string TimingText,
+        string Error)
     {
         public static QueueRow FromEntry(TransferQueueEntry entry)
         {
@@ -74,7 +81,19 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
                 TransferQueueState.Interrupted => AppText.Format("InterruptedAtFormat", entry.FinishedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime),
                 _ => AppText.Format("FinishedAtFormat", entry.FinishedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime)
             };
-            return new QueueRow(entry.Label, entry.State.ToString(), timing, entry.Error ?? string.Empty);
+
+            var progress = entry.ProgressFraction.ToString("P0", System.Globalization.CultureInfo.CurrentCulture);
+            if (entry.ItemCount is { } total && entry.CompletedItemCount is { } completed)
+                progress = $"{progress} · {completed:N0}/{total:N0}";
+
+            return new QueueRow(
+                entry.Label,
+                entry.OperationKind.ToString(),
+                entry.State.ToString(),
+                entry.ProgressFraction,
+                progress,
+                timing,
+                entry.Error ?? string.Empty);
         }
     }
 }
