@@ -11,6 +11,9 @@ Updated: 2026-08-15
 - Performance metadata remains local and retention-bound, and adds no peer endpoint, transfer content, pairing capability/nonce, credential, certificate/private key, or reusable authorization.
 - Physical representative-device/network performance characterization remains external validation and is not inferred from hosted CI.
 
+- Final portable evidence is **539/539 xUnit tests** plus **21/21 Python helper tests**. Clean-main CI run `31874085156` passed Ubuntu and Windows portable verification; CodeQL `31874085174` and security-hygiene `31874085159` passed.
+- Exact runtime platform run `31873777639` passed Android, focused Windows, Mac Catalyst, iOS Share Extension, iOS containing app, dependency audits, and artifact uploads on runtime head `0b288cf897b11431aadfb3aadcc05cb6508f2908`.
+- Release-readiness run `31874019607` passed Core/tests, Android, Windows, Apple targets, dependency evidence, and the final aggregate `release-gate`.
 ## August 15 final native-notification verification snapshot
 
 - Exact runtime notification source head: `c3bd4d9fd5389a56fd203a5e4edb31033631181a`.

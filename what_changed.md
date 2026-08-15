@@ -3027,3 +3027,70 @@ Notification failure remains deliberately non-authoritative: permission, registr
 
 
 **Made by the Sanskar**
+
+## 171. Local History performance storage model
+
+- Extended `TransferHistoryEntry` with optional `DurationMilliseconds` and optional `MeasuredBytes` while retaining the existing logical `SizeBytes` field.
+- Advanced SQLite to schema **v5** for bounded nullable `duration_ms`, then schema **v6** for nullable non-negative `measured_bytes`.
+- v4 history rows migrate with both measurement fields null; v5 rows preserve duration while leaving measured bytes null. No migration invents a performance sample for historical data.
+- `TransferHistoryStore` persists and reads both fields, limits duration to seven days, rejects negative measured bytes, rejects measured bytes greater than logical history size, and continues to skip malformed persisted rows without hiding valid rows.
+- The v5 migration defensively recreates the legacy history base table if an older partially formed database declares an old schema version without the table.
+
+## 172. Resume-safe runtime performance attribution
+
+- Outgoing single-file transfers now return `FileSendResult(LogicalBytes, TransferredBytes)` from `TransferCoordinator`; `TransferredBytes` is the negotiated `length - resumeOffset` value rather than the whole logical file size.
+- Completed outgoing single-file history records use monotonic `Stopwatch` elapsed time plus that actual transferred-byte count.
+- Completed text sends record monotonic elapsed time plus UTF-8 byte length.
+- Incoming single-file transfers measure only the actual `ReceiveFileAsync` interval and attribute `effectiveEntry.Length - offset` bytes.
+- Accepted incoming batch items measure each receive interval separately and attribute `item.EffectiveEntry.Length - item.ResumeOffset` bytes.
+- Failed, cancelled, paused, rejected, skipped, legacy, zero-byte, and otherwise unattributable operations do not receive fabricated throughput samples.
+
+## 173. Portable analyzer and localized History dashboard
+
+- Added portable `TransferPerformanceAnalyzer` and `TransferPerformanceSummary` in Core.
+- Weighted throughput is calculated as total valid measured bytes divided by total valid measured elapsed time; it is not an unweighted average of row rates.
+- The analyzer rejects non-completed, zero/negative, overlong-duration, missing-byte, and impossible `measured_bytes > size_bytes` samples.
+- Extreme aggregate byte counters use saturation instead of overflowing.
+- Added `NormalizeOptionalMeasurement` so invalid optional telemetry is dropped rather than being allowed to turn an otherwise successful transfer into a failed application result; the strict storage layer still rejects invalid persisted metadata.
+- History now shows a localized weighted performance summary and per-row duration/throughput only when a valid completed measurement exists.
+- Added English/Hindi resources for no-measurement guidance, summary formatting, duration, and throughput.
+
+## 174. Performance-history regression coverage
+
+- Added Core analyzer regressions for weighted calculations, resumed-transfer actual-byte math, absent/legacy measurements, impossible samples, zero/negative/overlong optional measurements, sub-millisecond normalization, and saturating aggregates.
+- Expanded history-store tests for duration/measured-byte round trips, null legacy rows, duration/byte bounds, measured bytes exceeding logical size, and corrupted persisted rows.
+- Expanded database migration tests through schema v6, including v4 null preservation and v5 duration preservation without synthesized measured bytes.
+- Added permanent `scripts/tests/test_performance_history_contract.py` covering five cross-layer invariants: schema separation, persistence bounds, analyzer semantics, sender/receiver resume-byte attribution, and History UI/localization wiring.
+- Python helper coverage is now **21 tests**.
+- Portable xUnit coverage is now **539/539 passing tests** in release-readiness and clean CI evidence.
+
+## 175. Privacy, architecture, user, testing, and release documentation synchronization
+
+- Updated `README.md`, `PRIVACY.md`, `NEXT_STEPS.md`, `PROJECT_STATUS.md`, `CHANGELOG.md`, `BUILDING.md`, `docs/architecture.md`, `docs/user-guide.md`, `docs/versioning-and-compatibility.md`, `docs/storage/database-schema.md`, `docs/testing/performance-benchmarks.md`, `docs/testing/manual-test-matrix.md`, `docs/testing/security-test-plan.md`, `docs/testing/ci-reference.md`, `docs/release/release-checklist.md`, and `docs/release/release-process.md`.
+- Current-state documentation consistently identifies schema v6 and keeps older v4 evidence only inside historical snapshots.
+- Physical validation now explicitly covers fresh/v1/v2/v3/v4/v5→v6 upgrades, full/resumed/zero-byte/unmeasured History behavior, weighted-rate correctness, privacy mode, retention/clear behavior, accessibility/large text, and Hindi presentation.
+- Performance metadata remains inside the existing local History retention/privacy boundary and adds no peer endpoint, transfer content, pairing capability/nonce, token/session credential, certificate/private key, or reusable authorization.
+- Stale Android-only notification wording was removed from current user/release guidance.
+
+## 176. Exact final runtime platform evidence
+
+- Exact final application/runtime source head: `0b288cf897b11431aadfb3aadcc05cb6508f2908`.
+- Maintained platform run **31873777639** completed successfully on that runtime source across Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app, including target dependency vulnerability audits and evidence uploads.
+- Platform artifact digests recorded by GitHub:
+  - `android-dependency-audit`: `sha256:c34f3651b3ab596f2fd55c7c3d28fc71a7107c05a39494f4605d91ec4a52a092`
+  - `windows-dependency-audit`: `sha256:875985299a3388e99b406501f66524d6d383ae88eea04d9164052bb73fa44529`
+  - `apple-dependency-audit`: `sha256:52fb40a1ddca1cb8e935df9117edc29b06f298e8b9f38bb1401352dc54ee9eec`
+- No application/runtime source file changed after `0b288cf...`; later commits in this continuation are regression tests, documentation, and temporary-helper cleanup only.
+
+## 177. Release-readiness and clean-branch verification
+
+- Release-readiness run **31874019607** at head `9a7831c5ed591f85e3c5e400f259ffc7b497ebac` completed successfully across Core/tests, Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, iOS Simulator containing app, dependency audits/uploads, and final `release-gate`.
+- Its portable contract passed **21/21 Python helper tests**, **539/539 xUnit tests**, documentation/localization/Apple/Windows integration validation, Core and benchmark compilation, and zero vulnerable-package findings in the maintained Core/test/benchmark reports.
+- Release-readiness artifact digests recorded by GitHub:
+  - `dependency-audit`: `sha256:abb699955610b7edd0a662be2d82f23e79bf3b11d256204e05bdcfaac4bd3448`
+  - `android-dependency-audit`: `sha256:79d4310500985a5ce073341805a1b8c4d0313245cfd7036caf0f82e41f729497`
+  - `windows-dependency-audit`: `sha256:9e954ad95b82015b2fd150f2e2f99c543a0491a1f73f2193a8fb9b0857697369`
+  - `apple-dependency-audit`: `sha256:2ced4932c9af09c78931ccca6f396753befe2d03eb9f50401904cb4d7600891c`
+- Clean-main CI run **31874085156** passed both Ubuntu Core and Windows portable-verifier jobs after the documentation/helper cleanup state.
+- Clean-main CodeQL run **31874085174** completed successfully; security-hygiene run **31874085159** also completed successfully.
+- The repository still requires signed-package and physical/provider/network/filesystem/accessibility/store validation before a production-readiness claim. Hosted CI does not prove Android package/provider behavior, Apple provisioning/App Group/notarization, Windows signed MSIX/notification activation, real-device notification delivery, representative-device/network performance, exact signed-artifact dependency/license/provenance, or store/privacy submission acceptance.
