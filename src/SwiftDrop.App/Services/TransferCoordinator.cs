@@ -17,7 +17,7 @@ public sealed class TransferCoordinator
         _queue = queue;
     }
 
-    public Task SendAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
+    public Task<FileSendResult> SendAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
         => _queue.ExecuteAsync(
             $"Send {Path.GetFileName(path)}",
             TransferQueueOperationKind.File,
@@ -75,7 +75,7 @@ public sealed class TransferCoordinator
             },
             ct);
 
-    private async Task SendCoreAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
+    private async Task<FileSendResult> SendCoreAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
     {
         remote = await PrepareRemoteAsync(remote, ct);
         var info = TransferSourceSafety.GetRegularFile(path);
@@ -118,6 +118,7 @@ public sealed class TransferCoordinator
             entry.Length,
             completed.Message);
         progress?.Report(1);
+        return new FileSendResult(entry.Length, entry.Length - resumeOffset);
     }
 
     private async Task<BatchSendResult> SendBatchCoreAsync(
@@ -266,6 +267,8 @@ public sealed class TransferCoordinator
         public void Report(T value) => _report(value);
     }
 }
+
+public sealed record FileSendResult(long LogicalBytes, long TransferredBytes);
 
 public sealed record BatchProgress(
     int CompletedItems,
