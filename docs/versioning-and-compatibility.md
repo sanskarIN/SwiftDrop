@@ -66,11 +66,11 @@ Relaxing canonicality can create alias/replay/cross-platform ambiguity and must 
 
 ## Local database schema version
 
-The current SQLite schema version is **4**.
+The current SQLite schema version is **6**.
 
-Storage compatibility is handled through explicit migrations. Current migration history includes trusted/history/diagnostic metadata in v1, queue metadata in v2, completed-batch resume metadata in v3, and bounded restart-safe queue operation/progress/item metadata in v4.
+Storage compatibility is handled through explicit migrations. Current migration history includes trusted/history/diagnostic metadata in v1, queue metadata in v2, completed-batch resume metadata in v3, bounded restart-safe queue operation/progress/item metadata in v4, optional history duration in v5, and optional attributable measured-byte counts in v6.
 
-The v4 queue migration preserves legacy v3 rows with privacy-safe defaults. Rich queue metadata remains status/progress context only: it does not persist pairing nonces, reusable authorization/session tokens, certificates/private keys, peer endpoints, transfer contents, or source/destination paths.
+The v4 queue migration preserves legacy v3 rows with privacy-safe defaults. The v4→v5→v6 history migrations preserve old rows with null performance fields rather than manufacturing measurements. Rich queue metadata remains status/progress context only: it does not persist pairing nonces, reusable authorization/session tokens, certificates/private keys, peer endpoints, transfer contents, or source/destination paths.
 
 Changes must update:
 
