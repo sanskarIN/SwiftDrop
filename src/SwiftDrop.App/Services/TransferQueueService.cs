@@ -102,7 +102,11 @@ public sealed class TransferQueueService
             label,
             TransferQueueOperationKind.Transfer,
             null,
-            async (_, token) => await action(token),
+            async (reporter, token) =>
+            {
+                await action(token);
+                reporter.Report(1d);
+            },
             ct);
 
     public Task ExecuteAsync(
@@ -347,7 +351,8 @@ public sealed class TransferQueueService
                 TransferQueueEntry entry;
                 lock (_sync)
                 {
-                    if (!_entries.TryGetValue(id, out entry!)) return;
+                    if (!_entries.TryGetValue(id, out var found)) return;
+                    entry = found;
                 }
 
                 var metadata = new TransferQueueMetadataEntry(
