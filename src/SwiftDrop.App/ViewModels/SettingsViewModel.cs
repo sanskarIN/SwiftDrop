@@ -12,9 +12,7 @@ public sealed class SettingsViewModel : ObservableObject
     private readonly TrustedDevicesService _trustedDevices;
     private readonly ReceiveLocationService _receiveLocation;
     private readonly AppearanceService _appearance;
-#if ANDROID
     private readonly TransferNotificationService _notifications;
-#endif
 
     private string _deviceName = string.Empty;
     private string _identityFingerprint = string.Empty;
@@ -49,9 +47,7 @@ public sealed class SettingsViewModel : ObservableObject
         _trustedDevices = trustedDevices;
         _receiveLocation = receiveLocation;
         _appearance = appearance;
-#if ANDROID
         _notifications = notifications;
-#endif
     }
 
     public string DeviceName { get => _deviceName; set => SetProperty(ref _deviceName, value); }
@@ -84,14 +80,16 @@ public sealed class SettingsViewModel : ObservableObject
         HistoryRetentionDays = settings.HistoryRetentionDays;
         PrivacyMode = settings.PrivacyMode;
         AutoAcceptTrustedDevices = settings.AutoAcceptTrustedDevices;
+        NotificationsSupported = _notifications.IsSupported;
+        NotificationsEnabled = NotificationsSupported && settings.NotificationsEnabled;
 #if ANDROID
-        NotificationsSupported = true;
-        NotificationsEnabled = settings.NotificationsEnabled;
-        NotificationSupport = "Android optional completion/failure notifications are opt-in. Android 13+ notification permission is requested only when you enable this setting and save.";
+        NotificationSupport = "Android completion/failure notifications are opt-in. Android 13+ notification permission is requested only when you enable this setting and save.";
+#elif IOS || MACCATALYST
+        NotificationSupport = "Apple completion/failure notifications are opt-in. SwiftDrop requests alert and sound permission only when you enable this setting and save.";
+#elif WINDOWS
+        NotificationSupport = "Windows completion/failure app notifications are opt-in and contain only generic transfer status, not filenames or transfer contents.";
 #else
-        NotificationsSupported = false;
-        NotificationsEnabled = false;
-        NotificationSupport = "Optional completion/failure system notifications are not implemented on this target yet. Transfer status remains available inside SwiftDrop.";
+        NotificationSupport = "Optional completion/failure system notifications are not implemented on this target. Transfer status remains available inside SwiftDrop.";
 #endif
         ReduceMotion = settings.ReduceMotion;
         LargerInterface = settings.LargerInterface;
@@ -132,16 +130,12 @@ public sealed class SettingsViewModel : ObservableObject
         await _identity.RenameAsync(DeviceName ?? string.Empty);
         var notificationsEnabled = NotificationsEnabled && NotificationsSupported;
         var notificationPermissionDenied = false;
-#if ANDROID
-        if (notificationsEnabled && !await _notifications.EnsurePermissionAsync())
+        if (notificationsEnabled && !await _notifications.EnsurePermissionAsync(ct))
         {
             notificationPermissionDenied = true;
             notificationsEnabled = false;
             NotificationsEnabled = false;
         }
-#else
-        notificationsEnabled = false;
-#endif
         var settings = new AppSettings(
             (int)TransferConcurrency,
             (int)HistoryRetentionDays,
