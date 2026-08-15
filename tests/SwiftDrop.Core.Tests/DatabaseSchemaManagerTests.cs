@@ -32,7 +32,9 @@ public sealed class DatabaseSchemaManagerTests
                 Assert.Contains("progress_basis_points", queueColumns);
                 Assert.Contains("item_count", queueColumns);
                 Assert.Contains("completed_item_count", queueColumns);
-                Assert.Contains("duration_ms", await ReadColumnsAsync(connection, "transfer_history"));
+                var historyColumns = await ReadColumnsAsync(connection, "transfer_history");
+                Assert.Contains("duration_ms", historyColumns);
+                Assert.Contains("measured_bytes", historyColumns);
             }
         }
         finally
@@ -61,7 +63,9 @@ public sealed class DatabaseSchemaManagerTests
                 Assert.Contains("transfer_queue_metadata", tables);
                 Assert.Contains("completed_batch_items", tables);
                 Assert.Contains("transfer_history", tables);
-                Assert.Contains("duration_ms", await ReadColumnsAsync(connection, "transfer_history"));
+                var historyColumns = await ReadColumnsAsync(connection, "transfer_history");
+                Assert.Contains("duration_ms", historyColumns);
+                Assert.Contains("measured_bytes", historyColumns);
             }
         }
         finally
@@ -88,7 +92,9 @@ public sealed class DatabaseSchemaManagerTests
                 Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
                 Assert.Contains("completed_batch_items", await ReadTablesAsync(connection));
                 Assert.Contains("progress_basis_points", await ReadColumnsAsync(connection, "transfer_queue_metadata"));
-                Assert.Contains("duration_ms", await ReadColumnsAsync(connection, "transfer_history"));
+                var historyColumns = await ReadColumnsAsync(connection, "transfer_history");
+                Assert.Contains("duration_ms", historyColumns);
+                Assert.Contains("measured_bytes", historyColumns);
             }
         }
         finally
@@ -149,7 +155,7 @@ public sealed class DatabaseSchemaManagerTests
     }
 
     [Fact]
-    public async Task EnsureCurrentAsync_MigratesVersionFourHistoryRowsWithNullDuration()
+    public async Task EnsureCurrentAsync_MigratesVersionFourHistoryRowsWithNullPerformanceMetadata()
     {
         var path = TempDatabasePath();
         try
@@ -179,11 +185,63 @@ public sealed class DatabaseSchemaManagerTests
 
                 await DatabaseSchemaManager.EnsureCurrentAsync(connection);
 
-                Assert.Equal(5, await DatabaseSchemaManager.GetVersionAsync(connection));
-                Assert.Contains("duration_ms", await ReadColumnsAsync(connection, "transfer_history"));
+                Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+                var columns = await ReadColumnsAsync(connection, "transfer_history");
+                Assert.Contains("duration_ms", columns);
+                Assert.Contains("measured_bytes", columns);
                 using var read = connection.CreateCommand();
-                read.CommandText = "SELECT duration_ms FROM transfer_history WHERE id='legacy-history';";
-                Assert.Equal(DBNull.Value, await read.ExecuteScalarAsync());
+                read.CommandText = "SELECT duration_ms, measured_bytes FROM transfer_history WHERE id='legacy-history';";
+                await using var reader = await read.ExecuteReaderAsync();
+                Assert.True(await reader.ReadAsync());
+                Assert.True(reader.IsDBNull(0));
+                Assert.True(reader.IsDBNull(1));
+            }
+        }
+        finally
+        {
+            SqliteTestDatabaseCleanup.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task EnsureCurrentAsync_MigratesVersionFiveDurationWithoutInventingMeasuredBytes()
+    {
+        var path = TempDatabasePath();
+        try
+        {
+            await using (var connection = new SqliteConnection($"Data Source={path}"))
+            {
+                await connection.OpenAsync();
+                using var command = connection.CreateCommand();
+                command.CommandText = """
+                    CREATE TABLE transfer_history (
+                        id TEXT PRIMARY KEY,
+                        direction TEXT NOT NULL,
+                        peer_device_name TEXT NOT NULL,
+                        file_name TEXT NOT NULL,
+                        size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
+                        timestamp_utc TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        integrity_verified INTEGER NOT NULL CHECK(integrity_verified IN (0, 1)),
+                        duration_ms INTEGER NULL CHECK(duration_ms IS NULL OR (duration_ms >= 0 AND duration_ms <= 604800000))
+                    );
+                    INSERT INTO transfer_history
+                        (id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms)
+                    VALUES
+                        ('v5-history', 'received', 'Phone', 'file.bin', 100, '2026-08-15T00:00:00.0000000Z', 'completed', 1, 250);
+                    PRAGMA user_version = 5;
+                    """;
+                await command.ExecuteNonQueryAsync();
+
+                await DatabaseSchemaManager.EnsureCurrentAsync(connection);
+
+                Assert.Equal(DatabaseSchemaManager.CurrentVersion, await DatabaseSchemaManager.GetVersionAsync(connection));
+                using var read = connection.CreateCommand();
+                read.CommandText = "SELECT duration_ms, measured_bytes FROM transfer_history WHERE id='v5-history';";
+                await using var reader = await read.ExecuteReaderAsync();
+                Assert.True(await reader.ReadAsync());
+                Assert.Equal(250, reader.GetInt64(0));
+                Assert.True(reader.IsDBNull(1));
             }
         }
         finally
