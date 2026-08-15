@@ -4,7 +4,7 @@ namespace SwiftDrop.Core.Storage;
 
 public static class DatabaseSchemaManager
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public static async Task EnsureCurrentAsync(SqliteConnection connection, CancellationToken ct = default)
     {
@@ -91,6 +91,30 @@ public static class DatabaseSchemaManager
                     ON completed_batch_items(completed_utc DESC);
 
                 PRAGMA user_version = 3;
+                """, ct);
+            version = 3;
+        }
+
+        if (version < 4)
+        {
+            await ApplyMigrationAsync(connection, """
+                ALTER TABLE transfer_queue_metadata
+                    ADD COLUMN operation_kind TEXT NOT NULL DEFAULT 'Transfer';
+                ALTER TABLE transfer_queue_metadata
+                    ADD COLUMN updated_utc TEXT NULL;
+                ALTER TABLE transfer_queue_metadata
+                    ADD COLUMN progress_basis_points INTEGER NOT NULL DEFAULT 0
+                        CHECK(progress_basis_points >= 0 AND progress_basis_points <= 10000);
+                ALTER TABLE transfer_queue_metadata
+                    ADD COLUMN item_count INTEGER NULL
+                        CHECK(item_count IS NULL OR item_count >= 0);
+                ALTER TABLE transfer_queue_metadata
+                    ADD COLUMN completed_item_count INTEGER NULL
+                        CHECK(completed_item_count IS NULL OR completed_item_count >= 0);
+                CREATE INDEX IF NOT EXISTS ix_transfer_queue_metadata_updated
+                    ON transfer_queue_metadata(updated_utc DESC);
+
+                PRAGMA user_version = 4;
                 """, ct);
         }
     }
