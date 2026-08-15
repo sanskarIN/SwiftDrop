@@ -292,3 +292,7 @@ Successful source compilation and dependency-audit evidence do not replace:
 - store declarations/screenshots/metadata.
 
 Follow `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, `docs/release/release-checklist.md`, and `docs/release/dependency-evidence.md`.
+
+## Current portable performance-trend contract
+
+The maintained portable verifier currently runs **26 Python helper tests** and **559 xUnit tests**. The helper suite includes the aggregate History performance-trend/export contract in addition to documentation, localization, platform-integration, NuGet evidence, and prior performance-history checks.
