@@ -25,4 +25,8 @@
   <data name="HistoryCopied" xml:space="preserve"><value>Copied</value></data>
   <data name="HistoryBytesFormat" xml:space="preserve"><value>{0:N0} bytes</value></data>
   <data name="HistoryTimeFormat" xml:space="preserve"><value>{0:g}</value></data>
+  <data name="HistoryPerformanceNoMeasurements" xml:space="preserve"><value>Performance samples appear after a completed transfer has a measured duration.</value></data>
+  <data name="HistoryPerformanceSummaryFormat" xml:space="preserve"><value>{0:N0} completed • {1} transferred • {2:N0} measured • {3}/s weighted average</value></data>
+  <data name="HistoryDurationFormat" xml:space="preserve"><value>{0:0.##} s</value></data>
+  <data name="HistoryThroughputFormat" xml:space="preserve"><value>{0}/s</value></data>
 </root>
