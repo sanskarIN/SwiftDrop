@@ -264,7 +264,7 @@ Verify the trend CSV header is exactly `date_utc,measured_transfers,measured_byt
 
 Seed History with conspicuous filenames, peer names, paths, transfer IDs, endpoint-like strings, and unrelated failed/unmeasured rows. Export the trend and assert none of those identifiers appear. Confirm trend generation has no network request/telemetry dependency, creates no new SQLite table, and uses only the existing History retention source.
 
-Verify malformed or impossible in-memory trend points are rejected by the CSV exporter, duplicate UTC buckets are rejected, and the storage query excludes non-completed/nonpositive/out-of-bound measurement rows.
+Verify malformed or impossible in-memory trend points are rejected by the CSV exporter, duplicate UTC buckets are rejected, and the storage query excludes non-completed/nonpositive/out-of-bound measurement rows. Also verify the storage trend SELECT projects only `timestamp_utc`, `size_bytes`, `duration_ms`, and `measured_bytes`, with no History ID, direction, peer/device, filename, or path column.
 
 ## Aggregate performance export privacy checks
 
