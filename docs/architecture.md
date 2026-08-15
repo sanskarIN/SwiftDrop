@@ -1,6 +1,6 @@
 # Architecture
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 SwiftDrop separates platform/UI interaction from reusable transfer, protocol, security, path, integrity, staging, and metadata policy. Platform APIs remain in application/extension projects; reusable protocol/security/storage logic lives in `SwiftDrop.Core`.
 
@@ -50,12 +50,12 @@ Important app-layer services include:
 - `DeviceIdentityService` — Preferences/SecureStorage integration for local identity.
 - `TransferCoordinator` — outgoing protocol orchestration using Core typed wire records and transfer primitives.
 - `ReceiveServerService` — incoming TLS/application protocol host plus UI consent callbacks.
-- `BatchResumeStateService` — best-effort app bridge to schema-v3 completed-batch metadata and Core file revalidation.
+- `BatchResumeStateService` — best-effort app bridge to completed-batch metadata introduced in schema v3 and retained in current schema v4, plus Core file revalidation.
 - `NearbyDiscoveryService` — lifecycle/composition around Core mDNS/UDP discovery.
 - `NearbyPairingService` — nearby/manual pairing using Core TLS/pairing/wire validation.
 - `TrustedDevicesService` — certificate-bound trust metadata.
 - `TransferHistoryService` — retention/privacy-aware history.
-- `TransferQueueService` — bounded concurrency plus privacy-minimal restart status persistence.
+- `TransferQueueService` — bounded concurrency plus privacy-minimal schema-v4 restart status/progress/item persistence; persisted queue context is never reusable transfer authorization.
 - `DiagnosticLogService` — bounded privacy-aware diagnostics.
 - `ReceiveLocationService` — platform-aware receive-root selection.
 - `TransferNotificationService` — optional generic completion/failure notification behavior where implemented.
@@ -124,7 +124,7 @@ The sender rebuilds the source manifest from the current regular/link-safe sourc
 
 ### Completed-file resume state
 
-SQLite schema v3 contains `completed_batch_items`. After an item is fully verified/finalized, receiver records metadata **before** sending that item's completion acknowledgement:
+The `completed_batch_items` table was introduced in SQLite schema v3 and remains part of current schema v4. After an item is fully verified/finalized, receiver records metadata **before** sending that item's completion acknowledgement:
 
 - stable transfer ID;
 - canonical source relative path;
@@ -149,6 +149,22 @@ Only then can the receiver offer `ResumeOffset == Length`. Sender still emits th
 A brand-new user send receives a new transfer ID, preserving intentional duplicate-send collision semantics.
 
 Resume metadata persistence is best-effort. Failure of that optimization does not change the success of an already verified file transfer.
+
+## Restart-safe queue metadata
+
+SQLite schema v4 extends queue persistence with bounded non-secret operation category, update timestamp, progress basis points, and optional total/completed item counts.
+
+The queue architecture deliberately separates status/progress continuity from authorization:
+
+- database labels remain generic `Transfer` rather than persisting source filenames/text;
+- normal progress writes are coarsened to 5% buckets plus state/item-count transitions;
+- progress is monotonic and bounded to `0..10000` basis points;
+- stale `Queued`/`Running` entries become `Interrupted` on restart while retaining safe last-known context;
+- interrupted entries are never automatically replayed;
+- retry still requires fresh pairing/transfer authorization;
+- pairing nonces, reusable session/transfer tokens, certificates/private keys, peer endpoints, source/destination paths, and transfer contents are excluded from queue persistence.
+
+Caller cancellation of an initialization or best-effort metadata write is not treated as database corruption/unavailability; real persistence failures remain isolated so they cannot change the underlying transfer result.
 
 ## Canonical path and filesystem safety
 
@@ -207,15 +223,17 @@ The Share Extension never receives SwiftDrop private keys or reusable transfer a
 
 ## Local database architecture
 
-SQLite schema v3 stores metadata-only tables for:
+Current SQLite schema version: **4**.
+
+Metadata tables cover:
 
 - trusted peers;
 - transfer history;
 - bounded diagnostics;
-- privacy-minimal queue status;
+- privacy-minimal restart-safe queue status/progress/item metadata;
 - verified completed-batch resume metadata.
 
-Transfer file/text contents, pairing capabilities, private keys, source absolute paths, and receive-root absolute paths for completion reuse are not persisted in SQLite.
+Transfer file/text contents, pairing capabilities/nonces, reusable transfer authorization, queue peer endpoints, private keys, queue source/destination paths, source absolute paths, and receive-root absolute paths for completion reuse are not persisted in SQLite.
 
 See `docs/storage/database-schema.md`.
 
