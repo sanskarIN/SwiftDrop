@@ -65,6 +65,19 @@ This prevents Windows `\\` vs Unix `/` path identity drift during cross-platform
 
 Outgoing source safety also rejects symbolic-link/reparse source files/folders. Single-file source status is rechecked at stream open. Recursive folder enumeration is bounded, link-safe, deterministic, and deconflicts portable case/Unicode/sanitation collisions before hashing.
 
+### Optional native terminal notifications
+
+Completion/failure system notifications are implemented as an explicit **off-by-default** preference on Android, iOS, Mac Catalyst, and Windows.
+
+- Android keeps the existing local terminal-notification path and requests Android 13+ notification permission only after opt-in.
+- iOS and Mac Catalyst use the Apple User Notifications framework. Alert/sound permission is requested only after opt-in, and a retained notification-center delegate allows enabled generic terminal notifications to be presented while SwiftDrop is foregrounded.
+- Windows uses Windows App SDK app notifications. Registration is restored during startup when the preference is already enabled, the activation handler is attached before registration, and shutdown unregisters cleanly.
+- Windows packaged notification activation uses matching toast/COM CLSIDs and the Windows App SDK activation argument contract while preserving the local-only `privateNetworkClientServer` capability and not adding `internetClient`.
+- English/Hindi completion/failure notification messages are deliberately generic and placeholder-free. They contain no filename, peer name, path, transferred content, pairing data, transfer ID, or reusable authorization.
+- Notification permission, registration, delivery, or presentation failure is best-effort and never changes the underlying transfer result.
+
+The signed Apple/Windows/Android runtime still requires the notification permission/system-settings/install/update validation described in the release documents.
+
 ### Idempotent batch resume
 
 Interrupted batches retain a stable random transfer ID using bounded ASCII token syntax. The active app batch controls call the stable-ID API directly; the obsolete implicit fresh-ID compatibility overload has been removed.
@@ -104,7 +117,7 @@ External file staging on Android share, the iOS Share Extension, and Mac native 
 - Exact staged length verification and cleanup on failure.
 - One atomic review-inbox handoff.
 - Foreground data-sync lifetime for active user-initiated transfers.
-- Optional generic completion/failure notifications on Android.
+- Optional generic completion/failure notifications after explicit opt-in.
 
 **iOS**
 
@@ -120,6 +133,7 @@ External file staging on Android share, the iOS Share Extension, and Mac native 
 - Imported files are re-staged into app cache before review.
 - One pending Apple package is surfaced for review at a time; later pending packages are not silently merged/deleted.
 - Shared content is never auto-sent.
+- Optional local completion/failure notifications after explicit alert/sound authorization.
 
 **Mac Catalyst desktop**
 
@@ -129,6 +143,7 @@ External file staging on Android share, the iOS Share Extension, and Mac native 
 - Shared count/per-file/aggregate staging budget.
 - Bounded provider-response waits.
 - Symlink/reparse rejection, portable collision-safe bounded staging, and review-before-send.
+- Optional local completion/failure notifications through the Apple User Notifications framework.
 - The maintained Mac Catalyst architecture uses the containing desktop app/native-drop path; there is no Mac Catalyst Share Extension target.
 
 **Windows**
@@ -138,6 +153,7 @@ External file staging on Android share, the iOS Share Extension, and Mac native 
 - Native files/folders/text/pair-link drag-and-drop.
 - Private-network client/server package capability.
 - Windows local paths are converted into canonical `/` wire manifests before transfer.
+- Optional Windows App SDK completion/failure app notifications with packaged activation registration.
 
 ### Protocol hardening
 
@@ -176,6 +192,8 @@ SQLite does **not** store transferred file bytes, transferred text, private keys
 
 Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Persisted queue labels remain generic rather than recording transfer filenames/text.
 
+Optional terminal notification text is also deliberately generic and does not place transfer-specific identifiers/content into OS notification history.
+
 Android application backup is disabled for app-local metadata. Windows requests private-network rather than general Internet client capability.
 
 ## UI, MVVM, localization, accessibility
@@ -188,6 +206,7 @@ Android application backup is disabled for app-local metadata. Windows requests 
 - Platform pickers/dialogs/share/drop/lifecycle remain at the UI/platform boundary.
 - Networking/TLS/storage/cryptography/protocol/path/integrity policy remains in services/Core.
 - English/Hindi XAML and runtime resource catalogs.
+- Generic terminal notification status/support/permission messages are localized in English/Hindi.
 - CI validates localization XML, duplicate keys, key parity, and placeholder parity.
 - Theme, larger-interface, reduce-motion, language, history/privacy/trust, concurrency, diagnostics, notifications, receive location, and identity settings.
 
@@ -223,11 +242,12 @@ Portable tests include:
 Configured GitHub Actions include:
 
 - documentation integrity validation;
-- Python validation-helper regression tests;
+- **16 Python validation-helper regression tests**, including NuGet evidence helpers and the Windows packaged-notification integration validator;
 - two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **522 xUnit tests**;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;
+- Windows protocol/private-network/app-notification manifest/source consistency validation;
 - benchmark-project compile validation;
 - Android compile;
 - Windows compile;
@@ -239,6 +259,8 @@ Configured GitHub Actions include:
 - deterministic SHA-256 manifests for retained dependency-evidence JSON bundles;
 - deterministic SQLite command/resource disposal validated by Windows temp-database cleanup;
 - release-readiness aggregate compile/test/audit gates.
+
+The Windows integration validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration/startup-registration source contracts, placeholder-free notification messages, preservation of `privateNetworkClientServer`, and absence of `internetClient`. It validates repository/package metadata consistency; signed MSIX install/update/activation remains a release test.
 
 Successful source compilation is not equivalent to physical-device/store validation.
 
@@ -264,9 +286,9 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
-The verification scripts run Python helper tests; validate documentation integrity, localization, and Apple integration metadata; compile/test Core and benchmarks; and reject machine-readable Core vulnerability reports containing findings.
+The verification scripts run Python helper tests; validate documentation integrity, localization, Apple integration metadata, and Windows packaged notification integration metadata; compile/test Core and benchmarks; and reject machine-readable Core vulnerability reports containing findings.
 
-See `BUILDING.md` for target-specific build commands and Apple Share Extension requirements.
+See `BUILDING.md` for target-specific build commands and Apple/Windows signed-package requirements.
 
 ## Apple provisioning requirement
 
@@ -281,11 +303,11 @@ Signed iOS packages still require real Apple Developer configuration/provisionin
 
 The Mac Catalyst containing app has its own sandbox/signing/notarization validation path and does not embed a Mac Catalyst Share Extension in the maintained architecture.
 
-Do not claim iOS Share Extension or Mac Catalyst production readiness until signed device/TestFlight/Mac sandbox validation succeeds.
+Do not claim iOS Share Extension, Apple local notifications, or Mac Catalyst production readiness until signed device/TestFlight/Mac sandbox validation succeeds.
 
 ## Networking notes
 
-SwiftDrop works best when both devices are on the same normal LAN/Wi-Fi. Guest networks, AP/client isolation, multicast filtering, enterprise policies, local-network permission denial, mobile background restrictions, and host firewalls can block discovery or inbound connections. QR/manual pairing helps discovery failures but does not bypass network policy.
+SwiftDrop works best when both devices are on the same normal LAN/Wi-Fi. Guest networks, AP/client isolation, multicast filtering, enterprise policies, local-network permission denial, mobile background restrictions, notification policy/settings, and host firewalls can block discovery, inbound connections, or optional notification presentation. QR/manual pairing helps discovery failures but does not bypass network or OS policy.
 
 ## Repository and support
 
@@ -336,7 +358,7 @@ Financial support is optional and does not unlock features, priority security ha
 
 ## Production-status boundary
 
-The current master-prompt scope is implemented in repository source, including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, and restart-safe non-authorizing queue progress metadata. Production verification still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
+The current master-prompt scope is implemented in repository source, including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, and optional local terminal notifications on Android/iOS/Mac Catalyst/Windows. Production verification still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, signed notification permission/activation behavior, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
 
 ## License
 
