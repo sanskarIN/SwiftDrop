@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using QRCoder;
@@ -468,6 +469,7 @@ public partial class MainPage : ContentPage
         _singleCts?.Dispose();
         _singleCts = new CancellationTokenSource();
         _pauseSingle = false;
+        var stopwatch = Stopwatch.StartNew();
         FileInfo? info = null;
         try
         {
@@ -484,7 +486,7 @@ public partial class MainPage : ContentPage
             _viewModel.TransferProgress = 1;
             _pausedSinglePath = null;
             _viewModel.TransferStatus = AppText.Get("CompletedVerifiedStatus");
-            await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "completed", true);
+            await _history.AddAsync("sent", remote.DeviceName, info.Name, info.Length, "completed", true, duration: stopwatch.Elapsed);
         }
         catch (OperationCanceledException)
         {
@@ -500,7 +502,8 @@ public partial class MainPage : ContentPage
                     info?.Name ?? Path.GetFileName(path),
                     info?.Length ?? 0,
                     "paused",
-                    false);
+                    false,
+                    duration: stopwatch.Elapsed);
             }
             else
             {
@@ -512,7 +515,8 @@ public partial class MainPage : ContentPage
                     info?.Name ?? Path.GetFileName(path),
                     info?.Length ?? 0,
                     "cancelled",
-                    false);
+                    false,
+                    duration: stopwatch.Elapsed);
             }
         }
         catch (Exception ex)
@@ -527,11 +531,13 @@ public partial class MainPage : ContentPage
                 info?.Name ?? Path.GetFileName(path),
                 info?.Length ?? 0,
                 "failed",
-                false);
+                false,
+                duration: stopwatch.Elapsed);
             await DisplayAlert(AppText.Get("TransferFailed"), ex.Message, AppText.Get("Ok"));
         }
         finally
         {
+            stopwatch.Stop();
             _viewModel.SetSingleTransferControls(sending: false, canResume: _pausedSinglePath is not null);
         }
     }
@@ -577,6 +583,7 @@ public partial class MainPage : ContentPage
                 AppText.Get("Ok"));
             return;
         }
+        var textStopwatch = Stopwatch.StartNew();
         try
         {
             _viewModel.TextTransferStatus = AppText.Get("SendingEncryptedText");
@@ -587,7 +594,8 @@ public partial class MainPage : ContentPage
                 AppText.Get("TextSnippetHistoryLabel"),
                 Encoding.UTF8.GetByteCount(text),
                 "completed",
-                false);
+                false,
+                duration: textStopwatch.Elapsed);
             TextSnippetEditor.Text = string.Empty;
             _viewModel.TextTransferStatus = AppText.Get("TextDelivered");
         }
@@ -599,7 +607,8 @@ public partial class MainPage : ContentPage
                 AppText.Get("TextSnippetHistoryLabel"),
                 Encoding.UTF8.GetByteCount(text),
                 "failed",
-                false);
+                false,
+                duration: textStopwatch.Elapsed);
             _viewModel.TextTransferStatus = AppText.Get("TextTransferFailedStatus");
             await DisplayAlert(AppText.Get("TextTransferFailed"), ex.Message, AppText.Get("Ok"));
         }
