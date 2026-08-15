@@ -50,11 +50,11 @@ Important app-layer services include:
 - `DeviceIdentityService` — Preferences/SecureStorage integration for local identity.
 - `TransferCoordinator` — outgoing protocol orchestration using Core typed wire records and transfer primitives.
 - `ReceiveServerService` — incoming TLS/application protocol host plus UI consent callbacks.
-- `BatchResumeStateService` — best-effort app bridge to completed-batch metadata introduced in schema v3 and retained in current schema v4, plus Core file revalidation.
+- `BatchResumeStateService` — best-effort app bridge to completed-batch metadata introduced in schema v3 and retained in current schema v6, plus Core file revalidation.
 - `NearbyDiscoveryService` — lifecycle/composition around Core mDNS/UDP discovery.
 - `NearbyPairingService` — nearby/manual pairing using Core TLS/pairing/wire validation.
 - `TrustedDevicesService` — certificate-bound trust metadata.
-- `TransferHistoryService` — retention/privacy-aware history.
+- `TransferHistoryService` — retention/privacy-aware history plus optional schema-v6 completed-transfer duration/actual-byte performance measurements normalized through portable Core policy.
 - `TransferQueueService` — bounded concurrency plus privacy-minimal schema-v4 restart status/progress/item persistence; persisted queue context is never reusable transfer authorization.
 - `DiagnosticLogService` — bounded privacy-aware diagnostics.
 - `ReceiveLocationService` — platform-aware receive-root selection.
@@ -124,7 +124,7 @@ The sender rebuilds the source manifest from the current regular/link-safe sourc
 
 ### Completed-file resume state
 
-The `completed_batch_items` table was introduced in SQLite schema v3 and remains part of current schema v4. After an item is fully verified/finalized, receiver records metadata **before** sending that item's completion acknowledgement:
+The `completed_batch_items` table was introduced in SQLite schema v3 and remains part of current schema v6. After an item is fully verified/finalized, receiver records metadata **before** sending that item's completion acknowledgement:
 
 - stable transfer ID;
 - canonical source relative path;
@@ -149,6 +149,16 @@ Only then can the receiver offer `ResumeOffset == Length`. Sender still emits th
 A brand-new user send receives a new transfer ID, preserving intentional duplicate-send collision semantics.
 
 Resume metadata persistence is best-effort. Failure of that optimization does not change the success of an already verified file transfer.
+
+## Local History performance measurements
+
+SQLite schema v5 adds nullable bounded `duration_ms`; schema v6 adds nullable non-negative `measured_bytes`. Older rows remain null rather than receiving inferred measurements.
+
+The application measures elapsed transfer intervals with monotonic `Stopwatch` timing. Single-file sender history uses the sender-negotiated remaining byte count; receiver single-file and accepted batch-item history uses `length - resume offset`; completed text sends use UTF-8 byte length. Failed, paused, cancelled, rejected, skipped, legacy, zero-byte, or otherwise unattributable events do not become throughput samples.
+
+`TransferPerformanceAnalyzer` is a portable Core policy boundary. It rejects impossible samples (`measured_bytes > size_bytes`, invalid duration, non-completed status), saturates extreme aggregate counters, and computes weighted throughput from total measured bytes divided by total measured duration. Invalid optional measurement input is dropped rather than being allowed to change a successful transfer result.
+
+The History UI presents only valid per-row duration/rate values and a localized weighted summary. Performance metadata remains inside the same History retention/privacy boundary and does not persist peer endpoints, transfer contents, pairing capabilities/nonces, credentials, certificates/private keys, or reusable authorization.
 
 ## Restart-safe queue metadata
 
@@ -223,12 +233,12 @@ The Share Extension never receives SwiftDrop private keys or reusable transfer a
 
 ## Local database architecture
 
-Current SQLite schema version: **4**.
+Current SQLite schema version: **6**.
 
 Metadata tables cover:
 
 - trusted peers;
-- transfer history;
+- transfer history with optional bounded duration and attributable measured-byte metadata for valid completed-transfer performance samples;
 - bounded diagnostics;
 - privacy-minimal restart-safe queue status/progress/item metadata;
 - verified completed-batch resume metadata.
