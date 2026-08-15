@@ -66,7 +66,8 @@ public sealed class TransferHistoryService
         if (settings.HistoryRetentionDays == 0) return;
         var storedPeer = settings.PrivacyMode ? PrivacyRedactionMarker : peerDeviceName;
         var storedName = settings.PrivacyMode ? PrivacyRedactionMarker : fileName;
-        var durationMilliseconds = ToDurationMilliseconds(duration);
+        var durationMilliseconds = ToOptionalDurationMilliseconds(duration);
+        var attributableBytes = ToOptionalMeasuredBytes(sizeBytes, measuredBytes, durationMilliseconds);
         var entry = new TransferHistoryEntry(
             Guid.NewGuid().ToString("N"),
             direction,
@@ -77,7 +78,7 @@ public sealed class TransferHistoryService
             status,
             integrityVerified,
             durationMilliseconds,
-            measuredBytes);
+            attributableBytes);
         await _store.AddAsync(entry, ct);
     }
 
@@ -107,11 +108,17 @@ public sealed class TransferHistoryService
         await _store.ClearAsync(ct);
     }
 
-    private static long? ToDurationMilliseconds(TimeSpan? duration)
+    private static long? ToOptionalDurationMilliseconds(TimeSpan? duration)
     {
-        if (duration is null) return null;
-        if (duration.Value < TimeSpan.Zero || duration.Value > TimeSpan.FromMilliseconds(TransferHistoryStore.MaxDurationMilliseconds))
-            throw new ArgumentOutOfRangeException(nameof(duration));
+        if (duration is null || duration.Value < TimeSpan.Zero) return null;
+        if (duration.Value > TimeSpan.FromMilliseconds(TransferHistoryStore.MaxDurationMilliseconds)) return null;
         return (long)Math.Ceiling(duration.Value.TotalMilliseconds);
+    }
+
+    private static long? ToOptionalMeasuredBytes(long logicalSizeBytes, long? measuredBytes, long? durationMilliseconds)
+    {
+        if (logicalSizeBytes < 0 || durationMilliseconds is not > 0 || measuredBytes is not > 0)
+            return null;
+        return measuredBytes <= logicalSizeBytes ? measuredBytes : null;
     }
 }
