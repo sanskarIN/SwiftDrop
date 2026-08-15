@@ -1,5 +1,7 @@
 # SwiftDrop Settings Reference
 
+Updated: 2026-08-15
+
 This document maps the maintained Settings UI to its source-backed behavior and defaults.
 
 ## Defaults
@@ -96,17 +98,33 @@ Trust can be managed/revoked from the Trusted Devices UI.
 
 ## Optional notifications
 
-Default: Off.
+Default: Off on every target.
+
+Completion/failure system notifications are implemented as an explicit opt-in setting on Android, iOS, Mac Catalyst, and Windows. Notification text is intentionally generic: it does not include filenames, peer names, paths, pairing information, transfer IDs, or transferred text/content.
+
+A denied/unavailable notification capability does not determine transfer success or failure. The transfer result remains visible inside SwiftDrop.
 
 ### Android
 
-Optional generic completion/failure notifications are implemented. On Android 13+, notification permission is requested only when the user enables notifications and saves the setting.
+Android uses the existing transfer notification path. On Android 13+, notification permission is requested only when the user enables notifications and saves the setting. Older supported Android versions do not require the Android 13 runtime notification permission.
 
-A denied notification permission does not determine transfer success/failure; transfer status remains visible inside SwiftDrop.
+The foreground-service notification required while Android keeps an active user-initiated transfer alive is a separate lifecycle requirement from the optional terminal completion/failure notification preference.
 
-### iOS, Mac Catalyst, Windows
+### iOS
 
-Optional completion/failure system notifications are not currently implemented through this setting. The switch is disabled/not supported on those targets and transfer status remains in-app.
+SwiftDrop requests local notification `Alert` and `Sound` authorization only after the user enables notifications and saves Settings. The app uses the system User Notifications framework and installs a notification-center delegate so an enabled generic terminal notification can also be presented while SwiftDrop is foregrounded.
+
+No push-notification service, remote notification token, cloud notification relay, or notification-server account is required by this feature.
+
+### Mac Catalyst
+
+Mac Catalyst uses the same local User Notifications framework path and opt-in authorization model as the iOS containing app. Signed sandbox/runtime behavior still requires physical/release validation.
+
+### Windows
+
+Windows uses Windows App SDK app notifications. SwiftDrop registers the app notification manager lazily when the user enables notifications or a terminal notification needs to be shown. The packaged manifest carries the notification activation/COM registration required by the packaged app model.
+
+Hosted Windows CI intentionally performs an unpackaged source compile, so the release process must still verify the signed/package manifest registration and real notification activation behavior from the final MSIX/package.
 
 ## Reduce motion
 
@@ -141,7 +159,7 @@ Maintained UI language choices:
 
 Default: English.
 
-Localization catalogs are validated in CI for XML validity, nonempty values, duplicate keys, exact English/Hindi key parity, and formatted placeholder parity.
+Localization catalogs are validated in CI for XML validity, nonempty values, duplicate keys, exact English/Hindi key parity, and formatted placeholder parity. Generic notification completion/failure messages are present in both maintained language catalogs.
 
 A language change may require UI refresh/navigation lifecycle behavior according to the current app implementation.
 
@@ -176,7 +194,7 @@ Saving settings currently applies:
 - privacy mode;
 - trusted-device auto-accept preference;
 - theme;
-- Android notification preference when supported/allowed;
+- optional native notification preference/authorization on supported Android, iOS, Mac Catalyst, and Windows targets;
 - reduce motion;
 - receive-folder choice where supported;
 - larger interface;
@@ -191,10 +209,13 @@ Before release, verify settings on each applicable real target, including:
 - invalid/extreme values handled by UI bounds;
 - custom Windows receive-folder behavior;
 - Android notification permission deny/allow transitions;
+- iOS/Mac Catalyst notification authorization, foreground presentation, disabled state, and generic content;
+- Windows packaged notification registration, enable/disable behavior, activation, and generic content;
+- notification denial/failure never changing the underlying transfer result;
 - identity reset and re-pair flow;
 - trusted-device revoke/auto-accept behavior;
 - history-retention cleanup;
-- English/Hindi layout and long text;
+- English/Hindi layout and notification strings;
 - dark/light/system appearance;
 - large text and accessibility behavior.
 
