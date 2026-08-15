@@ -2,6 +2,16 @@
 
 ## Unreleased - 2026-08-15
 
+### Local History performance measurements
+
+- Added optional measured elapsed duration and actual attributable measured-byte metadata to Transfer History.
+- Advanced SQLite history storage through schema v5 (`duration_ms`) and schema v6 (`measured_bytes`) with backward-compatible null preservation for legacy rows.
+- Added resume-safe byte attribution so resumed file throughput is based only on bytes actually transferred after the negotiated offset.
+- Added a pure Core weighted-throughput analyzer with overflow-safe aggregation and rejection of failed, unmeasured, zero-byte, overlong-duration, and impossible measured-byte samples.
+- Added localized English/Hindi History performance summary plus per-transfer duration/throughput presentation.
+- Added migration/store/analyzer regressions covering legacy v4/v5 upgrades, duration/measured-byte bounds, resumed-transfer math, corrupted rows, aggregate overflow, and impossible in-memory samples.
+- Kept performance metadata inside the existing local History privacy/retention boundary with no new transfer content, endpoint, credential, certificate, pairing capability, or reusable authorization storage.
+
 ### Cross-platform native terminal notifications
 
 - Exact runtime source `c3bd4d9fd5389a56fd203a5e4edb31033631181a` passed hosted Android, focused Windows, Mac Catalyst, iOS Share Extension, and iOS containing-app compilation/audit run `31870987664`.
