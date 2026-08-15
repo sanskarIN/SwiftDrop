@@ -5,6 +5,7 @@ namespace SwiftDrop.Core.Storage;
 
 public sealed class TransferHistoryStore
 {
+    public const long MaxDurationMilliseconds = 604_800_000;
     private readonly string _connectionString;
 
     public TransferHistoryStore(string databasePath)
@@ -30,8 +31,8 @@ public sealed class TransferHistoryStore
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT OR REPLACE INTO transfer_history
-            (id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified)
-            VALUES ($id, $direction, $peer, $file, $size, $timestamp, $status, $verified);
+            (id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms)
+            VALUES ($id, $direction, $peer, $file, $size, $timestamp, $status, $verified, $duration);
             """;
         command.Parameters.AddWithValue("$id", entry.Id);
         command.Parameters.AddWithValue("$direction", entry.Direction);
@@ -41,6 +42,7 @@ public sealed class TransferHistoryStore
         command.Parameters.AddWithValue("$timestamp", entry.TimestampUtc.UtcDateTime.ToString("O"));
         command.Parameters.AddWithValue("$status", entry.Status);
         command.Parameters.AddWithValue("$verified", entry.IntegrityVerified ? 1 : 0);
+        command.Parameters.AddWithValue("$duration", entry.DurationMilliseconds is long duration ? duration : DBNull.Value);
         await command.ExecuteNonQueryAsync(ct);
     }
 
@@ -53,7 +55,7 @@ public sealed class TransferHistoryStore
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified
+            SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms
             FROM transfer_history
             ORDER BY timestamp_utc DESC
             LIMIT $limit;
@@ -116,7 +118,8 @@ public sealed class TransferHistoryStore
                 reader.GetInt64(4),
                 DateTimeOffset.Parse(reader.GetString(5), null, System.Globalization.DateTimeStyles.RoundtripKind),
                 reader.GetString(6),
-                reader.GetInt64(7) == 1);
+                reader.GetInt64(7) == 1,
+                reader.IsDBNull(8) ? null : reader.GetInt64(8));
             ValidateEntry(entry);
             return entry;
         }
@@ -135,6 +138,8 @@ public sealed class TransferHistoryStore
         ValidateText(entry.FileName, nameof(entry.FileName), 1024);
         ValidateToken(entry.Status, nameof(entry.Status), 64);
         if (entry.SizeBytes < 0) throw new ArgumentOutOfRangeException(nameof(entry.SizeBytes));
+        if (entry.DurationMilliseconds is < 0 or > MaxDurationMilliseconds)
+            throw new ArgumentOutOfRangeException(nameof(entry.DurationMilliseconds));
         if (entry.TimestampUtc < DateTimeOffset.UnixEpoch || entry.TimestampUtc > DateTimeOffset.UtcNow.AddDays(2))
             throw new ArgumentOutOfRangeException(nameof(entry.TimestampUtc));
     }
