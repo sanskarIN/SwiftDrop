@@ -57,13 +57,15 @@ public sealed class TransferHistoryService
         long sizeBytes,
         string status,
         bool integrityVerified,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        TimeSpan? duration = null)
     {
         await InitializeAsync(ct);
         var settings = _settings.Load();
         if (settings.HistoryRetentionDays == 0) return;
         var storedPeer = settings.PrivacyMode ? PrivacyRedactionMarker : peerDeviceName;
         var storedName = settings.PrivacyMode ? PrivacyRedactionMarker : fileName;
+        var durationMilliseconds = ToDurationMilliseconds(duration);
         var entry = new TransferHistoryEntry(
             Guid.NewGuid().ToString("N"),
             direction,
@@ -72,7 +74,8 @@ public sealed class TransferHistoryService
             sizeBytes,
             DateTimeOffset.UtcNow,
             status,
-            integrityVerified);
+            integrityVerified,
+            durationMilliseconds);
         await _store.AddAsync(entry, ct);
     }
 
@@ -100,5 +103,13 @@ public sealed class TransferHistoryService
     {
         await InitializeAsync(ct);
         await _store.ClearAsync(ct);
+    }
+
+    private static long? ToDurationMilliseconds(TimeSpan? duration)
+    {
+        if (duration is null) return null;
+        if (duration.Value < TimeSpan.Zero || duration.Value > TimeSpan.FromMilliseconds(TransferHistoryStore.MaxDurationMilliseconds))
+            throw new ArgumentOutOfRangeException(nameof(duration));
+        return (long)Math.Ceiling(duration.Value.TotalMilliseconds);
     }
 }
