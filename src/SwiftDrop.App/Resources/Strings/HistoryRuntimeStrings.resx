@@ -29,4 +29,13 @@
   <data name="HistoryPerformanceSummaryFormat" xml:space="preserve"><value>{0:N0} completed • {1} transferred • {2:N0} measured • {3}/s weighted average</value></data>
   <data name="HistoryDurationFormat" xml:space="preserve"><value>{0:0.##} s</value></data>
   <data name="HistoryThroughputFormat" xml:space="preserve"><value>{0}/s</value></data>
+  <data name="HistoryPerformanceTrendTitle" xml:space="preserve"><value>30-day performance trend</value></data>
+  <data name="HistoryPerformanceTrendDescription" xml:space="preserve"><value>Daily UTC buckets use completed measured bytes and duration only. The CSV export contains aggregate performance data and no file or device details.</value></data>
+  <data name="HistoryPerformanceTrendNoMeasurements" xml:space="preserve"><value>No measured performance trend is available in the last 30 days.</value></data>
+  <data name="HistoryPerformanceTrendSummaryFormat" xml:space="preserve"><value>{0:N0} measured UTC days in the last {1:N0} days. Up to the 7 most recent measured days are shown below.</value></data>
+  <data name="HistoryPerformanceTrendLineFormat" xml:space="preserve"><value>{0:d} • {1:N0} measured • {2}/s weighted</value></data>
+  <data name="ExportPerformanceTrend" xml:space="preserve"><value>Export aggregate CSV</value></data>
+  <data name="HistoryPerformanceTrendShareTitle" xml:space="preserve"><value>SwiftDrop aggregate performance trend</value></data>
+  <data name="HistoryPerformanceTrendExportFailed" xml:space="preserve"><value>Performance export failed</value></data>
+  <data name="HistoryPerformanceTrendExportFailedFormat" xml:space="preserve"><value>SwiftDrop could not export the aggregate performance trend ({0}).</value></data>
 </root>
