@@ -42,6 +42,25 @@ public sealed class OneTimeAuthorizationStoreTests
     }
 
     [Fact]
+    public void ExactExpiryBoundary_IsExpiredForConsumptionAndPruning()
+    {
+        var now = new DateTimeOffset(2026, 8, 15, 9, 30, 0, TimeSpan.Zero);
+        var expires = now.AddSeconds(30);
+
+        var consumeStore = new OneTimeAuthorizationStore();
+        var consumeNonce = Nonce('K');
+        consumeStore.Register(consumeNonce, expires, now);
+        Assert.False(consumeStore.TryConsume(consumeNonce, expires));
+        Assert.Equal(0, consumeStore.Count);
+
+        var pruneStore = new OneTimeAuthorizationStore();
+        var pruneNonce = Nonce('L');
+        pruneStore.Register(pruneNonce, expires, now);
+        Assert.Equal(1, pruneStore.PruneExpired(expires));
+        Assert.Equal(0, pruneStore.Count);
+    }
+
+    [Fact]
     public async Task TryConsume_ConcurrentCallersHaveSingleWinner()
     {
         var store = new OneTimeAuthorizationStore();
