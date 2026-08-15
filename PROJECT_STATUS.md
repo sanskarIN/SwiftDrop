@@ -1,6 +1,18 @@
 # SwiftDrop Project Status
 
-Updated: 2026-08-14
+Updated: 2026-08-15
+
+## August 15 restart-safe queue persistence continuation
+
+- SQLite `CurrentVersion` is now **4**. The v3→v4 migration extends `transfer_queue_metadata` with bounded operation category, update timestamp, basis-point progress, and optional total/completed item counts while preserving legacy rows with safe defaults.
+- Queue persistence remains privacy-minimal and deliberately non-authorizing: database labels are always generic `Transfer`; no transfer content, source/destination path, peer endpoint, pairing invitation/nonce, token/session authorization, certificate/private key, or reusable credential is persisted in the queue table.
+- File, batch, and text sending now report operation/progress/item context into `TransferQueueService`. Ordinary progress writes are coarsened to 5% buckets, while state and item-count changes are persisted immediately through the serialized best-effort metadata path.
+- Stale `Queued`/`Running` rows are marked `Interrupted` after restart while retaining last-known safe progress/context. They are never auto-replayed and a new transfer attempt still requires fresh pairing/authorization.
+- Queue UI rows now show operation category, progress percentage/item counts, and a progress bar in addition to state/timing/error information.
+- Core storage tests now cover rich metadata round trips, interrupted-progress preservation, invalid progress/item relationships, schema-v4 columns/defaults, legacy v3 migration, and the deliberate absence of nonce/token/certificate/host/port field classes from the queue schema.
+- `docs/storage/database-schema.md`, `PRIVACY.md`, versioning/compatibility policy, changelog, roadmap, project status, and the engineering ledger are being synchronized to schema v4 in this continuation.
+- The pre-change hosted baseline remained 517/517 portable tests on Ubuntu and Windows plus a green Android/Windows/Mac Catalyst/iOS platform matrix. August 15 source-changing runs must be evaluated separately on their exact head; older green evidence is not treated as proof for the new code.
+- The repository still does not claim production readiness from hosted evidence alone. Signed Android/Windows/Apple packaging, physical device/network/provider/accessibility validation, exact final package dependency/license/provenance reconciliation, App Group/notarization, and store/privacy checks remain required.
 
 ## August 14 Windows/SQLite resource-lifetime and final hosted matrix continuation
 
@@ -76,7 +88,7 @@ Updated: 2026-08-14
 - Receiver file/batch consent including selective batch acceptance.
 - Pause/cancel/fresh-pair resume.
 - Stable batch IDs plus verified already-completed-item reuse so an interrupted batch does not resend finalized files under collision-renamed names.
-- Configurable queue/concurrency and progress/throughput/ETA UI.
+- Configurable queue/concurrency plus restart-safe status/progress/item metadata; persisted queue context is never reusable authorization.
 - Windows custom receive folder and native files/folders/text/pair-link drag/drop.
 - Android bounded share-sheet intake.
 - iOS/Mac Catalyst file URL/document opening.
@@ -187,7 +199,7 @@ The old duplicate MainPage batch handlers and implicit fresh-ID coordinator comp
 
 ### Idempotent batch resume
 
-SQLite schema-v3 `completed_batch_items` stores metadata only:
+Current SQLite schema is v4; `completed_batch_items` was introduced in schema v3 and continues to store metadata only:
 
 - stable transfer ID;
 - canonical source relative path;
@@ -273,22 +285,23 @@ Windows native drop:
 
 ### Local metadata
 
-SQLite schema version: **3**.
+SQLite schema version: **4**.
 
 Tables:
 
 - certificate-bound trusted peers;
 - transfer history;
 - bounded diagnostics;
-- privacy-minimal restart queue metadata;
+- privacy-minimal restart queue state/progress metadata;
 - verified completed-batch resume metadata.
 
-Transfer bytes/text, private keys, pairing invitations/nonces, receive-root absolute paths, and reusable authorization are not stored in SQLite.
+Queue metadata can retain a non-secret operation category, bounded progress, item counts, and timestamps. Transfer bytes/text, private keys, pairing invitations/nonces, peer endpoints, source/destination paths, receive-root absolute paths, reusable session/transfer tokens, and reusable authorization are not stored in the queue table.
 
 ### UI, localization, and architecture
 
 - Main dashboard presentation state uses `MainViewModel`.
 - History, Queue, Nearby Devices, Trusted Devices, Diagnostics, Settings, and About use dedicated view models.
+- Queue presentation exposes operation kind, recovered progress/item counts, state/timing/error context, and a progress bar while keeping persisted labels generic.
 - Active single-file controls validate regular source state before send/resume.
 - Active batch controls use the dedicated stable-ID partial workflow.
 - Multi-file picker treats a cancelled/null platform result as an empty selection under the MAUI 10.0.90 API contract.
@@ -321,7 +334,9 @@ Portable tests cover, among other areas:
 - portable sender collision deconfliction;
 - UTF-8 filename byte caps and collision marker preservation;
 - stable batch IDs and completed-file revalidation including mutation between repeated verification passes;
-- schema v0/v1/v2→v3 migrations and completion-store behavior;
+- schema v0/v1/v2/v3→v4 migration and queue/completion-store behavior;
+- restart interruption preserving safe queue progress/context;
+- queue metadata validation and no reusable authorization/endpoint fields;
 - receive-root symlink/reparse rejection;
 - path/collision/final-promotion races;
 - reusable staging count/per-file/aggregate budgets;
@@ -331,7 +346,7 @@ Portable tests cover, among other areas:
 - privacy redaction;
 - Unicode UTF-8 text truncation.
 
-Portable verification evidence for the August 14 source head:
+Portable verification evidence for the August 14 source baseline:
 
 - Core restore/build succeeded in Release configuration;
 - **517/517 portable tests passed**;
@@ -341,6 +356,8 @@ Portable verification evidence for the August 14 source head:
 - CodeQL passed on the MAUI 10.0.90/picker-contract source head;
 - repository security-hygiene checks passed on that source head.
 
+The August 15 queue-v4 source is subject to new exact-head CI/platform/security evidence; the earlier August 14 passes are retained as historical baseline evidence rather than being relabeled as validation of new code.
+
 ### CI/build/release engineering
 
 - Canonical solution: `SwiftDrop.slnx`.
@@ -348,11 +365,11 @@ Portable verification evidence for the August 14 source head:
 - `Microsoft.Maui.Controls` serviced to 10.0.90.
 - Portable Core build/test/localization/Apple-metadata validation/benchmark compile configured.
 - Maintained platform workflow covers Android, focused Windows, Mac Catalyst, and certificate-independent iOS Simulator app/extension compilation.
-- Android Release compile is green on the MAUI 10.0.90/picker-contract source head.
-- Focused Windows Release compile is green on the same source head with `WindowsPackageType=None`/`GenerateAppxPackageOnBuild=false`, producing the Windows application assembly with 0 errors.
+- Android Release compile is green on the August 14 MAUI 10.0.90/picker-contract source baseline.
+- Focused Windows Release compile is green on that baseline with `WindowsPackageType=None`/`GenerateAppxPackageOnBuild=false`, producing the Windows application assembly with 0 errors.
 - Windows CI uses `SwiftDropTargetFrameworksOverride` plus `SkipIosShareExtensionProjectReference` only for focused Windows validation so it does not traverse unrelated mobile workloads.
 - Signed MSIX creation/install/update remains a separate release gate and is not represented by the unpackaged compile job.
-- Apple jobs compile the Mac Catalyst containing app plus the iOS Simulator Share Extension and iOS containing app; the maintained MAUI 10.0.90 platform run is fully green for Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app compilation.
+- Apple jobs compile the Mac Catalyst containing app plus the iOS Simulator Share Extension and iOS containing app; the August 14 maintained MAUI 10.0.90 platform baseline is fully green for Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app compilation.
 - Apple metadata validator checks App Group, app/extension IDs, versions, iOS extension target, entitlements, Mac sandbox, activation rule, project reference, Core constant, and solution inclusion.
 - Release-readiness captures the iOS Share Extension dependency inventory and mirrors the maintained platform compile boundaries.
 - Obsolete one-time self-edit workflows and the duplicate stale platform smoke workflow were removed.
@@ -360,9 +377,9 @@ Portable verification evidence for the August 14 source head:
 
 ## Current engineering phase
 
-**Source-complete release-validation phase for the current master-prompt scope.**
+**Source-complete release-validation phase for the current master-prompt scope, with optional post-v1 queue persistence now implemented in source.**
 
-The repository source contains the local-transfer product scope, iOS Share Extension, Mac native drop, schema-v3 idempotent resume, canonical pairing/path representation, source-link safety, deterministic folder enumeration, external staging budgets, bounded filename/collision behavior, stable-ID-only active batch path, repeated completed-file verification, Android lifecycle/share hardening, and repaired platform compile infrastructure.
+The repository source contains the local-transfer product scope, iOS Share Extension, Mac native drop, schema-v3 idempotent completed-batch resume within current schema v4, restart-safe non-authorizing queue progress metadata, canonical pairing/path representation, source-link safety, deterministic folder enumeration, external staging budgets, bounded filename/collision behavior, stable-ID-only active batch path, repeated completed-file verification, Android lifecycle/share hardening, and repaired platform compile infrastructure.
 
 ## Remaining source boundaries / deliberate constraints
 
@@ -407,6 +424,7 @@ Repository source edits and unsigned/unpackaged hosted compile jobs cannot hones
 - source/receive symlink-reparse cases on representative filesystems;
 - completed-item mutation between retry plan and zero-byte ACK;
 - real SecureStorage/keychain/keystore upgrade/restore/locked-device scenarios;
+- real supported-database upgrade behavior through schema v4 on representative targets;
 - TalkBack, VoiceOver, Narrator, keyboard-only, large-text, reduced-motion, high-contrast, and Hindi layout validation;
 - final store privacy declarations, screenshots, signing/notarization, dependency-license review, and submission checks.
 
