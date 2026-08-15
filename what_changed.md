@@ -3165,3 +3165,12 @@ Notification failure remains deliberately non-authoritative: permission, registr
 - Final cleaned-main CI run **recorded after ledger-helper removal in Section 186**, CodeQL run **recorded after ledger-helper removal in Section 186**, and security-hygiene run **recorded after ledger-helper removal in Section 186** are the post-ledger/helper-removal branch evidence.
 - Production readiness still requires signed-package, physical-device/provider/network/filesystem/accessibility/localization, representative-device performance correlation, exact signed-artifact dependency/license/provenance, Apple provisioning/notarization, Windows signed MSIX activation, and store/privacy submission validation. Hosted CI does not prove those external gates.
 
+## 186. Post-ledger cleaned-main verification
+
+- After Sections 178–185 were written and the first temporary ledger trigger/workflow/writer were removed, `main` reached cleanup head `70022841a02efd9714ad514baf674d5a10207c4e`.
+- CI run **31876713728** completed successfully on that head across both the Ubuntu Core job and Windows PowerShell portable verifier, including the **26 Python helper tests**, **559 xUnit tests**, documentation/localization/platform metadata validation, Core/benchmark builds, and portable vulnerability audit.
+- CodeQL run **31876713729** completed successfully on the same cleanup head.
+- Security-hygiene run **31876713709** completed successfully on the same cleanup head.
+- The repository workflow directory had returned to exactly the five maintained workflows: `ci.yml`, `codeql.yml`, `platform-builds.yml`, `release-readiness.yml`, and `security-hygiene.yml` before this documentation-only evidence appendix was staged.
+- This appendix and its temporary helper cleanup do not alter application/runtime source or the source/test contract established at `9e637b909550ea433bf0c453774d6ab20ba7f605` and `3df4a50836a64655fbf1fb990d0946198f32b52b` respectively.
+
