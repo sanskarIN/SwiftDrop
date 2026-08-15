@@ -14,6 +14,7 @@ SwiftDrop is designed as a local-network, account-free transfer application.
 - SwiftDrop does not continuously monitor the clipboard.
 - SwiftDrop does not automatically open or execute received files.
 - SwiftDrop does not intentionally collect contacts, microphone data, background location, advertising identifiers, or analytics in the current source.
+- Optional terminal notifications are generated locally through platform notification APIs and do not require a SwiftDrop-operated remote-push service.
 
 ## Data stored on the device
 
@@ -93,6 +94,45 @@ Pairing invitations should still be treated as temporary sensitive capabilities 
 
 Pairing text is accepted only in SwiftDrop's canonical strict representation; malformed or alias representations are rejected rather than silently normalized into another capability string.
 
+## Optional system notifications
+
+Completion/failure system notifications are **off by default** and require explicit user opt-in in Settings.
+
+The notification privacy contract is intentionally narrow. A terminal notification contains only:
+
+- the application name `SwiftDrop`;
+- one localized generic status message indicating success or failure.
+
+It does **not** contain:
+
+- filenames or folder names;
+- peer/device names;
+- source or destination paths;
+- transferred text/file contents;
+- pairing invitations, nonces, fingerprints, or one-time codes;
+- transfer IDs;
+- reusable transfer authorization or credentials.
+
+The English/Hindi terminal notification resources are placeholder-free, so application code cannot inject transfer-specific values into those messages through formatted resource parameters. A portable Windows integration validator also enforces the placeholder-free notification contract while checking packaged notification registration.
+
+### Android notifications
+
+Android uses the existing local notification path. Android 13+ notification permission is requested only after the user enables notifications. The foreground-service notification required for an active Android transfer remains a separate lifecycle requirement.
+
+### iOS and Mac Catalyst notifications
+
+iOS and Mac Catalyst use local `UNUserNotificationCenter` notifications. SwiftDrop requests only alert/sound authorization after explicit opt-in. The notification-center delegate allows enabled generic terminal notifications to be presented while the containing app is foregrounded.
+
+SwiftDrop does not register for a remote push token and does not require APNs/server relay infrastructure for this terminal status feature.
+
+### Windows notifications
+
+Windows uses local Windows App SDK app notifications. The app notification manager is registered locally and the packaged manifest declares the corresponding notification activation/COM server metadata. The notification activation handler is informational and does not receive or expose transfer identifiers.
+
+Hosted Windows CI intentionally uses unpackaged source compilation. A separate portable validator checks the source/package registration is internally consistent, but the signed MSIX/package still requires real install/update/activation testing before release.
+
+On every platform, notification permission/registration/presentation failure is best-effort and must not change the underlying transfer result. Transfer status remains available inside SwiftDrop.
+
 ## External share/drop staging
 
 SwiftDrop never automatically sends externally shared or dropped content. External content is staged only so the user can review it inside SwiftDrop before sending.
@@ -129,7 +169,7 @@ Mac native drag/drop may temporarily access user-dropped Finder items through se
 
 Windows drag/drop supplies explicit user-selected filesystem paths/text to the review inbox. Those paths still pass through normal regular-source/link-safe preflight, canonical manifests, hashing, transfer authorization, and receiver safety rules before bytes are sent.
 
-Hosted Windows CI uses unpackaged source compilation. That does not change the shipped privacy/capability model and is not evidence that a signed MSIX package's capabilities/protocol registration were validated.
+Hosted Windows CI uses unpackaged source compilation. That does not change the shipped privacy/capability model and is not evidence that a signed MSIX package's capabilities/protocol/notification registration were validated.
 
 ## Diagnostics
 
@@ -147,21 +187,23 @@ Privacy mode adds identifier redaction at record/read/export time.
 
 Local discovery may reveal that a device is running SwiftDrop to other devices on the same LAN. Local network administrators and operating systems can observe network metadata such as source/destination addresses and traffic volume even though TLS protects transfer contents in transit.
 
-SwiftDrop does not attempt to bypass guest-Wi-Fi isolation, firewall policy, multicast filtering, local-network permission denial, package sandbox restrictions, or mobile OS background policy.
+SwiftDrop does not attempt to bypass guest-Wi-Fi isolation, firewall policy, multicast filtering, local-network permission denial, notification permission denial, package sandbox restrictions, or mobile OS background policy.
 
 ## Platform capability minimization
 
-- Android uses local-network/share/foreground-service capabilities required by the implemented workflow and disables application backup.
-- iOS uses local-network/Bonjour declarations plus the App Group required for the iOS Share Extension handoff.
-- Mac Catalyst uses containing-app sandbox/network/App Group declarations needed by its local-transfer/native-drop model; no Mac Catalyst Share Extension entitlement is required by the maintained architecture.
-- Windows packaged release design requests private-network client/server capability rather than a general Internet-client capability for the local-only protocol.
-- Broad legacy storage permissions, contacts, microphone, background-location, advertising, and analytics permissions are not part of the current baseline.
+- Android uses local-network/share/foreground-service capabilities required by the implemented workflow, optional notification permission where the OS requires it, and disables application backup.
+- iOS uses local-network/Bonjour declarations plus the App Group required for the iOS Share Extension handoff; local terminal notifications use alert/sound authorization only and do not require remote push registration.
+- Mac Catalyst uses containing-app sandbox/network/App Group declarations needed by its local-transfer/native-drop model; local terminal notifications use the Apple User Notifications framework and no Mac Catalyst Share Extension entitlement is required by the maintained architecture.
+- Windows packaged release design requests private-network client/server capability rather than a general Internet-client capability for the local-only protocol; packaged local app-notification activation is declared without adding Internet capability.
+- Broad legacy storage permissions, contacts, microphone, background-location, advertising, analytics, and remote-push infrastructure are not part of the current baseline.
 
 ## Deleting data
 
 Users can clear transfer history and local diagnostic history through the app. Trusted peers can be revoked/cleared. Queue metadata is bounded and finished entries can be cleared. Temporary external-input staging is pruned and may also disappear when app cache is cleared by the OS/user.
 
 Received files remain normal files in the selected/application receive location and must be deleted there when no longer wanted. Resetting app storage can remove local settings/history/trust/resume metadata and identity material subject to platform secure-storage behavior.
+
+Operating systems may retain delivered notification-center history according to their own notification settings/policies until the user/OS clears it. SwiftDrop's notification body is deliberately generic so this retained OS-level notification history does not contain transfer-specific content.
 
 ## Future privacy changes
 
