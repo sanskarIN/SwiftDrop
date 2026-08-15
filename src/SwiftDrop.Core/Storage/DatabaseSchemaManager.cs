@@ -98,6 +98,18 @@ public static class DatabaseSchemaManager
         if (version < 4)
         {
             await ApplyMigrationAsync(connection, """
+                CREATE TABLE IF NOT EXISTS transfer_queue_metadata (
+                    id TEXT PRIMARY KEY,
+                    label TEXT NOT NULL,
+                    state TEXT NOT NULL,
+                    created_utc TEXT NOT NULL,
+                    started_utc TEXT NULL,
+                    finished_utc TEXT NULL,
+                    error_code TEXT NULL
+                );
+                CREATE INDEX IF NOT EXISTS ix_transfer_queue_metadata_created ON transfer_queue_metadata(created_utc DESC);
+                CREATE INDEX IF NOT EXISTS ix_transfer_queue_metadata_state ON transfer_queue_metadata(state);
+
                 ALTER TABLE transfer_queue_metadata
                     ADD COLUMN operation_kind TEXT NOT NULL DEFAULT 'Transfer';
                 ALTER TABLE transfer_queue_metadata
