@@ -48,7 +48,10 @@ class WindowsIntegrationValidatorTests(unittest.TestCase):
             encoding="utf-8",
         )
         service.write_text(
-            '''var manager = AppNotificationManager.Default;
+            '''if (_settings.Load().NotificationsEnabled)
+    EnsureWindowsRegistered();
+var manager = AppNotificationManager.Default;
+manager.NotificationInvoked += OnWindowsNotificationInvoked;
 manager.Register();
 var text = AppText.Get(success ? "TransferCompletedNotification" : "TransferFailedNotification");
 _windowsManager!.Show(notification);
@@ -122,6 +125,34 @@ _windowsManager!.Show(notification);
             result = self.run_validator(root)
             self.assertEqual(1, result.returncode)
             self.assertIn("placeholder-free", result.stderr)
+
+    def test_notification_handler_must_be_attached_before_register(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_fixture(root)
+            service = root / "src/SwiftDrop.App/Services/TransferNotificationService.cs"
+            text = service.read_text(encoding="utf-8").replace(
+                "manager.NotificationInvoked += OnWindowsNotificationInvoked;\nmanager.Register();",
+                "manager.Register();\nmanager.NotificationInvoked += OnWindowsNotificationInvoked;",
+            )
+            service.write_text(text, encoding="utf-8")
+            result = self.run_validator(root)
+            self.assertEqual(1, result.returncode)
+            self.assertIn("handler must be attached before Register", result.stderr)
+
+    def test_startup_registration_contract_is_required(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.make_fixture(root)
+            service = root / "src/SwiftDrop.App/Services/TransferNotificationService.cs"
+            text = service.read_text(encoding="utf-8").replace(
+                "if (_settings.Load().NotificationsEnabled)\n    EnsureWindowsRegistered();\n",
+                "",
+            )
+            service.write_text(text, encoding="utf-8")
+            result = self.run_validator(root)
+            self.assertEqual(1, result.returncode)
+            self.assertIn("NotificationsEnabled", result.stderr)
 
 
 if __name__ == "__main__":
