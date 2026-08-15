@@ -31,8 +31,8 @@ public sealed class TransferHistoryStore
         using var command = connection.CreateCommand();
         command.CommandText = """
             INSERT OR REPLACE INTO transfer_history
-            (id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms)
-            VALUES ($id, $direction, $peer, $file, $size, $timestamp, $status, $verified, $duration);
+            (id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms, measured_bytes)
+            VALUES ($id, $direction, $peer, $file, $size, $timestamp, $status, $verified, $duration, $measuredBytes);
             """;
         command.Parameters.AddWithValue("$id", entry.Id);
         command.Parameters.AddWithValue("$direction", entry.Direction);
@@ -43,6 +43,7 @@ public sealed class TransferHistoryStore
         command.Parameters.AddWithValue("$status", entry.Status);
         command.Parameters.AddWithValue("$verified", entry.IntegrityVerified ? 1 : 0);
         command.Parameters.AddWithValue("$duration", entry.DurationMilliseconds is long duration ? duration : DBNull.Value);
+        command.Parameters.AddWithValue("$measuredBytes", entry.MeasuredBytes is long measuredBytes ? measuredBytes : DBNull.Value);
         await command.ExecuteNonQueryAsync(ct);
     }
 
@@ -55,7 +56,7 @@ public sealed class TransferHistoryStore
         await DatabaseSchemaManager.EnsureCurrentAsync(connection, ct);
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms
+            SELECT id, direction, peer_device_name, file_name, size_bytes, timestamp_utc, status, integrity_verified, duration_ms, measured_bytes
             FROM transfer_history
             ORDER BY timestamp_utc DESC
             LIMIT $limit;
@@ -119,7 +120,8 @@ public sealed class TransferHistoryStore
                 DateTimeOffset.Parse(reader.GetString(5), null, System.Globalization.DateTimeStyles.RoundtripKind),
                 reader.GetString(6),
                 reader.GetInt64(7) == 1,
-                reader.IsDBNull(8) ? null : reader.GetInt64(8));
+                reader.IsDBNull(8) ? null : reader.GetInt64(8),
+                reader.IsDBNull(9) ? null : reader.GetInt64(9));
             ValidateEntry(entry);
             return entry;
         }
@@ -140,6 +142,10 @@ public sealed class TransferHistoryStore
         if (entry.SizeBytes < 0) throw new ArgumentOutOfRangeException(nameof(entry.SizeBytes));
         if (entry.DurationMilliseconds is < 0 or > MaxDurationMilliseconds)
             throw new ArgumentOutOfRangeException(nameof(entry.DurationMilliseconds));
+        if (entry.MeasuredBytes is < 0)
+            throw new ArgumentOutOfRangeException(nameof(entry.MeasuredBytes));
+        if (entry.MeasuredBytes > entry.SizeBytes)
+            throw new ArgumentException("Measured transfer bytes cannot exceed logical history size.", nameof(entry.MeasuredBytes));
         if (entry.TimestampUtc < DateTimeOffset.UnixEpoch || entry.TimestampUtc > DateTimeOffset.UtcNow.AddDays(2))
             throw new ArgumentOutOfRangeException(nameof(entry.TimestampUtc));
     }
