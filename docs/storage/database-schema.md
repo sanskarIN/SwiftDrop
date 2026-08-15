@@ -134,4 +134,4 @@ The cutoff query selects retained completed rows with positive bounded duration,
 
 Schema version remains **v6**. Performance trends are calculated on demand from valid `transfer_history.duration_ms` and `transfer_history.measured_bytes` values already introduced by v5/v6; no trend table or export table is persisted.
 
-The cutoff query selects retained completed rows with positive bounded duration, positive measured bytes, and `measured_bytes <= size_bytes`, then the Core analyzer groups them into UTC daily buckets. CSV files are derived cache artifacts created only by an explicit export action and are not authoritative database state.
+The cutoff query selects retained completed rows with positive bounded duration, positive measured bytes, and `measured_bytes <= size_bytes`, while projecting only `timestamp_utc`, `size_bytes`, `duration_ms`, and `measured_bytes` into an identifier-free performance sample. The Core analyzer then groups those samples into UTC daily buckets and excludes timestamps later than the exact window end. CSV files are derived cache artifacts created only by an explicit export action and are not authoritative database state.
