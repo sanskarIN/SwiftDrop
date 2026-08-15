@@ -1,8 +1,8 @@
 # Platform permissions and entitlements
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
-SwiftDrop follows a permission-minimization rule: request only what a user-initiated local-transfer path requires. Do not add broad storage, contacts, microphone, location, advertising, analytics, or surveillance permissions for convenience.
+SwiftDrop follows a permission-minimization rule: request only what a user-initiated local-transfer path requires. Do not add broad storage, contacts, microphone, location, advertising, analytics, surveillance, or remote-push permissions for convenience.
 
 ## Android
 
@@ -44,6 +44,10 @@ The App Group entitlement in source does not create the capability in an Apple D
 
 Hosted iOS Simulator compile jobs clear signing/provisioning requirements only at command scope. That compile mode is not evidence that production App Group provisioning is valid.
 
+Optional local completion/failure notifications use `UNUserNotificationCenter`. SwiftDrop requests only alert and sound authorization, and only after the user explicitly enables notifications and saves Settings. The feature does not register for remote push notifications and does not require a remote notification token or cloud notification relay.
+
+If notification authorization is denied/unavailable, SwiftDrop disables the optional preference rather than changing transfer success/failure. Final signed-device validation must confirm authorization prompts, foreground presentation, system notification settings, and generic content.
+
 SwiftDrop does not request camera permission for baseline QR pairing; users can use a system camera/scanner that opens the registered pairing link.
 
 SwiftDrop does not claim arbitrary background socket continuation on iOS.
@@ -62,25 +66,33 @@ The maintained Mac Catalyst architecture does **not** include a Mac Catalyst Sha
 
 The main app supports Finder files/folders, text, and pairing links. External file/folder representations are accessed only for the user-triggered drop, copied into bounded app-cache staging while security-scoped access is valid, and then reviewed in SwiftDrop. Shared staging budgets, bounded provider-response waits, portable collision-safe names, and symlink/reparse rejection apply.
 
-A signed release must verify the real containing-app sandbox/network/App Group entitlements, security-scoped access, native drop behavior, signing, notarization, and store packaging. No Mac Catalyst Share Extension embedding/provisioning is expected.
+Optional completion/failure notifications use the Apple User Notifications framework with the same explicit opt-in alert/sound authorization model as iOS. No additional remote-notification entitlement/service is introduced by the feature.
+
+A signed release must verify the real containing-app sandbox/network/App Group entitlements, notification authorization/presentation, security-scoped access, native drop behavior, signing, notarization, and store packaging. No Mac Catalyst Share Extension embedding/provisioning is expected.
 
 ## Windows
 
 The packaged release design declares:
 
 - `privateNetworkClientServer` for local LAN communication;
-- package protocol activation for `swiftdrop://` pairing links.
+- package protocol activation for `swiftdrop://` pairing links;
+- packaged app-notification activation registration using `windows.toastNotificationActivation` plus the matching COM server/class registration required by the Windows App SDK packaged notification model.
 
-SwiftDrop does **not** currently declare general `internetClient` capability for protocol-v1 local-only peer transfer.
+The notification toast activator CLSID and COM class ID are intentionally identical. The packaged executable activation arguments use `----AppNotificationActivated:`. A portable repository validator rejects divergence between those values.
+
+SwiftDrop does **not** declare general `internetClient` capability for protocol-v1 local-only peer transfer. The Windows notification feature does not add an Internet capability or remote push dependency.
 
 Windows uses:
 
 - native FolderPicker for explicit receive/folder-transfer locations;
-- native files/folders/text/pair-link drag/drop.
+- native files/folders/text/pair-link drag/drop;
+- Windows App SDK local app notifications for optional generic completion/failure status.
 
 Drag/drop does not grant SwiftDrop a general filesystem crawler. Dropped paths remain explicit user input and still pass through source preflight, regular-source/link checks, canonical manifest hashing, transfer authorization, and receiver safety rules.
 
-Hosted Windows CI intentionally compiles with `WindowsPackageType=None` and `GenerateAppxPackageOnBuild=false`. That validates source/XAML/WinUI compatibility but does not exercise MSIX package capabilities/protocol registration/signing. Signed MSIX build/install/update validation remains mandatory before release.
+Optional Windows notifications are off by default. Registration failure is isolated from transfer success/failure, and terminal notification strings contain no dynamic placeholders for filenames/peer names/paths/transfer data.
+
+Hosted Windows CI intentionally compiles with `WindowsPackageType=None` and `GenerateAppxPackageOnBuild=false`. That validates source/XAML/WinUI compatibility but does not exercise MSIX package capabilities, protocol registration, app-notification COM activation, signing, or install/update behavior. The portable manifest validator proves source-level internal consistency only; signed MSIX build/install/update/notification activation validation remains mandatory before release.
 
 ## QR pairing and camera permission
 
@@ -100,6 +112,22 @@ Apple App Group storage is used as a bounded iOS Share Extension → containing-
 
 The containing app validates exact manifest/package/file-set/size/path/link rules, preflights aggregate app-cache capacity, re-stages accepted package files into ordinary app cache, and presents them for review.
 
+## Notification privacy boundary
+
+Optional terminal notifications are local OS notifications. They contain only the application name and one of the localized generic completion/failure messages.
+
+They do not contain:
+
+- filenames;
+- peer names;
+- file/folder paths;
+- transferred text or file contents;
+- pairing links, nonces, or fingerprints;
+- transfer IDs;
+- reusable authorization or credentials.
+
+Notification permission/registration/presentation failure must never change the transfer outcome.
+
 ## OS/network policy boundary
 
 SwiftDrop does not attempt to bypass:
@@ -108,10 +136,11 @@ SwiftDrop does not attempt to bypass:
 - enterprise firewall policy;
 - multicast filtering;
 - local-network permission denial;
+- notification permission/system-notification denial;
 - Android/iOS background suspension rules;
 - app/package sandbox restrictions;
 - managed-device policy;
 - Apple provisioning/signing requirements;
 - Windows package/signing requirements.
 
-If direct peer-to-peer traffic is blocked, SwiftDrop should fail safely and explain the limitation rather than requesting unrelated permissions or adding an undisclosed relay.
+If direct peer-to-peer traffic or optional notification presentation is blocked by operating-system policy, SwiftDrop should fail/degrade safely rather than requesting unrelated permissions or adding an undisclosed relay.
