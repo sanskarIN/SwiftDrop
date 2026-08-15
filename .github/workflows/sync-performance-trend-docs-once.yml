@@ -23,11 +23,4 @@ jobs:
           git config user.name "Sanskar"
           git config user.email "sanskarin@outlook.in"
       - name: Synchronize maintained documentation
-        env:
-          SWIFTDROP_DOC_SCRIPT_B64: ""+encoded+""
-        run: |
-          python3 - <<'PY'
-          import base64, os
-          script = base64.b64decode(os.environ["SWIFTDROP_DOC_SCRIPT_B64"]).decode("utf-8")
-          exec(compile(script, "<swiftdrop-doc-sync>", "exec"))
-          PY
+        run: python3 .github/swiftdrop-sync-performance-trend-docs.py
