@@ -18,6 +18,23 @@ public sealed class AttemptRateLimiterConcurrencyTests
     }
 
     [Fact]
+    public void TryAcquire_NeverAdmitsMoreThanConfiguredKeyCapConcurrently()
+    {
+        const int keyCap = 16;
+        var limiter = new AttemptRateLimiter(1, TimeSpan.FromMinutes(1), keyCap);
+        var now = DateTimeOffset.UtcNow;
+        var granted = 0;
+
+        Parallel.For(0, 512, i =>
+        {
+            if (limiter.TryAcquire($"peer-{i:D4}", now))
+                Interlocked.Increment(ref granted);
+        });
+
+        Assert.Equal(keyCap, granted);
+    }
+
+    [Fact]
     public void TryAcquire_AllowsFreshWindowAfterExpiry()
     {
         var limiter = new AttemptRateLimiter(2, TimeSpan.FromSeconds(30));
