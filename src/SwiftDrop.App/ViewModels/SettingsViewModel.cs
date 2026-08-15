@@ -83,13 +83,13 @@ public sealed class SettingsViewModel : ObservableObject
         NotificationsSupported = _notifications.IsSupported;
         NotificationsEnabled = NotificationsSupported && settings.NotificationsEnabled;
 #if ANDROID
-        NotificationSupport = "Android completion/failure notifications are opt-in. Android 13+ notification permission is requested only when you enable this setting and save.";
+        NotificationSupport = AppText.Get("NotificationSupportAndroid");
 #elif IOS || MACCATALYST
-        NotificationSupport = "Apple completion/failure notifications are opt-in. SwiftDrop requests alert and sound permission only when you enable this setting and save.";
+        NotificationSupport = AppText.Get("NotificationSupportApple");
 #elif WINDOWS
-        NotificationSupport = "Windows completion/failure app notifications are opt-in and contain only generic transfer status, not filenames or transfer contents.";
+        NotificationSupport = AppText.Get("NotificationSupportWindows");
 #else
-        NotificationSupport = "Optional completion/failure system notifications are not implemented on this target. Transfer status remains available inside SwiftDrop.";
+        NotificationSupport = AppText.Get("NotificationSupportUnavailable");
 #endif
         ReduceMotion = settings.ReduceMotion;
         LargerInterface = settings.LargerInterface;
