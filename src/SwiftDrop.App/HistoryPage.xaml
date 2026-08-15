@@ -12,6 +12,28 @@
       <Border StrokeShape="RoundRectangle 12" Padding="12">
         <Label Text="{Binding PerformanceStatus}" FontSize="13" LineBreakMode="WordWrap" />
       </Border>
+      <Border StrokeShape="RoundRectangle 12" Padding="12">
+        <VerticalStackLayout Spacing="6">
+          <Label Text="{x:Static services:AppText.HistoryPerformanceTrendTitle}"
+                 FontAttributes="Bold"
+                 SemanticProperties.HeadingLevel="Level2" />
+          <Label Text="{x:Static services:AppText.HistoryPerformanceTrendDescription}"
+                 FontSize="12"
+                 Opacity="0.72"
+                 LineBreakMode="WordWrap" />
+          <Label Text="{Binding PerformanceTrendStatus}"
+                 FontSize="12"
+                 Opacity="0.78"
+                 LineBreakMode="WordWrap" />
+          <Label Text="{Binding PerformanceTrendPreview}"
+                 FontSize="12"
+                 LineBreakMode="WordWrap" />
+          <Button Text="{x:Static services:AppText.ExportPerformanceTrend}"
+                  IsEnabled="{Binding CanExportPerformanceTrend}"
+                  HorizontalOptions="Start"
+                  Clicked="ExportPerformanceTrendClicked" />
+        </VerticalStackLayout>
+      </Border>
     </VerticalStackLayout>
     <CollectionView x:Name="HistoryList" Grid.Row="1" ItemsSource="{Binding Items}" EmptyView="{x:Static services:AppText.HistoryEmpty}">
       <CollectionView.ItemTemplate>
