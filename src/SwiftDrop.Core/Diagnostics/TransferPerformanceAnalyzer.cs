@@ -1,0 +1,72 @@
+using SwiftDrop.Core.Models;
+
+namespace SwiftDrop.Core.Diagnostics;
+
+public static class TransferPerformanceAnalyzer
+{
+    public static TransferPerformanceSummary Summarize(IEnumerable<TransferHistoryEntry> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+
+        var totalRecords = 0;
+        var completedRecords = 0;
+        long completedBytes = 0;
+        var measuredTransfers = 0;
+        long measuredBytes = 0;
+        long measuredDurationMilliseconds = 0;
+
+        foreach (var entry in entries)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            totalRecords++;
+            if (!string.Equals(entry.Status, "completed", StringComparison.Ordinal))
+                continue;
+
+            completedRecords++;
+            completedBytes = checked(completedBytes + entry.SizeBytes);
+
+            if (entry.SizeBytes <= 0 || entry.DurationMilliseconds is not > 0)
+                continue;
+
+            measuredTransfers++;
+            measuredBytes = checked(measuredBytes + entry.SizeBytes);
+            measuredDurationMilliseconds = checked(measuredDurationMilliseconds + entry.DurationMilliseconds.Value);
+        }
+
+        var averageBytesPerSecond = measuredDurationMilliseconds <= 0
+            ? 0d
+            : measuredBytes * 1000d / measuredDurationMilliseconds;
+
+        return new TransferPerformanceSummary(
+            totalRecords,
+            completedRecords,
+            completedBytes,
+            measuredTransfers,
+            measuredBytes,
+            measuredDurationMilliseconds,
+            averageBytesPerSecond);
+    }
+
+    public static double BytesPerSecond(TransferHistoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        if (!string.Equals(entry.Status, "completed", StringComparison.Ordinal) ||
+            entry.SizeBytes <= 0 ||
+            entry.DurationMilliseconds is not > 0)
+            return 0d;
+
+        return entry.SizeBytes * 1000d / entry.DurationMilliseconds.Value;
+    }
+}
+
+public sealed record TransferPerformanceSummary(
+    int TotalRecords,
+    int CompletedRecords,
+    long CompletedBytes,
+    int MeasuredTransfers,
+    long MeasuredBytes,
+    long MeasuredDurationMilliseconds,
+    double AverageBytesPerSecond)
+{
+    public bool HasMeasurements => MeasuredTransfers > 0 && AverageBytesPerSecond > 0d;
+}
