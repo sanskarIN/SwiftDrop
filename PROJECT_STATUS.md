@@ -2,6 +2,15 @@
 
 Updated: 2026-08-15
 
+## August 15 local performance-history continuation
+
+- Transfer History has been extended to SQLite schema **v6** with optional bounded `duration_ms` and optional attributable `measured_bytes`. Legacy v4/v5 rows retain null measurement fields rather than receiving synthetic values.
+- Completed single-file sender measurements use the actual negotiated bytes sent after resume; receiver single/batch-item measurements use bytes received after their resume offsets. Completed text sends use UTF-8 byte length.
+- Throughput is calculated only from completed rows with valid positive measured bytes and duration; impossible samples, failed/unmeasured rows, and zero-byte rows do not contribute.
+- The History UI shows localized English/Hindi per-row duration/rate plus a weighted aggregate rate computed from total measured bytes / total measured duration.
+- Performance metadata remains local and retention-bound, and adds no peer endpoint, transfer content, pairing capability/nonce, credential, certificate/private key, or reusable authorization.
+- Physical representative-device/network performance characterization remains external validation and is not inferred from hosted CI.
+
 ## August 15 final native-notification verification snapshot
 
 - Exact runtime notification source head: `c3bd4d9fd5389a56fd203a5e4edb31033631181a`.
