@@ -216,9 +216,9 @@ If a future version adds accounts, relay transfer, cloud synchronization, crash 
 
 ## Aggregate performance-trend export (August 15)
 
-The History screen can derive a rolling 30-day performance trend from already-retained, valid completed-transfer measurements. Trend calculation uses UTC calendar dates, actual attributable measured bytes, measured elapsed duration, measured transfer count, and weighted throughput.
+The History screen can derive a rolling 30-day performance trend from already-retained, valid completed-transfer measurements. Trend calculation uses UTC calendar dates, actual attributable measured bytes, measured elapsed duration, measured transfer count, and weighted throughput. The dedicated SQLite trend query projects only timestamp, logical size, measured duration, and measured bytes into an identifier-free Core sample; it does not materialize History row IDs, direction, peer/device names, filenames, or paths into the trend pipeline.
 
-The optional CSV is created only after an explicit export action, written to app cache, and handed to the operating-system share sheet. Before creating a new trend file SwiftDrop best-effort removes older matching trend exports from its cache.
+The optional CSV is created only after an explicit export action, written to app cache, and handed to the operating-system share sheet. Before creating a new trend file SwiftDrop best-effort removes older matching trend exports from its cache. Clearing History or setting History retention to zero also best-effort removes SwiftDrop-owned matching trend exports from app cache.
 
 The CSV schema is deliberately aggregate-only: `date_utc`, `measured_transfers`, `measured_bytes`, `measured_duration_ms`, and `weighted_bytes_per_second`. It does not contain history row IDs, direction, filenames, peer/device names, source/destination paths, endpoints/IPs/ports, hashes, transfer IDs, pairing invitations/capabilities/nonces, tokens/session credentials, certificates/private keys, or transferred text/content.
 
