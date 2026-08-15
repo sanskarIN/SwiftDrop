@@ -223,3 +223,13 @@ The optional CSV is created only after an explicit export action, written to app
 The CSV schema is deliberately aggregate-only: `date_utc`, `measured_transfers`, `measured_bytes`, `measured_duration_ms`, and `weighted_bytes_per_second`. It does not contain history row IDs, direction, filenames, peer/device names, source/destination paths, endpoints/IPs/ports, hashes, transfer IDs, pairing invitations/capabilities/nonces, tokens/session credentials, certificates/private keys, or transferred text/content.
 
 This feature adds no telemetry upload, analytics endpoint, cloud account, or new SQLite table. It derives data from the existing local History retention boundary; clearing/pruning History removes the source measurements for future trend generation.
+
+## Aggregate performance-trend export (August 15)
+
+The History screen can derive a rolling 30-day performance trend from already-retained, valid completed-transfer measurements. Trend calculation uses UTC calendar dates, actual attributable measured bytes, measured elapsed duration, measured transfer count, and weighted throughput.
+
+The optional CSV is created only after an explicit export action, written to app cache, and handed to the operating-system share sheet. Before creating a new trend file SwiftDrop best-effort removes older matching trend exports from its cache.
+
+The CSV schema is deliberately aggregate-only: `date_utc`, `measured_transfers`, `measured_bytes`, `measured_duration_ms`, and `weighted_bytes_per_second`. It does not contain history row IDs, direction, filenames, peer/device names, source/destination paths, endpoints/IPs/ports, hashes, transfer IDs, pairing invitations/capabilities/nonces, tokens/session credentials, certificates/private keys, or transferred text/content.
+
+This feature adds no telemetry upload, analytics endpoint, cloud account, or new SQLite table. It derives data from the existing local History retention boundary; clearing/pruning History removes the source measurements for future trend generation.
