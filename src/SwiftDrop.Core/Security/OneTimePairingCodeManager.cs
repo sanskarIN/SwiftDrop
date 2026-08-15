@@ -43,7 +43,7 @@ public sealed class OneTimePairingCodeManager
         {
             expected = _code;
             expires = _expiresUtc;
-            if (expected is null || nowUtc > expires) return false;
+            if (expected is null || nowUtc >= expires) return false;
 
             var left = Encoding.ASCII.GetBytes(expected);
             var right = Encoding.ASCII.GetBytes(candidate);
