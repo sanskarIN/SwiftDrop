@@ -2,6 +2,15 @@
 
 Updated: 2026-08-15
 
+## August 15 aggregate performance-trend export continuation
+
+- The source-level History trend/export P2 item is complete: SwiftDrop derives rolling 30-day UTC buckets from valid completed measurements and exports a deterministic aggregate-only CSV on explicit user action.
+- The dedicated storage query is cutoff-based and untruncated, so trend generation is not limited by the normal recent-History UI cap.
+- Resume-safe `measured_bytes` remains the rate numerator; logical file size is never substituted for bytes actually transferred during a resumed interval.
+- Export is local/cache-based, best-effort cleans older matching cache files, and contains only UTC date, measured transfer count, measured bytes, measured duration, and weighted bytes/second.
+- The remaining performance P2 work is **representative-device/cross-network evidence and synthetic-vs-real benchmark correlation using this aggregate export**, not additional source telemetry or cloud collection.
+
+
 ## August 15 performance-history source continuation
 
 - Local History now supports optional measured elapsed duration plus actual attributable measured bytes for completed operations.
@@ -408,7 +417,7 @@ These are optional product improvements, not missing correctness work in the cur
 
 - additional OS-supported background continuation where store policy permits it;
 - broader localization beyond English/Hindi;
-- representative-device performance trend capture/export and synthetic-vs-real benchmark correlation using the implemented local History measurements;
+- representative-device/cross-network trend evidence and synthetic-vs-real benchmark correlation using the implemented aggregate local History trend export;
 - trustworthy platform malware-scan integration only where a supported OS API exists;
 - additional property/fuzz/state-machine testing beyond current coverage.
 
