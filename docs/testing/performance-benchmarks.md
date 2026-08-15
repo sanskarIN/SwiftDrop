@@ -24,19 +24,19 @@ The harness emits JSON containing the operating system, .NET version, processor 
 
 ## Transfer History performance samples
 
-Schema v5 adds optional `duration_ms` metadata to local Transfer History. A performance sample is eligible for throughput calculation only when all of the following are true:
+Schema v6 stores optional `duration_ms` plus `measured_bytes` metadata in local Transfer History. A performance sample is eligible for throughput calculation only when all of the following are true:
 
 - the history status is `completed`;
-- the byte count is positive;
+- the actual `measured_bytes` count is positive and does not exceed the logical history size;
 - a positive elapsed duration was actually measured for that completed operation.
 
-Legacy rows, zero-byte transfers, rejected/skipped records, and rows without an attributable duration remain unmeasured. The application does not manufacture timing data for them.
+Legacy rows, zero-byte transfers, rejected/skipped records, and rows without both an attributable duration and attributable byte count remain unmeasured. The application does not manufacture timing data for them.
 
-The History screen reports a **weighted aggregate throughput** over measured rows: total measured bytes divided by total measured elapsed time. This avoids giving a tiny transfer the same statistical weight as a large transfer. Per-row duration and throughput are shown only for measured completed rows.
+The History screen reports a **weighted aggregate throughput** over measured rows: total actual measured bytes divided by total measured elapsed time. For resumed files, only `logical size - negotiated resume offset` is recorded as measured bytes for that interval, so bytes already present before resume cannot inflate the rate. This avoids giving a tiny transfer the same statistical weight as a large transfer. Per-row duration and throughput are shown only for measured completed rows.
 
 Elapsed timing uses monotonic `Stopwatch` measurements in the live transfer path. For outgoing single-file operations the measured interval covers the queued send operation as invoked by the page; incoming file and accepted batch-item measurements cover the actual receive-stream operation. Because protocol setup, resume offsets, storage, Wi-Fi/TLS behavior, and platform scheduling differ between paths, these numbers are observational diagnostics rather than standardized benchmarks.
 
-Performance history adds only bounded numeric duration metadata. It does not add peer IP/port information, pairing nonces, tokens, certificates, private keys, transfer content, or reusable authorization. Peer/file display fields continue to follow the existing history privacy-mode and retention rules.
+Performance history adds only bounded numeric duration and measured-byte metadata. It does not add peer IP/port information, pairing nonces, tokens, certificates, private keys, transfer content, or reusable authorization. Peer/file display fields continue to follow the existing history privacy-mode and retention rules.
 
 ## Release use
 
