@@ -136,10 +136,12 @@ public static class MdnsCodec
                 var dataStart = reader.Position;
                 var dataEnd = checked(dataStart + length);
                 if (dataEnd > reader.Length) throw new InvalidDataException("mDNS record exceeds packet boundary.");
+                var requireExactPayloadConsumption = false;
 
                 if (type == TypePtr && string.Equals(owner, ServiceName, StringComparison.OrdinalIgnoreCase))
                 {
                     serviceInstance = reader.ReadName();
+                    requireExactPayloadConsumption = true;
                 }
                 else if (type == TypeSrv && (serviceInstance is null || string.Equals(owner, serviceInstance, StringComparison.OrdinalIgnoreCase)))
                 {
@@ -147,6 +149,7 @@ public static class MdnsCodec
                     _ = reader.ReadUInt16();
                     port = reader.ReadUInt16();
                     _ = reader.ReadName();
+                    requireExactPayloadConsumption = true;
                 }
                 else if (type == TypeTxt && (serviceInstance is null || string.Equals(owner, serviceInstance, StringComparison.OrdinalIgnoreCase)))
                 {
@@ -155,12 +158,16 @@ public static class MdnsCodec
                     values.TryGetValue("name", out name);
                     values.TryGetValue("platform", out platform);
                     values.TryGetValue("fp", out fingerprint);
+                    requireExactPayloadConsumption = true;
                 }
                 else if (type == TypeA && length == 4)
                 {
                     address = new IPAddress(reader.ReadBytes(4));
+                    requireExactPayloadConsumption = true;
                 }
 
+                if (requireExactPayloadConsumption && reader.Position != dataEnd)
+                    throw new InvalidDataException("mDNS record payload does not match its declared length.");
                 reader.Position = dataEnd;
             }
 
