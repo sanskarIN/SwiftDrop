@@ -50,6 +50,9 @@ public static class AppText
     public static string QueueEmpty => Get(nameof(QueueEmpty));
     public static string HistoryDescription => Get(nameof(HistoryDescription));
     public static string HistoryEmpty => Get(nameof(HistoryEmpty));
+    public static string HistoryPerformanceTrendTitle => Get(nameof(HistoryPerformanceTrendTitle));
+    public static string HistoryPerformanceTrendDescription => Get(nameof(HistoryPerformanceTrendDescription));
+    public static string ExportPerformanceTrend => Get(nameof(ExportPerformanceTrend));
     public static string AboutSummary => Get(nameof(AboutSummary));
     public static string OpenSource => Get(nameof(OpenSource));
     public static string OpenRepository => Get(nameof(OpenRepository));
