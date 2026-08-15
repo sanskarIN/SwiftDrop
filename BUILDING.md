@@ -296,3 +296,7 @@ Follow `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, `docs/release/rele
 ## Current portable performance-trend contract
 
 The maintained portable verifier currently runs **26 Python helper tests** and **559 xUnit tests**. The helper suite includes the aggregate History performance-trend/export contract in addition to documentation, localization, platform-integration, NuGet evidence, and prior performance-history checks.
+
+## Current portable performance-trend contract
+
+The maintained portable verifier currently runs **26 Python helper tests** and **559 xUnit tests**. The helper suite includes the aggregate History performance-trend/export contract in addition to documentation, localization, platform-integration, NuGet evidence, and prior performance-history checks.
