@@ -75,6 +75,10 @@ public sealed class TransferQueueService
                     }
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
             catch
             {
                 _persistenceAvailable = false;
@@ -224,7 +228,7 @@ public sealed class TransferQueueService
                 FinishedUtc = failedAt,
                 UpdatedUtc = failedAt,
                 Error = SanitizeError(ex, currentSettings.PrivacyMode),
-                ErrorCode = ex.GetType().Name
+                ErrorCode = SanitizeErrorCode(ex.GetType())
             };
             Update(failed);
             await PersistCurrentBestEffortAsync(id, CancellationToken.None);
@@ -262,6 +266,11 @@ public sealed class TransferQueueService
                 {
                     _persistenceGate.Release();
                 }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                RaiseChanged();
+                throw;
             }
             catch
             {
@@ -376,6 +385,10 @@ public sealed class TransferQueueService
                 _persistenceGate.Release();
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Caller cancellation does not mean the metadata store became unavailable.
+        }
         catch
         {
             _persistenceAvailable = false;
@@ -433,6 +446,15 @@ public sealed class TransferQueueService
         if (privacyMode) return ex.GetType().Name;
         var message = ex.Message.Replace('\r', ' ').Replace('\n', ' ').Trim();
         return message.Length <= 240 ? message : message[..240];
+    }
+
+    private static string SanitizeErrorCode(Type exceptionType)
+    {
+        var safe = new string(exceptionType.Name
+            .Where(ch => char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_' or '.')
+            .Take(64)
+            .ToArray());
+        return safe.Length == 0 ? "transfer-error" : safe;
     }
 }
 
