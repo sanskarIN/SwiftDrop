@@ -252,10 +252,12 @@ Every failure must be bounded, must not freeze UI thread, must not silently repl
 
 ## SQLite/schema/privacy scenarios
 
-- Fresh database → schema v4.
-- Real copied v1 database → v4.
-- Real copied v2 database → v4.
-- Real copied v3 database with legacy queue rows → v4 without losing safe existing metadata.
+- Fresh database → schema v6.
+- Real copied v1 database → v6.
+- Real copied v2 database → v6.
+- Real copied v3 database with legacy queue rows → v6 without losing safe existing metadata.
+- Real copied v4 history rows → v6 with `duration_ms` and `measured_bytes` remaining null rather than synthesized.
+- Real copied v5 history rows → v6 preserving any stored duration while leaving `measured_bytes` null.
 - Future schema version rejection.
 - Corrupt trust fingerprint row ignored.
 - Corrupt history/diagnostic/completion/queue row does not break valid rows or grant trust/resume/authorization.
@@ -270,6 +272,13 @@ Every failure must be bounded, must not freeze UI thread, must not silently repl
 - Completed-batch metadata contains hashed receive-root identity, not absolute receive root.
 - Completed-batch source path is the canonical protocol path while destination path remains local receiver metadata and is re-confined/re-hashed before reuse.
 - Clearing app data/history behaves as documented.
+- Complete a normal non-zero file transfer and confirm History shows a duration and rate based on the bytes actually transferred.
+- Resume a partially transferred file and confirm the History logical size remains the full file size while the measured throughput uses only bytes remaining after the negotiated resume offset.
+- Complete a zero-byte transfer and confirm it does not create a throughput sample.
+- Confirm failed, cancelled, paused, rejected, not-selected, legacy, and otherwise unmeasured rows do not display a fabricated throughput value or contribute to the weighted summary.
+- Confirm the aggregate History rate equals total measured bytes divided by total measured duration rather than an unweighted average of row rates.
+- Enable privacy mode and confirm peer/file labels remain hidden while numeric performance metadata follows the same local History retention policy.
+- Set zero-day history retention / clear History and confirm performance samples disappear with their owning history rows.
 
 ## UI/accessibility/localization
 
@@ -289,6 +298,7 @@ Every failure must be bounded, must not freeze UI thread, must not silently repl
 - Hindi UI/dialog/runtime statuses and wrapping.
 - Confirm progress/status meaning does not rely on color alone.
 - Confirm queue operation category, percentage/item counts, progress bar, interrupted state, timing, and error context remain readable at large text sizes and in Hindi.
+- Confirm History performance summary, per-row duration, and per-row throughput remain readable with large text, narrow windows, screen readers, and Hindi localization.
 
 ## Release evidence
 
