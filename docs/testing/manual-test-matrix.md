@@ -328,3 +328,14 @@ Use synthetic transfers and ensure the notification preference starts disabled a
 - Windows signed package: verify clean-install/update toast/COM registration, activation, startup registration when the saved preference is already enabled, notification settings suppression, disable/re-enable behavior, and generic English/Hindi content.
 - On every platform confirm notification text contains no filename, peer name, path, transferred text/content, pairing link/nonce/fingerprint/code, transfer ID, or reusable authorization.
 - Force or simulate notification registration/presentation failure where practical and confirm queue/history transfer state still records the actual transfer outcome.
+
+## Performance trend and export
+
+- Complete several measured transfers across at least two UTC dates; verify History groups measured days correctly and shows newest measured days first in the preview.
+- Resume a partially transferred file; verify the daily rate reflects only post-resume transferred bytes rather than the full logical file size.
+- Include legacy/unmeasured, failed, cancelled, rejected, paused, and zero-byte History records; verify they do not create fabricated trend buckets.
+- Export the 30-day aggregate CSV; verify the OS share sheet opens only after explicit action and the file contains exactly the documented aggregate columns.
+- Inspect the CSV for absence of row IDs, direction, filenames, peer/device names, paths, endpoints/IPs/ports, hashes, transfer IDs, pairing material, credentials, certificates/private keys, and transferred content.
+- Export twice and verify a new file can be shared while prior matching app-cache exports are best-effort cleaned.
+- Clear/prune History and verify future trend generation reflects the remaining retained measurements.
+- Repeat in English/Hindi, larger-interface mode, keyboard/screen-reader navigation, and high text scaling.
