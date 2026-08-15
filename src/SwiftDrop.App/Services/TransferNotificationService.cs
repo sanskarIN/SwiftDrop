@@ -11,6 +11,9 @@ namespace SwiftDrop.App.Services;
 public sealed class TransferNotificationService : IDisposable
 {
     private readonly AppSettingsService _settings;
+#if IOS || MACCATALYST
+    private readonly TransferNotificationCenterDelegate _appleDelegate;
+#endif
 #if WINDOWS
     private readonly object _windowsSync = new();
     private AppNotificationManager? _windowsManager;
@@ -20,6 +23,10 @@ public sealed class TransferNotificationService : IDisposable
     public TransferNotificationService(AppSettingsService settings)
     {
         _settings = settings;
+#if IOS || MACCATALYST
+        _appleDelegate = new TransferNotificationCenterDelegate();
+        UNUserNotificationCenter.Current.Delegate = _appleDelegate;
+#endif
     }
 
     public bool IsSupported
@@ -102,6 +109,17 @@ public sealed class TransferNotificationService : IDisposable
         await UNUserNotificationCenter.Current.AddNotificationRequestAsync(request);
         ct.ThrowIfCancellationRequested();
     }
+
+    private sealed class TransferNotificationCenterDelegate : UNUserNotificationCenterDelegate
+    {
+        public override void WillPresentNotification(
+            UNUserNotificationCenter center,
+            UNNotification notification,
+            Action<UNNotificationPresentationOptions> completionHandler)
+        {
+            completionHandler(UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound);
+        }
+    }
 #endif
 
 #if WINDOWS
@@ -156,6 +174,11 @@ public sealed class TransferNotificationService : IDisposable
 
     public void Dispose()
     {
+#if IOS || MACCATALYST
+        if (ReferenceEquals(UNUserNotificationCenter.Current.Delegate, _appleDelegate))
+            UNUserNotificationCenter.Current.Delegate = null;
+        _appleDelegate.Dispose();
+#endif
 #if WINDOWS
         lock (_windowsSync)
         {
