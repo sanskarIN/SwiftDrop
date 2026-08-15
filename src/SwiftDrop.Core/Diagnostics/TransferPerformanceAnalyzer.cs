@@ -25,11 +25,11 @@ public static class TransferPerformanceAnalyzer
             completedRecords++;
             completedBytes = SaturatingAdd(completedBytes, entry.SizeBytes);
 
-            if (entry.SizeBytes <= 0 || entry.DurationMilliseconds is not > 0)
+            if (entry.MeasuredBytes is not > 0 || entry.DurationMilliseconds is not > 0)
                 continue;
 
             measuredTransfers++;
-            measuredBytes = SaturatingAdd(measuredBytes, entry.SizeBytes);
+            measuredBytes = SaturatingAdd(measuredBytes, entry.MeasuredBytes.Value);
             measuredDurationMilliseconds = SaturatingAdd(measuredDurationMilliseconds, entry.DurationMilliseconds.Value);
         }
 
@@ -51,11 +51,11 @@ public static class TransferPerformanceAnalyzer
     {
         ArgumentNullException.ThrowIfNull(entry);
         if (!string.Equals(entry.Status, "completed", StringComparison.Ordinal) ||
-            entry.SizeBytes <= 0 ||
+            entry.MeasuredBytes is not > 0 ||
             entry.DurationMilliseconds is not > 0)
             return 0d;
 
-        return entry.SizeBytes * 1000d / entry.DurationMilliseconds.Value;
+        return entry.MeasuredBytes.Value * 1000d / entry.DurationMilliseconds.Value;
     }
 
     private static long SaturatingAdd(long left, long right)
