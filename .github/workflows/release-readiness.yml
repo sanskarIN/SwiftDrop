@@ -8,6 +8,13 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/release-readiness.yml'
+      - 'src/**'
+      - 'tests/**'
+      - 'benchmarks/**'
+      - 'SwiftDrop.slnx'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - 'NuGet.config'
       - 'scripts/verify-core.sh'
       - 'scripts/verify-core.ps1'
       - 'scripts/validate_nuget_vulnerability_report.py'
@@ -18,6 +25,13 @@ on:
     branches: [ main ]
     paths:
       - '.github/workflows/release-readiness.yml'
+      - 'src/**'
+      - 'tests/**'
+      - 'benchmarks/**'
+      - 'SwiftDrop.slnx'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - 'NuGet.config'
       - 'scripts/verify-core.sh'
       - 'scripts/verify-core.ps1'
       - 'scripts/validate_nuget_vulnerability_report.py'
