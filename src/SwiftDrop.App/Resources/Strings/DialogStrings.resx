@@ -38,7 +38,7 @@
   <data name="FolderPickerUnavailableMessage" xml:space="preserve"><value>SwiftDrop keeps received files in its app-private Received folder on this platform instead of asking for broad storage access.</value></data>
   <data name="FolderSelectionFailed" xml:space="preserve"><value>Folder selection failed</value></data>
   <data name="NotificationPermissionNotGranted" xml:space="preserve"><value>Notification permission not granted</value></data>
-  <data name="NotificationPermissionNotGrantedMessage" xml:space="preserve"><value>SwiftDrop will continue transferring normally without optional completion/failure notifications. Required foreground transfer status is controlled by Android platform rules.</value></data>
+  <data name="NotificationPermissionNotGrantedMessage" xml:space="preserve"><value>SwiftDrop will continue transferring normally without optional completion/failure notifications. Any required transfer-status notification is controlled separately by the operating system.</value></data>
   <data name="Saved" xml:space="preserve"><value>Saved</value></data>
   <data name="SavedSettingsMessage" xml:space="preserve"><value>Settings and device name were saved on this device.</value></data>
   <data name="SavedLanguageChangedMessage" xml:space="preserve"><value>Settings and device name were saved. Newly opened screens use the selected language; restart SwiftDrop to refresh screens that were already open.</value></data>
