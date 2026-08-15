@@ -29,4 +29,13 @@
   <data name="HistoryPerformanceSummaryFormat" xml:space="preserve"><value>{0:N0} पूरे • {1} ट्रांसफ़र • {2:N0} मापे गए • भारित औसत {3}/सेकंड</value></data>
   <data name="HistoryDurationFormat" xml:space="preserve"><value>{0:0.##} सेकंड</value></data>
   <data name="HistoryThroughputFormat" xml:space="preserve"><value>{0}/सेकंड</value></data>
+  <data name="HistoryPerformanceTrendTitle" xml:space="preserve"><value>30-दिन का प्रदर्शन रुझान</value></data>
+  <data name="HistoryPerformanceTrendDescription" xml:space="preserve"><value>दैनिक UTC बकेट केवल पूरे हुए ट्रांसफ़रों के मापे गए बाइट और अवधि का उपयोग करते हैं। CSV निर्यात में केवल समेकित प्रदर्शन डेटा होता है; फ़ाइल या डिवाइस विवरण नहीं।</value></data>
+  <data name="HistoryPerformanceTrendNoMeasurements" xml:space="preserve"><value>पिछले 30 दिनों में कोई मापा गया प्रदर्शन रुझान उपलब्ध नहीं है।</value></data>
+  <data name="HistoryPerformanceTrendSummaryFormat" xml:space="preserve"><value>पिछले {1:N0} दिनों में {0:N0} UTC दिनों पर माप उपलब्ध हैं। सबसे हाल के अधिकतम 7 मापे गए दिन नीचे दिखाए गए हैं।</value></data>
+  <data name="HistoryPerformanceTrendLineFormat" xml:space="preserve"><value>{0:d} • {1:N0} मापे गए • भारित {2}/सेकंड</value></data>
+  <data name="ExportPerformanceTrend" xml:space="preserve"><value>समेकित CSV निर्यात करें</value></data>
+  <data name="HistoryPerformanceTrendShareTitle" xml:space="preserve"><value>SwiftDrop समेकित प्रदर्शन रुझान</value></data>
+  <data name="HistoryPerformanceTrendExportFailed" xml:space="preserve"><value>प्रदर्शन निर्यात विफल</value></data>
+  <data name="HistoryPerformanceTrendExportFailedFormat" xml:space="preserve"><value>SwiftDrop समेकित प्रदर्शन रुझान निर्यात नहीं कर सका ({0})।</value></data>
 </root>
