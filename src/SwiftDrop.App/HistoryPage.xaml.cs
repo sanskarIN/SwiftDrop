@@ -29,6 +29,33 @@ public partial class HistoryPage : ContentPage
 
     private async void RefreshClicked(object? sender, EventArgs e) => await LoadAsync();
 
+    private async void ExportPerformanceTrendClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var path = await _viewModel.ExportPerformanceTrendAsync();
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = AppText.Get("HistoryPerformanceTrendShareTitle"),
+                File = new ShareFile(path)
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            await DisplayAlertAsync(
+                AppText.Get("HistoryPerformanceTrendTitle"),
+                AppText.Get("HistoryPerformanceTrendNoMeasurements"),
+                AppText.Get("Ok"));
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync(
+                AppText.Get("HistoryPerformanceTrendExportFailed"),
+                AppText.Format("HistoryPerformanceTrendExportFailedFormat", ex.GetType().Name),
+                AppText.Get("Ok"));
+        }
+    }
+
     private async void DeleteClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not string id) return;
