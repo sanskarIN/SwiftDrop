@@ -1,3 +1,4 @@
+using System.Text;
 using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Storage;
@@ -7,6 +8,8 @@ namespace SwiftDrop.App.Services;
 public sealed class TransferHistoryService
 {
     public const string PrivacyRedactionMarker = "[private]";
+    public const int DefaultPerformanceTrendWindowDays = TransferPerformanceTrendAnalyzer.DefaultWindowDays;
+    private const string PerformanceTrendExportPattern = "swiftdrop-performance-trend-*.csv";
     private readonly TransferHistoryStore _store;
     private readonly AppSettingsService _settings;
     private readonly SemaphoreSlim _initializationGate = new(1, 1);
@@ -96,6 +99,35 @@ public sealed class TransferHistoryService
             .ToArray();
     }
 
+    public async Task<IReadOnlyList<TransferPerformanceTrendPoint>> GetPerformanceTrendAsync(
+        int windowDays = DefaultPerformanceTrendWindowDays,
+        CancellationToken ct = default)
+    {
+        ValidateTrendWindow(windowDays);
+        await InitializeAsync(ct);
+
+        var windowEndUtc = DateTimeOffset.UtcNow;
+        var cutoffUtc = new DateTimeOffset(
+            windowEndUtc.UtcDateTime.Date.AddDays(-(windowDays - 1)),
+            TimeSpan.Zero);
+        var entries = await _store.GetPerformanceEntriesSinceAsync(cutoffUtc, ct);
+        return TransferPerformanceTrendAnalyzer.BuildDaily(entries, windowEndUtc, windowDays);
+    }
+
+    public async Task<string> ExportPerformanceTrendCsvAsync(
+        int windowDays = DefaultPerformanceTrendWindowDays,
+        CancellationToken ct = default)
+    {
+        var points = await GetPerformanceTrendAsync(windowDays, ct);
+        var csv = TransferPerformanceTrendCsvExporter.Export(points);
+        var cacheDirectory = FileSystem.CacheDirectory;
+        CleanupPreviousPerformanceTrendExports(cacheDirectory);
+        var fileName = $"swiftdrop-performance-trend-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmssfff}.csv";
+        var path = Path.Combine(cacheDirectory, fileName);
+        await File.WriteAllTextAsync(path, csv, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), ct);
+        return path;
+    }
+
     public async Task DeleteAsync(string id, CancellationToken ct = default)
     {
         await InitializeAsync(ct);
@@ -106,5 +138,31 @@ public sealed class TransferHistoryService
     {
         await InitializeAsync(ct);
         await _store.ClearAsync(ct);
+    }
+
+    private static void ValidateTrendWindow(int windowDays)
+    {
+        if (windowDays is < 1 or > TransferPerformanceTrendAnalyzer.MaxWindowDays)
+            throw new ArgumentOutOfRangeException(nameof(windowDays));
+    }
+
+    private static void CleanupPreviousPerformanceTrendExports(string cacheDirectory)
+    {
+        try
+        {
+            foreach (var path in Directory.EnumerateFiles(cacheDirectory, PerformanceTrendExportPattern, SearchOption.TopDirectoryOnly))
+            {
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+                {
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DirectoryNotFoundException or NotSupportedException)
+        {
+        }
     }
 }
