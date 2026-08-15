@@ -45,7 +45,7 @@ For the exact candidate, require the relevant maintained workflows:
 
 Review failures; do not bypass a gate simply to publish.
 
-The release-readiness workflow also self-tests when its verification/audit/evidence helper inputs change on `main` or in a pull request. That reduces the chance of discovering a broken release gate only after a version tag is created.
+The release-readiness workflow runs for production source, portable tests, benchmark/build inputs, and its verification/audit/evidence helper inputs on `main` and matching pull requests. This prevents normal candidate-affecting source changes from bypassing the aggregate Android/Windows/Apple release gate before a version tag is created.
 
 ## 4. Retrieve and verify dependency evidence
 
