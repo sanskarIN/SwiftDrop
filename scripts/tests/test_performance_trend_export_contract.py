@@ -64,6 +64,16 @@ class PerformanceTrendExportContractTests(unittest.TestCase):
         self.assertIn("FileSystem.CacheDirectory", history_service)
         self.assertIn("CleanupPreviousPerformanceTrendExports", history_service)
         self.assertIn("encoderShouldEmitUTF8Identifier: false", history_service)
+        clear_method = history_service[
+            history_service.index("public async Task ClearAsync") :
+            history_service.index("private static void ValidateTrendWindow")
+        ]
+        self.assertIn("CleanupPreviousPerformanceTrendExports(FileSystem.CacheDirectory)", clear_method)
+        zero_retention = history_service[
+            history_service.index("if (days == 0)") :
+            history_service.index("await _store.PruneOlderThanAsync")
+        ]
+        self.assertIn("CleanupPreviousPerformanceTrendExports(FileSystem.CacheDirectory)", zero_retention)
         self.assertNotIn("HttpClient", history_service)
         self.assertNotIn("TelemetryClient", history_service)
         self.assertIn("Share.Default.RequestAsync", page)
