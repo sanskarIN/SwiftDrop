@@ -16,4 +16,6 @@
   <data name="FolderRecursiveStatus" xml:space="preserve"><value>The folder will be enumerated recursively when sending. Empty directories are not transferred because SwiftDrop transfers file content and relative paths.</value></data>
   <data name="DeviceIdentityRefreshed" xml:space="preserve"><value>Device identity refreshed</value></data>
   <data name="DeviceIdentityRefreshedFormat" xml:space="preserve"><value>SwiftDrop created a new local device ID and certificate because the previous certificate could not be safely reused ({0}). Other devices that trusted the previous certificate must pair with this device again. Received files, transfer history, and your local trusted-device list were not deleted.</value></data>
+  <data name="TransferCompletedNotification" xml:space="preserve"><value>Transfer completed successfully.</value></data>
+  <data name="TransferFailedNotification" xml:space="preserve"><value>A transfer failed. Open SwiftDrop to review the status.</value></data>
 </root>
