@@ -55,6 +55,7 @@ This prevents Windows `\\` vs Unix `/` path identity drift during cross-platform
 - Queue/concurrency controls.
 - Progress, batch throughput, and ETA presentation.
 - Local History performance dashboard with measured completed-transfer duration, resume-safe actual-byte throughput, and weighted average throughput; legacy/unmeasured rows are never given invented rates.
+- Local 30-day UTC performance trend derived from completed measured History samples, with an explicit aggregate-only CSV export through the OS share sheet; the export contains UTC date, measured-count, measured-byte, measured-duration, and weighted-rate columns only.
 - Restart-safe queue status/progress/item metadata that never serves as reusable transfer authorization.
 - Pause/cancel/fresh-pair resume.
 - `.swiftdrop.part` staging.
@@ -191,7 +192,7 @@ Queue metadata can retain a bounded non-secret operation category, update timest
 
 SQLite does **not** store transferred file bytes, transferred text, private keys, pairing invitations/nonces, reusable session/transfer authorization, queue peer endpoints, queue source/destination paths, source absolute paths, or receive-root absolute paths for resume state.
 
-Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. Persisted queue labels remain generic rather than recording transfer filenames/text.
+Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. Persisted queue labels remain generic rather than recording transfer filenames/text.
 
 Optional terminal notification text is also deliberately generic and does not place transfer-specific identifiers/content into OS notification history.
 
@@ -243,8 +244,8 @@ Portable tests include:
 Configured GitHub Actions include:
 
 - documentation integrity validation;
-- **16 Python validation-helper regression tests**, including NuGet evidence helpers and the Windows packaged-notification integration validator;
-- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **522 xUnit tests**;
+- **26 Python validation-helper regression tests**, including NuGet evidence helpers, packaged-integration validators, performance-history measurement contracts, and aggregate performance-trend export contracts;
+- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **559 xUnit tests**;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;
