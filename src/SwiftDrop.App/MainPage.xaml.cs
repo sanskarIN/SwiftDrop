@@ -205,8 +205,21 @@ public partial class MainPage : ContentPage
             : IncomingTextDecision.Reject;
     }
 
-    private Task RecordIncomingAsync(IncomingTransferPreview preview, string status, bool verified, CancellationToken ct)
-        => _history.AddAsync("received", preview.SenderDeviceName, preview.Entry.RelativePath, preview.Entry.Length, status, verified, ct);
+    private Task RecordIncomingAsync(
+        IncomingTransferPreview preview,
+        string status,
+        bool verified,
+        TimeSpan? duration,
+        CancellationToken ct)
+        => _history.AddAsync(
+            "received",
+            preview.SenderDeviceName,
+            preview.Entry.RelativePath,
+            preview.Entry.Length,
+            status,
+            verified,
+            ct,
+            duration);
 
     private Task RecordIncomingTextAsync(IncomingTextPreview preview, string status, CancellationToken ct)
         => _history.AddAsync(
