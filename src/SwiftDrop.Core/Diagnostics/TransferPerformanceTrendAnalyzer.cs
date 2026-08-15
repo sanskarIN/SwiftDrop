@@ -18,6 +18,7 @@ public static class TransferPerformanceTrendAnalyzer
         if (windowEndUtc < DateTimeOffset.UnixEpoch)
             throw new ArgumentOutOfRangeException(nameof(windowEndUtc));
 
+        windowEndUtc = windowEndUtc.ToUniversalTime();
         var endDate = DateOnly.FromDateTime(windowEndUtc.UtcDateTime);
         var startDate = endDate.AddDays(-(windowDays - 1));
         var buckets = new Dictionary<DateOnly, Bucket>();
@@ -26,6 +27,8 @@ public static class TransferPerformanceTrendAnalyzer
         {
             ArgumentNullException.ThrowIfNull(entry);
             if (!TransferPerformanceAnalyzer.IsValidMeasurement(entry))
+                continue;
+            if (entry.TimestampUtc.ToUniversalTime() > windowEndUtc)
                 continue;
 
             var date = DateOnly.FromDateTime(entry.TimestampUtc.UtcDateTime);
