@@ -495,6 +495,6 @@ See `NEXT_STEPS.md` for release validation priorities and `what_changed.md` for 
 
 SwiftDrop now derives a rolling 30-day UTC performance trend from valid completed History measurements and can export it as a deterministic aggregate-only CSV through the operating-system share sheet. The query path is cutoff-based rather than UI-limit based, so all retained valid measurements in the selected window can contribute.
 
-The export contains only UTC date, measured transfer count, measured bytes, measured duration, and weighted bytes/second. It does not expose file/device/path/network/authentication/content fields and introduces no new database schema or remote telemetry.
+The export contains only UTC date, measured transfer count, measured bytes, measured duration, and weighted bytes/second. It does not expose file/device/path/network/authentication/content fields and introduces no new database schema or remote telemetry. The trend storage query itself is identifier-free and projects only timestamp/size/duration/measured-byte fields; exact-window filtering also excludes clock-skewed samples later than the requested UTC end instant.
 
 Portable coverage for the corrected source is **559/559 xUnit tests** plus **26/26 Python helper tests**, including a permanent cross-layer trend/export contract. Exact final platform/release run IDs are recorded in `what_changed.md` after hosted jobs complete. Representative-device and cross-network benchmark correlation remains external evidence.
