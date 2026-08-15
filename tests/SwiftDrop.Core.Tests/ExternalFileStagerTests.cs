@@ -88,6 +88,37 @@ public sealed class ExternalFileStagerTests
         }
     }
 
+    [Fact]
+    public async Task StageFileAsync_RejectsSymlinkSourceWithoutCreatingStagingOutputWhenSupported()
+    {
+        var root = CreateTempDirectory();
+        var outside = CreateTempDirectory();
+        try
+        {
+            var target = Path.Combine(outside, "target.bin");
+            await File.WriteAllBytesAsync(target, [1, 2, 3, 4]);
+            var link = Path.Combine(root, "link.bin");
+            try
+            {
+                File.CreateSymbolicLink(link, target);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or PlatformNotSupportedException or IOException)
+            {
+                return;
+            }
+
+            var staging = Path.Combine(root, "staging");
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                ExternalFileStager.StageFileAsync(link, staging, 1024));
+            Assert.False(Directory.Exists(staging));
+        }
+        finally
+        {
+            DeleteBestEffort(root);
+            DeleteBestEffort(outside);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), "swiftdrop-stage-" + Guid.NewGuid().ToString("N"));
