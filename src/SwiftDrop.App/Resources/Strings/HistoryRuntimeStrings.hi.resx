@@ -25,4 +25,8 @@
   <data name="HistoryCopied" xml:space="preserve"><value>कॉपी किया गया</value></data>
   <data name="HistoryBytesFormat" xml:space="preserve"><value>{0:N0} बाइट</value></data>
   <data name="HistoryTimeFormat" xml:space="preserve"><value>{0:g}</value></data>
+  <data name="HistoryPerformanceNoMeasurements" xml:space="preserve"><value>पूरा हुआ ट्रांसफ़र मापी गई अवधि के साथ दर्ज होने पर प्रदर्शन नमूने यहाँ दिखाई देंगे।</value></data>
+  <data name="HistoryPerformanceSummaryFormat" xml:space="preserve"><value>{0:N0} पूरे • {1} ट्रांसफ़र • {2:N0} मापे गए • भारित औसत {3}/सेकंड</value></data>
+  <data name="HistoryDurationFormat" xml:space="preserve"><value>{0:0.##} सेकंड</value></data>
+  <data name="HistoryThroughputFormat" xml:space="preserve"><value>{0}/सेकंड</value></data>
 </root>
