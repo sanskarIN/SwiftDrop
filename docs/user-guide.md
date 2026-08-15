@@ -133,7 +133,7 @@ The queue coordinates bounded transfer concurrency and shows pending/active tran
 
 ### History
 
-History stores transfer metadata, not transferred file/text contents. Retention can be changed in Settings, including zero days for no retained history.
+History stores transfer metadata, not transferred file/text contents. Retention can be changed in Settings, including zero days for no retained history. Completed transfers with real timing/byte measurements can show per-transfer duration/throughput plus a weighted History performance summary. Legacy and unmeasured rows remain unmeasured, and resumed-transfer rates use only bytes actually transferred after the resume offset.
 
 ### Nearby devices
 
@@ -156,7 +156,7 @@ Important rules:
 - Resetting device identity changes the local cryptographic identity and clears trusted-device relationships.
 - Privacy mode changes how peer/file identifiers are presented/stored in history/diagnostics; it does not encrypt or relocate transferred files.
 - Trusted-device auto-accept is opt-in.
-- Notifications are currently optional Android-only completion/failure notifications.
+- Completion/failure notifications are optional and off by default on Android, iOS, Mac Catalyst, and Windows; platform permission/system policy still applies.
 - Custom receive-folder selection is currently Windows-only.
 
 ## 16. Privacy expectations
