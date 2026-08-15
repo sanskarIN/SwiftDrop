@@ -1,6 +1,6 @@
 # SwiftDrop Privacy
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 SwiftDrop is designed as a local-network, account-free transfer application.
 
@@ -26,7 +26,7 @@ SwiftDrop may store locally:
 - explicitly trusted-device metadata;
 - transfer-history metadata;
 - bounded diagnostic metadata;
-- privacy-minimal transfer-queue status metadata;
+- privacy-minimal transfer-queue status/progress metadata;
 - verified completed-batch resume metadata;
 - incomplete `.swiftdrop.part` files required for resumable transfer;
 - temporary external-input cache staging;
@@ -47,9 +47,28 @@ When privacy mode is enabled:
 
 History retention can be configured; zero-day retention clears retained history.
 
+## Restart-safe transfer queue metadata
+
+SQLite schema version 4 stores bounded queue status/progress metadata so recent work remains understandable after an application restart without making stale work automatically executable.
+
+A queue metadata row may contain:
+
+- a random queue item identifier;
+- the generic persisted label `Transfer`;
+- state (`Queued`, `Running`, `Completed`, `Failed`, `Cancelled`, or `Interrupted`);
+- creation/start/finish/update timestamps;
+- a bounded machine-oriented error code;
+- a non-secret operation category (`Transfer`, `File`, `Batch`, `Text`, or `Receive`);
+- monotonic progress expressed as `0..10000` basis points;
+- optional non-negative total/completed item counts.
+
+SwiftDrop deliberately does **not** store reusable transfer authorization with this queue metadata. The queue table does not contain transferred text/file contents, source or destination paths, peer host/IP/port values, pairing invitations/nonces, bearer/session tokens, peer certificates, private keys, or reusable credentials. The persisted label remains generic even when the in-memory UI can show a filename while privacy mode is disabled.
+
+Ordinary progress persistence is coarsened to bounded progress buckets plus state/item-count transitions rather than writing every progress callback to SQLite. On startup, stale persisted `Queued`/`Running` entries are changed to `Interrupted` while retaining their safe last-known progress/context. They are not replayed automatically; another transfer attempt still requires fresh authorization through the normal pairing flow.
+
 ## Verified batch-resume metadata
 
-SQLite schema version 3 contains metadata that allows an interrupted batch to avoid resending a file that was already fully verified/finalized before the interruption.
+The `completed_batch_items` table was introduced in SQLite schema version 3 and remains part of current schema version 4. It allows an interrupted batch to avoid resending a file that was already fully verified/finalized before the interruption.
 
 A completed-batch metadata row can contain:
 
