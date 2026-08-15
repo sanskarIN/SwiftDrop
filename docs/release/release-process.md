@@ -1,6 +1,6 @@
 # SwiftDrop Release Process
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 This process turns a source-complete commit into a release candidate and, only after all required evidence passes, into a publishable release.
 
@@ -28,6 +28,8 @@ Before candidate freeze, confirm the following reflect the same source state:
 - protocol/security/architecture/platform/storage/testing docs;
 - release process/checklist, dependency-evidence contract, and store privacy declarations;
 - `what_changed.md` engineering ledger.
+
+Confirm the current local database schema number and migration path agree across source, storage documentation, privacy documentation, compatibility policy, manual/security tests, and release checklist. For the current source that means schema **v4**, including safe v3 queue-row migration defaults and the non-authorizing restart-safe queue contract.
 
 If a source fix is required after freeze, create a new candidate SHA and repeat invalidated evidence.
 
@@ -173,7 +175,10 @@ Cover at minimum:
 - dangerous-extension warning;
 - trust/revoke/identity reset;
 - receive-location changes;
-- queue/restart behavior.
+- schema-v4 queue restart/progress/item recovery;
+- stale active queue rows becoming `Interrupted` without automatic replay;
+- fresh authorization still being required after restart;
+- caller cancellation during queue initialization/best-effort persistence not permanently disabling later queue metadata persistence.
 
 ## 10. Execute restricted-network/lifecycle cases
 
@@ -220,6 +225,7 @@ Test:
 - keyboard-only desktop navigation;
 - TalkBack/VoiceOver/Narrator where applicable;
 - status/error communication that does not rely only on color;
+- queue operation/progress/item/timing/interrupted-state presentation;
 - reduced-motion/high-contrast expectations.
 
 ## 13. Privacy/store declaration review
@@ -229,6 +235,8 @@ Compare final binaries/behavior with:
 - `PRIVACY.md`;
 - `docs/release/store-privacy-declarations.md`;
 - platform store forms/declarations.
+
+For schema-v4 queue persistence, confirm the shipped application stores only the documented generic label/state/error/operation/timestamp/progress/item metadata and does not introduce pairing nonces, reusable authorization/session tokens, certificates/private keys, peer endpoints, source/destination paths, or transferred contents into the queue table.
 
 Do not claim that data is absent if the candidate actually stores/transmits it, and do not declare permissions/features that are not present merely because they were once planned.
 
