@@ -75,12 +75,15 @@ public static class TransferPerformanceAnalyzer
             : null;
     }
 
-    private static bool IsValidMeasurement(TransferHistoryEntry entry)
-        => string.Equals(entry.Status, "completed", StringComparison.Ordinal) &&
-           entry.SizeBytes >= 0 &&
-           entry.MeasuredBytes is > 0 &&
-           entry.MeasuredBytes <= entry.SizeBytes &&
-           entry.DurationMilliseconds is > 0 and <= TransferHistoryStore.MaxDurationMilliseconds;
+    public static bool IsValidMeasurement(TransferHistoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return string.Equals(entry.Status, "completed", StringComparison.Ordinal) &&
+               entry.SizeBytes >= 0 &&
+               entry.MeasuredBytes is > 0 &&
+               entry.MeasuredBytes <= entry.SizeBytes &&
+               entry.DurationMilliseconds is > 0 and <= TransferHistoryStore.MaxDurationMilliseconds;
+    }
 
     private static long SaturatingAdd(long left, long right)
         => right > 0 && left > long.MaxValue - right ? long.MaxValue : left + right;
