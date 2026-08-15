@@ -307,3 +307,9 @@ For any candidate that ships optional terminal notifications:
 7. rebuild and repeat invalidated signed/package notification evidence after any notification-source/manifest/resource change.
 
 **Made by the Sanskar**
+
+## Aggregate performance evidence
+
+For a release candidate, treat the local trend CSV as reproducible **device evidence**, not as hosted telemetry. Generate it only from the exact signed candidate while exercising representative devices/networks. Retain the exported aggregate CSV with the candidate test record if project policy permits, and correlate it with the synthetic benchmark harness.
+
+Before retaining or sharing any trend export, verify its schema is the aggregate-only five-column contract and contains no file/device/path/endpoint/authentication/content data. Hosted compile/test success validates implementation structure but does not substitute for physical measurement or store/privacy review.
