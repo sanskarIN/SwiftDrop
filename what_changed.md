@@ -1,6 +1,6 @@
 # What changed
 
-Date: 2026-08-14
+Date: 2026-08-15
 Repository: https://github.com/sanskarIN/SwiftDrop
 Branch: `main`
 Master prompt: `07_SwiftDrop_Local_File_Transfer_Master_Prompt.md`
@@ -2817,5 +2817,86 @@ Regular CI, CodeQL, and security-hygiene runs for the newest main-head documenta
 A temporary one-run ledger helper was attempted only to preserve the long file by appending in place, but GitHub rejected that workflow before creating a job. It made no ledger modification and was removed immediately in commit `4c49d1ced68d9c99d02654c3832b81d3b8063db5`. The ledger was then updated directly without deleting or shortening any earlier numbered section.
 
 The project therefore remains classified as **source-complete for the current master-prompt scope plus this implemented optional queue enhancement, with release validation still external/candidate-specific**. Signed packaging, real devices/providers/networks/filesystems, accessibility/localization validation, final dependency/license/provenance reconciliation, App Group/notarization, and store/privacy checks remain outside what source-only edits can honestly complete.
+
+---
+
+# 159. Caller-cancellation queue persistence hardening
+
+Focused source commit `67fc3feaa506b16d11307afa9da8ca9d151f6d22` closes a lifecycle edge discovered during final review of the richer queue persistence implementation.
+
+Before this fix, a caller-cancelled persistence wait/write could flow through the generic best-effort storage catch path and set `_persistenceAvailable=false`, incorrectly treating ordinary transfer/request cancellation as evidence that SQLite was unusable for the remainder of the application session.
+
+The corrected behavior is:
+
+- queue initialization rethrows caller cancellation instead of marking persistence unavailable or completing initialization with a false degraded state;
+- caller-cancelled best-effort queue metadata writes are ignored as cancelled writes but do **not** disable later persistence;
+- `ClearFinishedAsync` preserves caller cancellation semantics instead of turning it into a storage-health failure;
+- real SQLite/storage failures continue to disable only the best-effort persistence path and never change the transfer result;
+- exception type names are normalized through a bounded error-code sanitizer before persistence, retaining only ASCII letters/digits/`-`/`_`/`.` up to 64 characters with `transfer-error` fallback.
+
+# 160. Current-state schema-v4 documentation sweep
+
+A final repository-wide current-state sweep found several documents that still described schema v3 as current even though the queue enhancement had advanced the database to v4. Historical dated ledger/changelog references were preserved as history; current public/release instructions were corrected.
+
+Focused commits:
+
+- `3e7dd988bd50613b5781863219811394730dc8f4` — public README aligned with schema v4, restart-safe queue progress, and the 522-test current contract;
+- `9f2e76f13188e6139173cc7b85be87ac5100ad40` — architecture/local metadata description aligned with schema v4 and cancellation semantics;
+- `cdcc0fd7dc783264bb1baa102011be67a31108f8` — manual test matrix expanded for v0/v1/v2/v3→v4 migration, queue progress/restart/privacy/cancellation behavior;
+- `701ca698aa1a22beb3cb64bd6a4f5dc3277efe9e` — security test plan aligned to the schema-v4 non-authorizing queue boundary;
+- `234371b7d7d35844a07b400f32ff6e5b9c60168a` — release checklist requires schema-v4 migration/privacy/restart/cancellation checks;
+- the release-process update made the exact same v4 queue requirements part of candidate freeze, physical validation, accessibility, and privacy review.
+
+The documentation intentionally continues to say that `completed_batch_items` was **introduced in schema v3** while correctly stating that the **current schema is v4**.
+
+# 161. Final automated evidence for the August 15 source continuation
+
+The exact runtime/source-changing head is `67fc3feaa506b16d11307afa9da8ca9d151f6d22`.
+
+Portable/source evidence:
+
+- Ubuntu normal CI on that source completed the full **522/522 xUnit** suite with zero failures/skips;
+- 10 Python validation-helper tests passed;
+- documentation integrity, English/Hindi localization validation, and Apple integration metadata validation passed;
+- Core and benchmark Release builds completed with zero reported build errors;
+- the machine-readable Core vulnerable-package report contained zero findings;
+- security-hygiene on the exact source succeeded.
+
+Current documentation/source-state evidence:
+
+- CI run `31867674137` completed successfully on both Ubuntu and the Windows PowerShell portable verifier using the same runtime source;
+- CodeQL run `31867674094` completed successfully;
+- security-hygiene run `31867674078` completed successfully.
+
+Exact-source platform evidence:
+
+- platform run `31867418650` completed successfully;
+- Android Release compile/audit succeeded;
+- focused Windows Release compile/audit succeeded;
+- Mac Catalyst containing-app Release compile/audit succeeded;
+- iOS Simulator Share Extension Release compile succeeded;
+- iOS Simulator containing-app Release compile succeeded;
+- iOS containing-app and Share Extension vulnerable-package audits succeeded;
+- Android, Windows, and Apple dependency-evidence artifacts uploaded successfully.
+
+The final open-issue search returned no open GitHub issues.
+
+# 162. Final source/release boundary for this continuation
+
+SwiftDrop is source-complete for the current master-prompt scope plus the implemented restart-safe queue enhancement. The current hosted source contract includes schema-v4 queue migration/persistence, sender progress integration, queue UI progress/context, caller-cancellation resilience, 522 portable xUnit tests, two-OS portable CI, CodeQL/security hygiene, and the maintained Android/Windows/Mac Catalyst/iOS hosted platform matrix.
+
+This does **not** convert hosted/source evidence into a production-ready claim. The remaining release work is deliberately external or exact-candidate distribution evidence:
+
+- signed Android AAB/APK and install/upgrade/policy validation;
+- signed Windows MSIX/package install/update/protocol/capability/firewall validation;
+- Apple Developer App Group/provisioning for the iOS app and Share Extension;
+- signed iOS/TestFlight Share Extension/provider/App Group behavior;
+- signed/notarized Mac Catalyst sandbox/network/native-drop validation;
+- physical cross-device transfer/resume/network/filesystem/low-storage/provider testing;
+- real SecureStorage/keychain/keystore and supported schema-upgrade scenarios;
+- TalkBack/VoiceOver/Narrator/keyboard/large-text/high-contrast/Hindi validation;
+- exact final signed-artifact dependency/license/provenance reconciliation;
+- store/privacy metadata and submission checks.
+
 
 **Made by the Sanskar**

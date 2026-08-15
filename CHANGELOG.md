@@ -4,6 +4,10 @@
 
 ### Restart-safe queue progress and schema-v4 persistence
 
+- Hardened queue persistence cancellation handling so caller cancellation during initialization or best-effort metadata writes does not mark SQLite persistence permanently unavailable for the app session.
+- Sanitized persisted exception-type error codes to the bounded machine-oriented error-code contract.
+- Expanded the current portable contract to **522/522 xUnit tests** and revalidated exact runtime source `67fc3feaa506b16d11307afa9da8ca9d151f6d22` through successful Android, focused Windows, Mac Catalyst, iOS Share Extension, and iOS containing-app platform compilation/audit run `31867418650`.
+
 - Extended the local SQLite schema from v3 to v4 with bounded queue `operation_kind`, `updated_utc`, `progress_basis_points`, `item_count`, and `completed_item_count` metadata.
 - Added a sequential v3→v4 migration that preserves legacy queue rows with safe defaults and regression coverage for v0/v1/v2/v3 upgrade paths.
 - Kept queue persistence deliberately non-authorizing: persisted labels remain generic and the schema contains no pairing nonce, reusable token/session authorization, certificate/private key, peer endpoint, source/destination path, or transferred content field.

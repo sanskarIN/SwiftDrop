@@ -2,6 +2,17 @@
 
 Updated: 2026-08-15
 
+## August 15 final queue-v4 verification snapshot
+
+- Exact runtime/source-changing head is `67fc3feaa506b16d11307afa9da8ca9d151f6d22`. The final source fix prevents caller cancellation from permanently disabling restart-safe queue persistence and sanitizes persisted exception-type error codes to the bounded machine-code contract.
+- SQLite schema remains **v4** with privacy-minimal operation/update/progress/item queue metadata. Stale active rows become `Interrupted` after restart, retain only safe context, and are never automatically replayed.
+- The portable xUnit contract is now **522/522 passing tests**. The current documentation/source-state CI run `31867674137` passed both Ubuntu and the Windows PowerShell verifier.
+- CodeQL run `31867674094` and security-hygiene run `31867674078` completed successfully on the current documentation/source state.
+- Exact-source platform run `31867418650` completed successfully across Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app, including the maintained target dependency/vulnerability audits and evidence uploads.
+- README, architecture, storage, privacy, compatibility, manual/security testing, release checklist/process, roadmap/status, changelog, and engineering-ledger references are aligned to schema v4 and the 522-test current contract.
+- The final open-issue check returned no open GitHub issues.
+- Production readiness still requires the documented signed package, Apple provisioning/App Group, physical device/provider/network/filesystem/storage, accessibility/localization, exact signed-artifact dependency/license/provenance, notarization, and store/privacy gates.
+
 ## August 15 restart-safe queue persistence continuation
 
 - SQLite `CurrentVersion` is now **4**. The v3→v4 migration extends `transfer_queue_metadata` with bounded operation category, update timestamp, basis-point progress, and optional total/completed item counts while preserving legacy rows with safe defaults.

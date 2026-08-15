@@ -2,6 +2,17 @@
 
 Updated: 2026-08-15
 
+## August 15 final automated evidence
+
+- Exact runtime/source-changing head: `67fc3feaa506b16d11307afa9da8ca9d151f6d22` (`fix(queue): preserve persistence across caller cancellation`).
+- Normal CI verified the expanded portable contract at **522/522 xUnit tests**, with 10 Python validation-helper tests, documentation integrity, localization, Apple metadata validation, Core/benchmark Release builds, and zero reported Core vulnerable-package findings.
+- Current documentation/source-state CI run `31867674137` completed successfully on both Ubuntu and the Windows PowerShell portable verifier.
+- Current documentation/source-state CodeQL run `31867674094` and security-hygiene run `31867674078` completed successfully.
+- Exact-source platform run `31867418650` completed successfully for Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app, including target vulnerability audits and dependency-evidence uploads.
+- Queue cancellation hardening ensures caller cancellation during initialization or best-effort metadata persistence is not misclassified as permanent SQLite/storage unavailability.
+- No open GitHub issues remained at the final issue-queue check.
+- This hosted evidence does not replace signed Android/Windows/Apple packaging, real Apple App Group provisioning, physical cross-device/provider/network/storage/accessibility/localization validation, final signed-artifact dependency/license/provenance review, or store/privacy submission checks.
+
 The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed iOS Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, schema-v4 queue, or schema-v3 completed-batch resume work as missing.
 
 ## Source work completed through the August 15 continuation
