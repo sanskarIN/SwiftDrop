@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using SwiftDrop.App.Services;
+using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
 
 namespace SwiftDrop.App.ViewModels;
@@ -9,6 +10,7 @@ public sealed class HistoryViewModel : ObservableObject
     private readonly TransferHistoryService _history;
     private bool _isBusy;
     private string _status = string.Empty;
+    private string _performanceStatus = string.Empty;
 
     public HistoryViewModel(TransferHistoryService history)
     {
@@ -29,6 +31,12 @@ public sealed class HistoryViewModel : ObservableObject
         private set => SetProperty(ref _status, value);
     }
 
+    public string PerformanceStatus
+    {
+        get => _performanceStatus;
+        private set => SetProperty(ref _performanceStatus, value);
+    }
+
     public async Task RefreshAsync(CancellationToken ct = default)
     {
         if (IsBusy) return;
@@ -45,6 +53,7 @@ public sealed class HistoryViewModel : ObservableObject
                 1 => AppText.Get("HistoryCountOne"),
                 _ => AppText.Format("HistoryCountFormat", Items.Count)
             };
+            PerformanceStatus = FormatPerformanceSummary(TransferPerformanceAnalyzer.Summarize(items));
         }
         finally
         {
@@ -64,6 +73,39 @@ public sealed class HistoryViewModel : ObservableObject
         await _history.ClearAsync(ct);
         Items.Clear();
         Status = AppText.Get("NoHistoryRecords");
+        PerformanceStatus = AppText.Get("HistoryPerformanceNoMeasurements");
+    }
+
+    private static string FormatPerformanceSummary(TransferPerformanceSummary summary)
+    {
+        if (!summary.HasMeasurements)
+            return AppText.Get("HistoryPerformanceNoMeasurements");
+
+        return AppText.Format(
+            "HistoryPerformanceSummaryFormat",
+            summary.CompletedRecords,
+            FormatBytes(summary.CompletedBytes),
+            summary.MeasuredTransfers,
+            FormatBytes(ToDisplayRate(summary.AverageBytesPerSecond)));
+    }
+
+    private static long ToDisplayRate(double bytesPerSecond)
+    {
+        if (!double.IsFinite(bytesPerSecond) || bytesPerSecond <= 0d) return 0;
+        return bytesPerSecond >= long.MaxValue ? long.MaxValue : (long)Math.Round(bytesPerSecond);
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB", "PB", "EB"];
+        double value = Math.Max(0, bytes);
+        var unit = 0;
+        while (value >= 1024d && unit < units.Length - 1)
+        {
+            value /= 1024d;
+            unit++;
+        }
+        return $"{value:0.##} {units[unit]}";
     }
 
     public sealed record HistoryRow(
@@ -74,11 +116,15 @@ public sealed class HistoryViewModel : ObservableObject
         string SizeText,
         string StatusText,
         string TimestampText,
+        string DurationText,
+        string ThroughputText,
         bool IntegrityVerified)
     {
         public static HistoryRow FromEntry(TransferHistoryEntry entry)
         {
             ArgumentNullException.ThrowIfNull(entry);
+            var bytesPerSecond = TransferPerformanceAnalyzer.BytesPerSecond(entry);
+            var hasMeasurement = bytesPerSecond > 0d && entry.DurationMilliseconds is > 0;
             return new HistoryRow(
                 entry.Id,
                 PresentSensitive(entry.FileName),
@@ -87,6 +133,12 @@ public sealed class HistoryViewModel : ObservableObject
                 AppText.Format("HistoryBytesFormat", entry.SizeBytes),
                 LocalizeStatus(entry.Status),
                 AppText.Format("HistoryTimeFormat", entry.TimestampUtc.LocalDateTime),
+                hasMeasurement
+                    ? AppText.Format("HistoryDurationFormat", entry.DurationMilliseconds!.Value / 1000d)
+                    : string.Empty,
+                hasMeasurement
+                    ? AppText.Format("HistoryThroughputFormat", FormatBytes(ToDisplayRate(bytesPerSecond)))
+                    : string.Empty,
                 entry.IntegrityVerified);
         }
 
