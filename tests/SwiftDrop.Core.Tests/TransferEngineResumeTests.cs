@@ -130,6 +130,61 @@ public sealed class TransferEngineResumeTests
         }
     }
 
+    [Theory]
+    [InlineData(-1L)]
+    [InlineData(17L)]
+    public async Task ReceiveFileAsync_Rejects_Invalid_Manifest_Offset_Before_Filesystem_Mutation(long offset)
+    {
+        var root = CreateRoot("receive-invalid-manifest-offset");
+        var nested = Path.Combine(root, "nested");
+        var content = new byte[16];
+        var entry = new FileManifestEntry(
+            "nested/file.bin",
+            content.Length,
+            Convert.ToHexString(SHA256.HashData(content)),
+            DateTimeOffset.UtcNow);
+
+        try
+        {
+            await using var network = new MemoryStream(content);
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+                new TransferEngine().ReceiveFileAsync(network, root, entry, offset, null, CancellationToken.None));
+            Assert.False(Directory.Exists(nested));
+            Assert.False(File.Exists(Path.Combine(nested, "file.bin.swiftdrop.part")));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
+    [Fact]
+    public async Task ReceiveFileAsync_Missing_Resume_Partial_Does_Not_Create_Staging_File()
+    {
+        var root = CreateRoot("receive-missing-partial");
+        var nested = Path.Combine(root, "nested");
+        var partial = Path.Combine(nested, "file.bin.swiftdrop.part");
+        var content = RandomNumberGenerator.GetBytes(64);
+        var entry = new FileManifestEntry(
+            "nested/file.bin",
+            content.Length,
+            Convert.ToHexString(SHA256.HashData(content)),
+            DateTimeOffset.UtcNow);
+
+        try
+        {
+            await using var network = new MemoryStream(content[16..]);
+            await Assert.ThrowsAsync<FileNotFoundException>(() =>
+                new TransferEngine().ReceiveFileAsync(network, root, entry, 16, null, CancellationToken.None));
+            Assert.False(Directory.Exists(nested));
+            Assert.False(File.Exists(partial));
+        }
+        finally
+        {
+            DeleteRoot(root);
+        }
+    }
+
     private static string CreateRoot(string suffix)
     {
         var root = Path.Combine(Path.GetTempPath(), $"swiftdrop-{suffix}-{Guid.NewGuid():N}");
