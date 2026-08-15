@@ -26,11 +26,12 @@ Normal CI also executes the repository's Python helper regression tests:
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 ```
 
-The current helper suite contains **16 tests**. It covers:
+The current helper suite contains **21 tests**. It covers:
 
 - NuGet vulnerability-report interpretation;
 - deterministic dependency-evidence manifest generation;
-- Windows packaged app-notification integration validation, including matching toast/COM CLSIDs, activation arguments, local-only capability posture, placeholder-free generic notification text, startup registration, and handler-before-register ordering.
+- Windows packaged app-notification integration validation, including matching toast/COM CLSIDs, activation arguments, local-only capability posture, placeholder-free generic notification text, startup registration, and handler-before-register ordering;
+- the schema-v6 performance-history cross-layer contract, including separate duration/measured-byte persistence, weighted analyzer semantics, resume-safe sender/receiver byte attribution, and History UI/localization wiring.
 
 A helper-script regression therefore fails the same normal CI gate that uses those helpers.
 
@@ -257,7 +258,7 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
-The local verification scripts include 16 helper tests, documentation/localization/Apple/Windows validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.
+The local verification scripts include 21 helper tests, documentation/localization/Apple/Windows validators, Core restore/build, portable tests, benchmark compilation, Core vulnerable-package report generation, and explicit vulnerability-report validation.
 
 The PowerShell verifier checks `$LASTEXITCODE` for native commands rather than assuming PowerShell exception behavior will convert every nonzero native exit into a terminating error.
 
