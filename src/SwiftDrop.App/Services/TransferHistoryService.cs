@@ -58,7 +58,8 @@ public sealed class TransferHistoryService
         string status,
         bool integrityVerified,
         CancellationToken ct = default,
-        TimeSpan? duration = null)
+        TimeSpan? duration = null,
+        long? measuredBytes = null)
     {
         await InitializeAsync(ct);
         var settings = _settings.Load();
@@ -75,7 +76,8 @@ public sealed class TransferHistoryService
             DateTimeOffset.UtcNow,
             status,
             integrityVerified,
-            durationMilliseconds);
+            durationMilliseconds,
+            measuredBytes);
         await _store.AddAsync(entry, ct);
     }
 
