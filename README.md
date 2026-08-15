@@ -192,7 +192,7 @@ Queue metadata can retain a bounded non-secret operation category, update timest
 
 SQLite does **not** store transferred file bytes, transferred text, private keys, pairing invitations/nonces, reusable session/transfer authorization, queue peer endpoints, queue source/destination paths, source absolute paths, or receive-root absolute paths for resume state.
 
-Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. Persisted queue labels remain generic rather than recording transfer filenames/text.
+Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. The optional performance-trend CSV is derived on demand into app cache, contains aggregate UTC buckets only, and is shared only after explicit user action. Persisted queue labels remain generic rather than recording transfer filenames/text.
 
 Optional terminal notification text is also deliberately generic and does not place transfer-specific identifiers/content into OS notification history.
 
