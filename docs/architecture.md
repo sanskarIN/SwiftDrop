@@ -286,14 +286,11 @@ Windows CI compiles a focused unpackaged Windows target; signed MSIX packaging r
 
 Source implementation and hosted compilation are not production certification. Release readiness still requires observed successful CI on the exact candidate, signed package/extension installation, Apple App Group provisioning, signed Windows MSIX validation, physical peer/network/provider/resume/filesystem tests, accessibility/localization validation, dependency-license review, and store-policy checks.
 
-## History performance trend derivation and export
-
-The performance trend is a derived read model, not a new persistence model. `TransferHistoryStore.GetPerformanceEntriesSinceAsync` selects all retained valid completed measurements at/after a UTC cutoff without the normal recent-row UI limit. `TransferPerformanceTrendAnalyzer` groups these records by UTC calendar date and uses actual `measured_bytes` plus `duration_ms` to compute weighted daily throughput.
-
-`TransferPerformanceTrendCsvExporter` serializes only aggregate date/count/byte/duration/rate fields with invariant formatting. `TransferHistoryService` writes the derived CSV to app cache on explicit request, best-effort deletes older matching cached exports, and `HistoryPage` hands the file to the OS share sheet. No new SQLite table, cloud telemetry path, peer endpoint, row identifier, file/device metadata, or reusable authorization is introduced.
 
 ## History performance trend derivation and export
 
-The performance trend is a derived read model, not a new persistence model. `TransferHistoryStore.GetPerformanceEntriesSinceAsync` selects all retained valid completed measurements at/after a UTC cutoff without the normal recent-row UI limit. `TransferPerformanceTrendAnalyzer` groups these records by UTC calendar date and uses actual `measured_bytes` plus `duration_ms` to compute weighted daily throughput.
+The performance trend is a derived read model, not a new persistence model. `TransferHistoryStore.GetPerformanceSamplesSinceAsync` selects all retained valid completed measurements at/after a UTC cutoff without the normal recent-row UI limit, but its SQL projection contains only `timestamp_utc`, `size_bytes`, `duration_ms`, and `measured_bytes`. History row IDs, direction, peer/device names, filenames, paths, endpoints, and authorization data are therefore never materialized into the trend pipeline.
 
-`TransferPerformanceTrendCsvExporter` serializes only aggregate date/count/byte/duration/rate fields with invariant formatting. `TransferHistoryService` writes the derived CSV to app cache on explicit request, best-effort deletes older matching cached exports, and `HistoryPage` hands the file to the OS share sheet. No new SQLite table, cloud telemetry path, peer endpoint, row identifier, file/device metadata, or reusable authorization is introduced.
+`TransferPerformanceSample` is the identifier-free Core handoff model. `TransferPerformanceTrendAnalyzer` groups valid samples by UTC calendar date, excludes samples later than the exact UTC window end even when they share that calendar date, and uses actual `measured_bytes` plus `duration_ms` to compute weighted daily throughput.
+
+`TransferPerformanceTrendCsvExporter` serializes only aggregate date/count/byte/duration/rate fields with invariant formatting. `TransferHistoryService` writes the derived CSV to app cache on explicit request, best-effort deletes older matching cached exports, and `HistoryPage` hands the file to the OS share sheet. Clearing History or configuring zero-day History retention also best-effort removes SwiftDrop-owned cached trend exports. No new SQLite table, cloud telemetry path, peer endpoint, row identifier, file/device metadata, or reusable authorization is introduced.
