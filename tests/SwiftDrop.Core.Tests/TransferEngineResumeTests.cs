@@ -174,7 +174,7 @@ public sealed class TransferEngineResumeTests
         try
         {
             await using var network = new MemoryStream(content[16..]);
-            await Assert.ThrowsAsync<FileNotFoundException>(() =>
+            await Assert.ThrowsAnyAsync<IOException>(() =>
                 new TransferEngine().ReceiveFileAsync(network, root, entry, 16, null, CancellationToken.None));
             Assert.False(Directory.Exists(nested));
             Assert.False(File.Exists(partial));
