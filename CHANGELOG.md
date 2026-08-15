@@ -2,6 +2,18 @@
 
 ## Unreleased - 2026-08-15
 
+
+### Final in-repository bug/error audit
+
+- Reordered receive/resume validation so invalid offsets and missing positive-resume partials fail without creating destination directories or empty staging files.
+- Unified external staging with the regular-file source policy so symlink/reparse inputs are rejected consistently.
+- Made numeric pairing codes and one-time transfer authorizations expire at the exact declared boundary, matching pairing-link semantics.
+- Made rate-limiter key admission and one-time authorization capacity enforcement atomic under concurrent first-seen keys/nonces.
+- Expired discovered peers exactly at their configured lifetime boundary.
+- Hardened mDNS known-record parsing so PTR/SRV/TXT/A payloads cannot consume bytes beyond their declared RDATA boundaries.
+- Expanded portable coverage to **569 xUnit tests** while retaining **26 Python helper tests**.
+- Expanded release-readiness path triggers so production source/tests/build inputs automatically exercise the aggregate candidate gate.
+
 ### Local History performance measurements
 
 - Added optional measured elapsed duration and actual attributable measured-byte metadata to Transfer History.
