@@ -35,7 +35,7 @@ public sealed class OneTimeAuthorizationStore
         if (string.IsNullOrWhiteSpace(nonce)) return false;
         var nowTicks = (nowUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Ticks;
         if (!_entries.TryRemove(nonce, out var expiresTicks)) return false;
-        return expiresTicks >= nowTicks;
+        return expiresTicks > nowTicks;
     }
 
     public int PruneExpired(DateTimeOffset? nowUtc = null)
@@ -44,7 +44,7 @@ public sealed class OneTimeAuthorizationStore
         var removed = 0;
         foreach (var pair in _entries)
         {
-            if (pair.Value >= nowTicks) continue;
+            if (pair.Value > nowTicks) continue;
             if (_entries.TryRemove(new KeyValuePair<string, long>(pair.Key, pair.Value))) removed++;
         }
         return removed;
