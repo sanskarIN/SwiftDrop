@@ -12,6 +12,7 @@ python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 python3 scripts/validate_documentation.py
 python3 scripts/validate_localization.py
 python3 scripts/validate_apple_integration.py
+python3 scripts/validate_windows_integration.py
 dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj
 dotnet restore tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj
 dotnet restore benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj
