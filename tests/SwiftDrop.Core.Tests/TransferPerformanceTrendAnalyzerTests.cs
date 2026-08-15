@@ -72,12 +72,13 @@ public sealed class TransferPerformanceTrendAnalyzerTests
     [Fact]
     public void BuildDaily_ExcludesRowsOutsideWindowAndInvalidMeasurements()
     {
-        var end = new DateTimeOffset(2026, 8, 15, 23, 59, 0, TimeSpan.Zero);
+        var end = new DateTimeOffset(2026, 8, 15, 23, 0, 0, TimeSpan.Zero);
         TransferHistoryEntry[] rows =
         [
             Entry("inside", end.AddHours(-1), 1_000, 500, 1_000),
             Entry("old", end.AddDays(-2), 1_000, 500, 1_000),
-            Entry("future", end.AddDays(1), 1_000, 500, 1_000),
+            Entry("future-date", end.AddDays(1), 1_000, 500, 1_000),
+            Entry("future-same-date", end.AddMinutes(30), 1_000, 500, 1_000),
             Entry("failed", end.AddHours(-2), 1_000, 500, 1_000, status: "failed"),
             Entry("legacy", end.AddHours(-3), 1_000, null, null)
         ];
