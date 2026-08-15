@@ -114,7 +114,7 @@ A generated invitation should round-trip exactly through `PairingCodec.Encode`/`
 - Change the receive root and verify completed-item metadata from the old root cannot authorize/skip data in the new root.
 - Start a completely new explicit send of identical files and verify it receives a new transfer ID and normal collision-safe duplicate-send behavior.
 - Corrupt completed-batch SQLite rows and verify they do not become authorization or false completion.
-- Verify `completed_batch_items`, introduced in schema v3 and retained in schema v4, never contains the absolute receive root, pairing nonce/code, certificate private key, or transferred content.
+- Verify `completed_batch_items`, introduced in schema v3 and retained in current schema v6, never contains the absolute receive root, pairing nonce/code, certificate private key, or transferred content.
 - Validate cumulative storage requirements for large batches and checked-arithmetic overflow boundaries.
 
 ## Text and clipboard
@@ -200,9 +200,13 @@ The maintained Mac Catalyst architecture is the containing desktop app plus nati
 
 ## Local metadata and privacy
 
-- Inspect a fresh/upgrade SQLite database and confirm current schema version is 4.
-- Verify v0/v1/v2/v3 databases migrate to v4 according to the supported migration contract; preserve safe legacy v3 queue rows with defaults.
+- Inspect a fresh/upgrade SQLite database and confirm current schema version is 6.
+- Verify v0/v1/v2/v3/v4/v5 databases migrate to v6 according to the supported migration contract; preserve safe legacy v3 queue rows with defaults, leave v4 performance fields null, and preserve v5 duration without inventing measured bytes.
 - Inspect SQLite after representative operations and confirm it contains metadata only.
+- Verify valid completed performance rows contain only bounded duration plus actual attributable measured bytes and never peer endpoints, transfer contents, pairing capabilities/nonces, credentials, certificates/private keys, or reusable authorization.
+- Resume a file and verify `measured_bytes` equals bytes actually transferred after the negotiated resume offset and never exceeds logical `size_bytes`.
+- Seed malformed/impossible performance metadata and verify it is rejected/skipped rather than influencing throughput or weakening transfer authorization/integrity behavior.
+- Verify optional performance-normalization failure is best-effort and cannot convert a successful transfer into a failed transfer result.
 - Verify privacy mode hides/redacts peer/file history and sensitive diagnostic identifiers at write/read/export boundaries.
 - Verify queue metadata stores only generic labels, state/timestamps, bounded machine error codes, bounded operation categories, progress basis points, and optional item counts.
 - Verify queue progress is monotonic and bounded to `0..10000`; completed item count does not exceed total count when both are known.
