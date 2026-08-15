@@ -2,6 +2,18 @@
 
 Updated: 2026-08-15
 
+## August 15 final native-notification verification snapshot
+
+- Exact runtime notification source head: `c3bd4d9fd5389a56fd203a5e4edb31033631181a`.
+- Exact-source platform run `31870987664` passed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, iOS Simulator containing app, target vulnerability audits, and dependency-evidence uploads.
+- Portable run `31871039534` passed both Ubuntu and Windows with **16 Python validation-helper tests**, the Windows package-notification validator, **522/522 xUnit tests**, benchmark compilation, documentation/localization/Apple metadata checks, and zero reported Core vulnerable-package findings.
+- Clean documentation/source-state CI `31871539203`, CodeQL `31871539201`, and security-hygiene `31871539219` all passed after the notification documentation/helper cleanup.
+- Release-readiness self-test `31871195203` exposed a real workflow-only Apple restore defect: the Mac Catalyst app restore did not explicitly restore `SwiftDrop.Core` for the selected Mac Catalyst RID. Runtime notification source was not implicated.
+- Commit `594e586dcda99d75b4d79da0ce9362813e28d4f5` aligned release readiness with the maintained platform workflow by restoring shared Core for Mac Catalyst and iOS simulator RIDs. Corrected release-readiness run `31871378565` passed Core/tests, Android, Windows, Mac Catalyst, iOS Share Extension, iOS containing app, dependency audits/uploads, and the final aggregate `release-gate`.
+- Corrected release evidence artifacts include `dependency-audit`, `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit` with GitHub-recorded SHA-256 artifact digests.
+- Final issue/PR queue check found no open GitHub issues and no open pull requests.
+- Signed Android/iOS/Mac Catalyst/Windows notification permission, registration, presentation/activation, install/update, system-settings, accessibility/localization, and store-policy behavior remains a release-validation requirement rather than a hosted-source claim.
+
 ## August 15 native terminal notification continuation
 
 - Optional completion/failure system notifications are implemented in source across Android, iOS, Mac Catalyst, and Windows and remain off by default.

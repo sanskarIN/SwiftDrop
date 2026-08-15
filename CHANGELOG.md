@@ -4,6 +4,10 @@
 
 ### Cross-platform native terminal notifications
 
+- Exact runtime source `c3bd4d9fd5389a56fd203a5e4edb31033631181a` passed hosted Android, focused Windows, Mac Catalyst, iOS Share Extension, and iOS containing-app compilation/audit run `31870987664`.
+- Portable verification is green on Ubuntu and Windows with 16 Python helper tests, the Windows notification/package validator, and 522/522 xUnit tests.
+- Corrected release-readiness Apple runtime restore after the notification self-test exposed a missing shared-Core RID restore; fixed run `31871378565` passed every compile/test/audit job and the final aggregate release gate.
+
 - Extended the existing opt-in Android terminal notification feature to iOS, Mac Catalyst, and Windows without adding a third-party notification package.
 - Apple notifications use local `UNUserNotificationCenter` alert/sound authorization requested only after explicit enable; a retained delegate presents enabled generic banner/sound notifications while the app is foregrounded.
 - Windows notifications use Windows App SDK app notifications with packaged toast/COM activation metadata, handler-before-register ordering, startup registration for an already-enabled preference, and unregister-on-shutdown cleanup.

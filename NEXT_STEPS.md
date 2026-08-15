@@ -2,6 +2,16 @@
 
 Updated: 2026-08-15
 
+## August 15 final native-notification automated evidence
+
+- Runtime source `c3bd4d9fd5389a56fd203a5e4edb31033631181a` is green in exact platform run `31870987664` across Android, Windows, Mac Catalyst, iOS Share Extension, and iOS containing app, with target vulnerability audits and evidence uploads.
+- Portable verification run `31871039534` is green on Ubuntu and Windows with 16 helper tests, the Windows packaged-notification validator, 522/522 xUnit tests, benchmark compilation, and zero reported Core vulnerabilities.
+- Current cleaned documentation/source state passed CI `31871539203`, CodeQL `31871539201`, and security hygiene `31871539219`.
+- Release-readiness run `31871195203` correctly surfaced an Apple shared-Core RID restore gap; commit `594e586dcda99d75b4d79da0ce9362813e28d4f5` fixed the workflow rather than weakening the gate.
+- Corrected release-readiness run `31871378565` passed every compile/test/audit job and the aggregate release gate.
+- No open GitHub issues or pull requests remained at the final queue check.
+- The remaining native-notification work is physical/signed validation: Android permission/delivery, iOS/Mac authorization and foreground/background/system presentation, Windows signed package toast/COM registration/activation and install/update, accessibility/localization, and store/privacy declarations.
+
 ## August 15 final automated evidence
 
 - Exact runtime/source-changing head: `67fc3feaa506b16d11307afa9da8ca9d151f6d22` (`fix(queue): preserve persistence across caller cancellation`).

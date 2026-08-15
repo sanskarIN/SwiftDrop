@@ -2970,5 +2970,60 @@ Key commits:
 - `bca13792b41b85464ac357b267c32667b79798c2` — normal CI integration;
 - `594e586dcda99d75b4d79da0ce9362813e28d4f5` — release-readiness Apple shared-Core restore correction discovered by the new self-test sequence.
 
+---
+
+# 169. Final automated evidence for native notifications
+
+Exact runtime notification source head: `c3bd4d9fd5389a56fd203a5e4edb31033631181a`.
+
+Runtime/platform evidence:
+
+- Platform run `31870987664` completed successfully for Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing app.
+- Android, Windows, Mac Catalyst, iOS app, and iOS Share Extension vulnerable-package audits completed without reported findings under the maintained validator.
+- Android, Windows, and Apple dependency-evidence artifacts uploaded successfully.
+- The exact platform-run artifact digests were `sha256:7557198dedf07b37709ea8ad7fdd091826e4543a538e2a22c4b25becd7bc0623` (Android), `sha256:67420bb0f7195f32cc89a57d7f448161a334a819ee953d8ee85b3b584e486eb8` (Windows), and `sha256:95a0451c9f21fa541422907ee0d62dc0a4fac2e88204f2e2ab6591f1e52d2abb` (Apple).
+
+Portable/static evidence:
+
+- Run `31871039534` passed on both Ubuntu and Windows with **16 Python helper tests**, documentation integrity, localization validation, Apple integration validation, the Windows packaged-notification validator, Core/benchmark Release builds, **522/522 xUnit tests**, and a zero-finding Core vulnerable-package report.
+- Cleaned documentation/source-state CI `31871539203` passed both portable jobs.
+- CodeQL `31871539201` and security hygiene `31871539219` passed on that cleaned state.
+
+Release-readiness defect closure:
+
+- Initial release-readiness self-test `31871195203` failed only in its Apple workflow path because it restored the Mac Catalyst application but did not explicitly restore `SwiftDrop.Core` for the selected Mac Catalyst RID before a `--no-restore` build.
+- The maintained platform workflow already had the correct shared-Core restore sequence, and the exact notification source platform matrix was green.
+- Commit `594e586dcda99d75b4d79da0ce9362813e28d4f5` fixed release readiness by explicitly restoring shared Core for both the Mac Catalyst and iOS simulator RIDs; the gate was not disabled or weakened.
+- A commit-range check from runtime head `c3bd4d9fd5389a56fd203a5e4edb31033631181a` to release-fix head `594e586dcda99d75b4d79da0ce9362813e28d4f5` confirmed no SwiftDrop runtime application source changed; only workflow/documentation/Windows-validator test infrastructure changed.
+- Corrected release-readiness run `31871378565` then passed `core-and-tests`, `android-compile`, `windows-compile`, `apple-compile`, dependency audits/uploads, and the final `release-gate`.
+- Its retained artifact digests include `sha256:d7d9741dde67f493299e3dcfb497d4de290382cf2223640398072584a6f1efec` (`dependency-audit`), `sha256:7f05cf460fd65776009bf82850ed868dd4245fd8d585977af534193e03323816` (Android), `sha256:576fdd16038942c16f0ec21e5e8f24f7f4c318434c4b12bd563a9bfd2688a474` (Windows), and `sha256:2535b77431b3a7cbee81111109f505ce3779a13f88a9993af62dc6671684b708` (Apple).
+
+Repository queue evidence:
+
+- Final open-issue search returned no open GitHub issues.
+- Final open-PR search returned no open GitHub pull requests.
+
+# 170. Final source/release boundary after native notifications
+
+SwiftDrop source now contains the planned optional generic terminal notification feature across every maintained product target:
+
+- Android local terminal notifications with explicit Android 13+ permission handling where required;
+- iOS/Mac Catalyst local User Notifications authorization and foreground presentation;
+- Windows App SDK app notifications with packaged toast/COM activation metadata, startup registration, handler-before-register ordering, and deterministic unregister;
+- generic placeholder-free English/Hindi notification messages and localized platform guidance;
+- a portable Windows package/source validator with dedicated regression coverage;
+- integration into Bash, PowerShell, normal CI, platform compile/audit, CodeQL/security-hygiene, and release-readiness verification.
+
+The source/hosted verification for this enhancement is complete. It still does **not** establish production readiness for notification behavior. The remaining evidence must come from final signed/distribution artifacts and representative real targets:
+
+- Android signed package notification permission/delivery/system-settings behavior;
+- iOS signed-device/TestFlight authorization, foreground/background/system presentation, and notification settings;
+- Mac Catalyst signed/notarized sandbox notification authorization/presentation;
+- Windows signed MSIX/package toast/COM registration, activation, clean install/update/uninstall, notification settings, and package identity behavior;
+- accessibility/localization checks for system notification presentation;
+- store/privacy declaration review and final signed-artifact dependency/license/provenance reconciliation.
+
+Notification failure remains deliberately non-authoritative: permission, registration, delivery, presentation, or activation problems cannot change the underlying transfer success/failure state.
+
 
 **Made by the Sanskar**
