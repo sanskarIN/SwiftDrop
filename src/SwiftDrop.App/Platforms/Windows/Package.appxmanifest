@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
          xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
-         IgnorableNamespaces="uap">
+         xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+         xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+         IgnorableNamespaces="uap com desktop">
   <Identity Name="Sanskar.SwiftDrop" Publisher="CN=SwiftDrop" Version="1.0.0.0" />
   <Properties>
     <DisplayName>SwiftDrop</DisplayName>
@@ -22,6 +24,18 @@
             <uap:DisplayName>SwiftDrop pairing link</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
+        <desktop:Extension Category="windows.toastNotificationActivation">
+          <desktop:ToastNotificationActivation ToastActivatorCLSID="A630B8B4-6522-4EA0-9BBE-A2C7C40BB839" />
+        </desktop:Extension>
+        <com:Extension Category="windows.comServer">
+          <com:ComServer>
+            <com:ExeServer Executable="$targetnametoken$.exe"
+                           Arguments="----AppNotificationActivated:"
+                           DisplayName="SwiftDrop">
+              <com:Class Id="A630B8B4-6522-4EA0-9BBE-A2C7C40BB839" />
+            </com:ExeServer>
+          </com:ComServer>
+        </com:Extension>
       </Extensions>
     </Application>
   </Applications>
