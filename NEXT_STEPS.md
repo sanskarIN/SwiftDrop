@@ -1,10 +1,21 @@
 # SwiftDrop Next Steps
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
-The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed iOS Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, or schema-v3 resume work as missing.
+The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed iOS Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, schema-v4 queue, or schema-v3 completed-batch resume work as missing.
 
-## Source work completed through the August 14 continuation
+## Source work completed through the August 15 continuation
+
+### Rich restart-safe transfer queue persistence completed on August 15
+
+- SQLite schema version 4 extends `transfer_queue_metadata` with bounded `operation_kind`, `updated_utc`, `progress_basis_points`, `item_count`, and `completed_item_count` fields.
+- The v3→v4 migration preserves legacy queue rows and supplies privacy-safe defaults rather than deleting existing metadata.
+- Outgoing file, batch, and text transfers now feed operation/progress/item information into the shared queue service.
+- Queue progress is monotonic in memory and persisted at coarse progress buckets plus state/item-count transitions so ordinary progress callbacks do not become unbounded SQLite writes.
+- Restart recovery keeps safe operation/progress context, marks stale `Queued`/`Running` rows `Interrupted`, and never auto-replays stale work.
+- Persisted queue labels remain generic and the queue schema contains no pairing nonce, token, certificate/private-key, endpoint, source/destination path, content, or reusable authorization field.
+- Queue UI now exposes operation category, recovered progress, item counts, and a progress bar without changing the fresh-authorization requirement for retry.
+- Schema/store regression coverage includes v0/v1/v2/v3→v4 behavior, rich metadata round trips, interrupted-progress preservation, invalid progress/item relationships, and authorization/endpoint field absence.
 
 ### Two-OS portable and SQLite resource-lifetime hardening completed on August 14
 
@@ -12,9 +23,9 @@ The current master-prompt source scope is implemented. This roadmap is intention
 - Windows CI exposed and drove fixes for a PowerShell parser defect and SQLite native-handle/file-lock behavior that Ubuntu alone did not reveal.
 - SQLite-backed test teardown clears idle pools before deleting isolated temp DB/`-wal`/`-shm` files; a direct regression protects the cleanup helper.
 - Every Core SQLite storage component now disposes command objects deterministically, with readers/connections/transactions scoped around actual use.
-- Current portable coverage is 517 xUnit tests plus 10 Python validation-helper tests; the full contract has passed on both Ubuntu and Windows.
-- Platform compile/audit run `31786513898` validates the resulting source across Android, focused Windows, Mac Catalyst, iOS Share Extension, and iOS containing app.
-- Same-ref CI/platform/CodeQL/security concurrency now prevents superseded intermediate commits from blocking the newest branch evidence.
+- Current pre-August-15 portable baseline is 517 xUnit tests plus 10 Python validation-helper tests; the full contract passed on both Ubuntu and Windows before the queue-v4 continuation.
+- Platform compile/audit run `31786513898` validates that baseline across Android, focused Windows, Mac Catalyst, iOS Share Extension, and iOS containing app.
+- Same-ref CI/platform/CodeQL/security concurrency prevents superseded intermediate commits from blocking the newest branch evidence.
 - No additional source workaround is planned for SQLite file locking; future recurrence should be treated as a resource-lifetime regression and fixed rather than hidden with sleeps/retries.
 
 ### Release-evidence and verification automation completed on August 14
@@ -27,7 +38,7 @@ The current master-prompt source scope is implemented. This roadmap is intention
 - Added exact artifact contracts for `dependency-audit`, `android-dependency-audit`, `windows-dependency-audit`, and `apple-dependency-audit`.
 - Platform run `31783405975` passed all maintained target builds/audits and produced hashed evidence bundles; downloaded Android/Windows/Apple internal manifests were independently verified against their report bytes.
 - Release-readiness self-test run `31783537853` passed every portable/platform/audit job and its aggregate gate.
-- Added deterministic pairing round-trip/canonical-alias property coverage and strict-JSON randomized robustness/duplicate-case coverage; portable xUnit count is now 517.
+- Added deterministic pairing round-trip/canonical-alias property coverage and strict-JSON randomized robustness/duplicate-case coverage; the later August 14 portable baseline reached 517 tests after Windows/SQLite cleanup coverage.
 - The remaining dependency task is **manual exact-candidate provenance/license/final signed-artifact reconciliation**, not adding another source-level inventory command.
 
 ### Documentation completion through the August 14 continuation
@@ -100,7 +111,7 @@ The current master-prompt source scope is implemented. This roadmap is intention
 - Repaired hidden Core compile defects and test-project wiring exposed after restore became healthy.
 - Restored and extended history maintenance behavior while keeping compatibility.
 - Tightened strict UTF-8 decoding, filename canonicalization/idempotence, and staging-budget boundaries.
-- Portable Core verification reached 511/511 passing tests and benchmark-project compilation.
+- Portable Core verification reached 511/511 passing tests and benchmark-project compilation before later test additions.
 - Repaired Android foreground-service, multicast-lock, intent/share staging, and nullable binding code until Android Release compilation passed in hosted CI.
 - Removed unsupported `Entry.LineBreakMode` XAML usage.
 - Corrected the Share Extension to its supported iOS-only target; Mac Catalyst remains the containing desktop app plus native drag/drop path.
@@ -116,6 +127,7 @@ The current master-prompt source scope is implemented. This roadmap is intention
 - Protocol wire/security docs define canonical pairing/path/ID/resume representation.
 - Threat model includes source-tree links, canonical aliases, staging budgets, collision-byte limits, and repeated completed-item verification.
 - Security/manual/release test documents require the new invariants.
+- Storage documentation now defines schema v4 queue metadata and the strict no-authorization persistence boundary.
 - Public/project/platform status documents are synchronized as source/platform evidence is verified.
 
 ## P0 — Observe automated gates on the exact final candidate
@@ -164,7 +176,10 @@ The exact candidate must compile/run tests covering:
 - file/folder paused-source filtering;
 - reusable staging budgets;
 - exact Apple share package file sets;
-- completed-file mutation between repeated verification passes.
+- completed-file mutation between repeated verification passes;
+- schema v0/v1/v2/v3→v4 migration behavior;
+- restart interruption preserving safe queue progress/context;
+- queue metadata bounds and no reusable authorization/endpoint fields.
 
 ## P0 — Signed Apple validation
 
@@ -306,7 +321,7 @@ For each direction test:
 - low-storage race during active receive/external staging;
 - receiver destination modified by another process;
 - real SecureStorage/keychain/keystore lock/restore/upgrade scenarios;
-- database v1/v2 real upgrade to v3;
+- real database upgrade coverage from supported v1/v2/v3 states to schema v4;
 - corrupt local metadata recovery;
 - repeated invalid pairing/request pressure.
 
@@ -341,11 +356,10 @@ For the exact signed candidate:
 
 ## P2 — Optional post-v1 enhancements
 
-These are optional product improvements, not missing correctness work in the current master-prompt scope:
+These are optional product improvements, not missing correctness work in the current master-prompt scope. Rich restart-safe transfer queue persistence has now moved out of this list because it is implemented in source.
 
 - native optional completion/failure system notifications on iOS/Mac Catalyst/Windows;
 - additional OS-supported background continuation where store policy permits it;
-- richer transfer queue persistence without persisting authorization;
 - broader localization beyond English/Hindi;
 - representative-device performance dashboard/history;
 - trustworthy platform malware-scan integration only where a supported OS API exists;
