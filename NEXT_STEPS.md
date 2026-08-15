@@ -2,6 +2,16 @@
 
 Updated: 2026-08-15
 
+## August 15 performance-history source continuation
+
+- Local History now supports optional measured elapsed duration plus actual attributable measured bytes for completed operations.
+- SQLite schema is v6: v5 added bounded nullable `duration_ms`; v6 adds nullable non-negative `measured_bytes` without backfilling legacy rows.
+- Resumed file measurements use only bytes transferred after the negotiated resume offset, preventing logical file size from inflating throughput.
+- The Core analyzer rejects failed/unmeasured/impossible samples, uses saturating aggregate counters, and computes weighted throughput from total measured bytes divided by total measured duration.
+- History UI presents a weighted performance summary and per-row duration/rate only when a valid measurement exists, with English/Hindi resources.
+- This is local engineering telemetry under the existing History retention/privacy policy; it is not a fixed-speed guarantee and does not add peer endpoints, transfer content, pairing capabilities, credentials, certificates, or reusable authorization.
+- Representative-device and cross-network performance validation remains a physical release/post-v1 evidence task.
+
 ## August 15 final native-notification automated evidence
 
 - Runtime source `c3bd4d9fd5389a56fd203a5e4edb31033631181a` is green in exact platform run `31870987664` across Android, Windows, Mac Catalyst, iOS Share Extension, and iOS containing app, with target vulnerability audits and evidence uploads.
@@ -23,7 +33,7 @@ Updated: 2026-08-15
 - No open GitHub issues remained at the final issue-queue check.
 - This hosted evidence does not replace signed Android/Windows/Apple packaging, real Apple App Group provisioning, physical cross-device/provider/network/storage/accessibility/localization validation, final signed-artifact dependency/license/provenance review, or store/privacy submission checks.
 
-The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed iOS Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, schema-v4 queue, or schema-v3 completed-batch resume work as missing.
+The current master-prompt source scope is implemented. This roadmap is intentionally about **verification, packaging, signed/provider/device/network evidence, defect closure, and optional post-v1 work** rather than listing already-completed iOS Share Extension, Mac drag/drop, canonical path, source-link, staging-budget, schema-v6 local performance history, schema-v4 queue, or schema-v3 completed-batch resume work as missing.
 
 ## Source work completed through the August 15 continuation
 
@@ -209,7 +219,8 @@ The exact candidate must compile/run tests covering:
 - reusable staging budgets;
 - exact Apple share package file sets;
 - completed-file mutation between repeated verification passes;
-- schema v0/v1/v2/v3→v4 migration behavior;
+- schema v0/v1/v2/v3/v4/v5→v6 migration behavior;
+- performance-history duration/measured-byte bounds, legacy-null preservation, resumed-byte attribution, and impossible-sample rejection;
 - restart interruption preserving safe queue progress/context;
 - queue metadata bounds and no reusable authorization/endpoint fields.
 
@@ -358,7 +369,7 @@ For each direction test:
 - low-storage race during active receive/external staging;
 - receiver destination modified by another process;
 - real SecureStorage/keychain/keystore lock/restore/upgrade scenarios;
-- real database upgrade coverage from supported v1/v2/v3 states to schema v4;
+- real database upgrade coverage from supported v1/v2/v3/v4/v5 states to schema v6;
 - corrupt local metadata recovery;
 - repeated invalid pairing/request pressure.
 
@@ -397,7 +408,7 @@ These are optional product improvements, not missing correctness work in the cur
 
 - additional OS-supported background continuation where store policy permits it;
 - broader localization beyond English/Hindi;
-- representative-device performance dashboard/history;
+- representative-device performance trend capture/export and synthetic-vs-real benchmark correlation using the implemented local History measurements;
 - trustworthy platform malware-scan integration only where a supported OS API exists;
 - additional property/fuzz/state-machine testing beyond current coverage.
 
