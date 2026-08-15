@@ -77,6 +77,26 @@ public sealed class TransferPerformanceAnalyzerTests
     }
 
     [Fact]
+    public void Analyzer_RejectsImpossibleInMemoryMeasurement()
+    {
+        var invalid = Entry(
+            "impossible",
+            size: 1_000,
+            status: "completed",
+            durationMilliseconds: 100,
+            measuredBytes: 1_001,
+            DateTimeOffset.UtcNow);
+
+        var summary = TransferPerformanceAnalyzer.Summarize([invalid]);
+
+        Assert.Equal(1, summary.CompletedRecords);
+        Assert.Equal(1_000, summary.CompletedBytes);
+        Assert.Equal(0, summary.MeasuredTransfers);
+        Assert.Equal(0d, summary.AverageBytesPerSecond);
+        Assert.Equal(0d, TransferPerformanceAnalyzer.BytesPerSecond(invalid));
+    }
+
+    [Fact]
     public void Summarize_SaturatesByteCountersInsteadOfOverflowing()
     {
         var now = DateTimeOffset.UtcNow;
