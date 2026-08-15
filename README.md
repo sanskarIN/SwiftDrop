@@ -54,6 +54,7 @@ This prevents Windows `\\` vs Unix `/` path identity drift during cross-platform
 - Receiver accept/reject and batch accept-all/selective/reject decisions.
 - Queue/concurrency controls.
 - Progress, batch throughput, and ETA presentation.
+- Local History performance dashboard with measured completed-transfer duration, resume-safe actual-byte throughput, and weighted average throughput; legacy/unmeasured rows are never given invented rates.
 - Restart-safe queue status/progress/item metadata that never serves as reusable transfer authorization.
 - Pause/cancel/fresh-pair resume.
 - `.swiftdrop.part` staging.
@@ -82,7 +83,7 @@ The signed Apple/Windows/Android runtime still requires the notification permiss
 
 Interrupted batches retain a stable random transfer ID using bounded ASCII token syntax. The active app batch controls call the stable-ID API directly; the obsolete implicit fresh-ID compatibility overload has been removed.
 
-After each batch item is verified/finalized, SwiftDrop can retain metadata-only completion state in `completed_batch_items`, introduced in SQLite schema v3 and retained in current schema v4.
+After each batch item is verified/finalized, SwiftDrop can retain metadata-only completion state in `completed_batch_items`, introduced in SQLite schema v3 and retained in current schema v6.
 
 On retry, an already-finalized item is treated as complete **only after** SwiftDrop confirms:
 
@@ -176,12 +177,12 @@ Production sender, pairing client, receiver, and portable tests use the same Cor
 
 ## Local metadata and privacy
 
-Current SQLite schema version: **4**.
+Current SQLite schema version: **6**.
 
 Metadata tables cover:
 
 - trusted peers;
-- transfer history;
+- transfer history with optional bounded completed-transfer duration and attributable measured-byte metadata;
 - bounded diagnostics;
 - privacy-minimal restart-safe queue status/progress/item metadata;
 - verified completed-batch resume metadata.
@@ -190,7 +191,7 @@ Queue metadata can retain a bounded non-secret operation category, update timest
 
 SQLite does **not** store transferred file bytes, transferred text, private keys, pairing invitations/nonces, reusable session/transfer authorization, queue peer endpoints, queue source/destination paths, source absolute paths, or receive-root absolute paths for resume state.
 
-Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Persisted queue labels remain generic rather than recording transfer filenames/text.
+Privacy mode hides peer/file identifiers in history and redacts common identifiers in diagnostics. Numeric performance metadata follows the same local history-retention policy and contains no peer endpoint, transfer content, credential, or reusable authorization. Persisted queue labels remain generic rather than recording transfer filenames/text.
 
 Optional terminal notification text is also deliberately generic and does not place transfer-specific identifiers/content into OS notification history.
 
@@ -229,7 +230,7 @@ Portable tests include:
 - portable sender path deconfliction;
 - stable batch IDs and verified completed-file reuse;
 - second completed-item verification after mutation between retry-plan and ACK checkpoints;
-- SQLite v0/v1/v2/v3→v4 migration, queue metadata, and corruption handling;
+- SQLite v0/v1/v2/v3/v4/v5→v6 migration, queue/history performance metadata, and corruption handling;
 - restart interruption with safe queue operation/progress/item-context retention and no persisted reusable authorization;
 - traversal/path/collision/symlink/final-promotion race handling;
 - shared transfer staging-budget policy;
@@ -358,7 +359,7 @@ Financial support is optional and does not unlock features, priority security ha
 
 ## Production-status boundary
 
-The current master-prompt scope is implemented in repository source, including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, and optional local terminal notifications on Android/iOS/Mac Catalyst/Windows. Production verification still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, signed notification permission/activation behavior, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
+The current master-prompt scope is implemented in repository source, including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, resume-safe local History performance measurements, and optional local terminal notifications on Android/iOS/Mac Catalyst/Windows. Production verification still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, signed notification permission/activation behavior, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
 
 ## License
 
