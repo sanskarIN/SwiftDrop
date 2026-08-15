@@ -11,6 +11,9 @@ public sealed class HistoryViewModel : ObservableObject
     private bool _isBusy;
     private string _status = string.Empty;
     private string _performanceStatus = string.Empty;
+    private string _performanceTrendStatus = string.Empty;
+    private string _performanceTrendPreview = string.Empty;
+    private bool _canExportPerformanceTrend;
 
     public HistoryViewModel(TransferHistoryService history)
     {
@@ -37,6 +40,24 @@ public sealed class HistoryViewModel : ObservableObject
         private set => SetProperty(ref _performanceStatus, value);
     }
 
+    public string PerformanceTrendStatus
+    {
+        get => _performanceTrendStatus;
+        private set => SetProperty(ref _performanceTrendStatus, value);
+    }
+
+    public string PerformanceTrendPreview
+    {
+        get => _performanceTrendPreview;
+        private set => SetProperty(ref _performanceTrendPreview, value);
+    }
+
+    public bool CanExportPerformanceTrend
+    {
+        get => _canExportPerformanceTrend;
+        private set => SetProperty(ref _canExportPerformanceTrend, value);
+    }
+
     public async Task RefreshAsync(CancellationToken ct = default)
     {
         if (IsBusy) return;
@@ -54,11 +75,26 @@ public sealed class HistoryViewModel : ObservableObject
                 _ => AppText.Format("HistoryCountFormat", Items.Count)
             };
             PerformanceStatus = FormatPerformanceSummary(TransferPerformanceAnalyzer.Summarize(items));
+
+            var trend = await _history.GetPerformanceTrendAsync(
+                TransferHistoryService.DefaultPerformanceTrendWindowDays,
+                ct);
+            ApplyPerformanceTrend(trend);
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    public async Task<string> ExportPerformanceTrendAsync(CancellationToken ct = default)
+    {
+        if (!CanExportPerformanceTrend)
+            throw new InvalidOperationException("No measured performance trend is available to export.");
+
+        return await _history.ExportPerformanceTrendCsvAsync(
+            TransferHistoryService.DefaultPerformanceTrendWindowDays,
+            ct);
     }
 
     public async Task DeleteAsync(string id, CancellationToken ct = default)
@@ -74,6 +110,36 @@ public sealed class HistoryViewModel : ObservableObject
         Items.Clear();
         Status = AppText.Get("NoHistoryRecords");
         PerformanceStatus = AppText.Get("HistoryPerformanceNoMeasurements");
+        PerformanceTrendStatus = AppText.Get("HistoryPerformanceTrendNoMeasurements");
+        PerformanceTrendPreview = string.Empty;
+        CanExportPerformanceTrend = false;
+    }
+
+    private void ApplyPerformanceTrend(IReadOnlyList<TransferPerformanceTrendPoint> points)
+    {
+        ArgumentNullException.ThrowIfNull(points);
+        CanExportPerformanceTrend = points.Count > 0;
+        if (points.Count == 0)
+        {
+            PerformanceTrendStatus = AppText.Get("HistoryPerformanceTrendNoMeasurements");
+            PerformanceTrendPreview = string.Empty;
+            return;
+        }
+
+        PerformanceTrendStatus = AppText.Format(
+            "HistoryPerformanceTrendSummaryFormat",
+            points.Count,
+            TransferHistoryService.DefaultPerformanceTrendWindowDays);
+        PerformanceTrendPreview = string.Join(
+            Environment.NewLine,
+            points
+                .TakeLast(7)
+                .Reverse()
+                .Select(point => AppText.Format(
+                    "HistoryPerformanceTrendLineFormat",
+                    point.DateUtc.ToDateTime(TimeOnly.MinValue),
+                    point.MeasuredTransfers,
+                    FormatBytes(ToDisplayRate(point.AverageBytesPerSecond)))));
     }
 
     private static string FormatPerformanceSummary(TransferPerformanceSummary summary)
