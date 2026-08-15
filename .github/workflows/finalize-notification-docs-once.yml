@@ -1,0 +1,158 @@
+name: Finalize native notification docs once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/swiftdrop-notification-docs-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refresh latest main
+        shell: bash
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+      - name: Synchronize roadmap, status, testing, release, changelog, and ledger
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          BRANDING = "**Made by the Sanskar**"
+
+          def read(name):
+              return Path(name).read_text(encoding="utf-8")
+
+          def write(name, text):
+              Path(name).write_text(text, encoding="utf-8")
+
+          def insert_before_branding(name, marker, section):
+              text = read(name)
+              if marker in text:
+                  return
+              stripped = text.rstrip()
+              if stripped.endswith(BRANDING):
+                  stripped = stripped[:-len(BRANDING)].rstrip()
+                  write(name, stripped + "\n\n" + section.strip() + "\n\n" + BRANDING + "\n")
+              else:
+                  write(name, stripped + "\n\n" + section.strip() + "\n")
+
+          # NEXT_STEPS.md
+          name = "NEXT_STEPS.md"
+          text = read(name)
+          marker = "### Native completion/failure notifications completed on August 15"
+          if marker not in text:
+              anchor = "## Source work completed through the August 15 continuation\n"
+              section = '''\n### Native completion/failure notifications completed on August 15\n\n- Optional terminal completion/failure notifications are now implemented on Android, iOS, Mac Catalyst, and Windows and remain off by default.\n- Android retains its existing local terminal-notification path and explicit Android 13+ permission request on opt-in.\n- iOS/Mac Catalyst use local `UNUserNotificationCenter` alert/sound authorization requested only after opt-in. A strongly retained delegate enables enabled generic banners/sound while SwiftDrop is foregrounded.\n- Windows uses Windows App SDK `AppNotificationManager`/`AppNotificationBuilder`; registration is restored at startup when the saved preference is enabled, `NotificationInvoked` is attached before `Register()`, and shutdown unregisters cleanly.\n- The packaged Windows manifest contains matching toast/COM notification CLSIDs and the expected app-notification activation argument while retaining `privateNetworkClientServer` and not adding `internetClient`.\n- English/Hindi completion/failure messages are generic and placeholder-free, so system notifications do not include filenames, peer names, paths, transferred content, pairing data, transfer IDs, or reusable authorization.\n- Notification permission/registration/presentation failure remains best-effort and cannot change the underlying transfer result.\n- A portable Windows integration validator plus six dedicated regression tests enforce the package/source/privacy contract; the full Python helper suite is now 16 tests.\n'''
+              if anchor not in text:
+                  raise SystemExit("NEXT_STEPS source-work anchor missing")
+              text = text.replace(anchor, anchor + section, 1)
+
+              old = '''## P2 — Optional post-v1 enhancements\n\nThese are optional product improvements, not missing correctness work in the current master-prompt scope. Rich restart-safe transfer queue persistence has now moved out of this list because it is implemented in source.\n\n- native optional completion/failure system notifications on iOS/Mac Catalyst/Windows;\n- additional OS-supported background continuation where store policy permits it;'''
+              new = '''## P2 — Optional post-v1 enhancements\n\nThese are optional product improvements, not missing correctness work in the current master-prompt scope. Rich restart-safe transfer queue persistence and native terminal notifications have now moved out of this list because they are implemented in source.\n\n- additional OS-supported background continuation where store policy permits it;'''
+              if old not in text:
+                  raise SystemExit("NEXT_STEPS P2 notification block missing")
+              text = text.replace(old, new, 1)
+
+              apple_anchor = "- notarization/TestFlight/store packaging signs/embeds the iOS extension correctly and signs the Mac Catalyst app correctly."
+              apple_extra = '''- iOS notification opt-in/denial, foreground banner/sound, background/system delivery, disabled preference, generic English/Hindi text, and system notification settings behave correctly on signed devices;\n- Mac Catalyst notification authorization/presentation behaves correctly under the signed sandbox/system settings;'''
+              if apple_extra not in text:
+                  text = text.replace(apple_anchor, apple_extra + "\n" + apple_anchor, 1)
+
+              windows_anchor = "- keyboard/Narrator/high-contrast/large-text behavior."
+              windows_extra = '''- signed package notification toast/COM registration and activation survive clean install/update;\n- already-enabled notification preference registers at startup, system notification settings can deny/suppress delivery safely, and generic notifications contain no transfer-specific content;'''
+              if windows_extra not in text:
+                  text = text.replace(windows_anchor, windows_extra + "\n" + windows_anchor, 1)
+
+              android_anchor = "- Android 13+ notification permission behavior when optional notifications are enabled;"
+              android_new = android_anchor + "\n- optional terminal notifications remain generic, disabled-by-default, and do not affect transfer results when permission/delivery fails;"
+              text = text.replace(android_anchor, android_new, 1)
+              write(name, text)
+
+          # PROJECT_STATUS.md
+          name = "PROJECT_STATUS.md"
+          text = read(name)
+          marker = "## August 15 native terminal notification continuation"
+          if marker not in text:
+              anchor = "Updated: 2026-08-15\n"
+              section = '''\n## August 15 native terminal notification continuation\n\n- Optional completion/failure system notifications are implemented in source across Android, iOS, Mac Catalyst, and Windows and remain off by default.\n- Apple uses local User Notifications alert/sound authorization after explicit opt-in, retains a notification-center delegate for foreground presentation, and does not introduce remote-push registration or a cloud notification service.\n- Windows uses Windows App SDK app notifications with matching packaged toast/COM activation metadata, startup registration for an already-enabled preference, handler-before-register ordering, and deterministic unregister on shutdown.\n- Notification bodies are generic English/Hindi catalog strings without format placeholders or transfer-specific identifiers/content.\n- Settings guidance and permission-denial messages are localized and platform-neutral.\n- `scripts/validate_windows_integration.py` protects Windows protocol/private-network/notification package and source invariants; six dedicated validator tests raise the Python helper suite to 16 tests.\n- Bash, PowerShell, normal CI, and release readiness execute the Windows integration validator.\n- Signed-device/package notification authorization, delivery/presentation, Windows COM activation, system notification settings, and install/update behavior remain release-validation gates.\n'''
+              text = text.replace(anchor, anchor + section, 1)
+
+              stale = '''1. **Optional completion/failure system notifications outside Android**\n   - Android implementation exists.\n   - Unsupported targets disable the optional preference instead of pretending notifications exist.\n   - Native Apple/Windows notifications are optional post-v1 work, not transfer correctness/security.\n\n'''
+              if stale in text:
+                  text = text.replace(stale, "", 1)
+              text = text.replace("2. **Mobile background continuation**", "1. **Mobile background continuation**", 1)
+              text = text.replace("3. **Malware scanning**", "2. **Malware scanning**", 1)
+              text = text.replace("4. **Performance numbers**", "3. **Performance numbers**", 1)
+              text = text.replace("5. **Final binary third-party notices**", "4. **Final binary third-party notices**", 1)
+
+              implemented_anchor = "- Configurable queue/concurrency plus restart-safe status/progress/item metadata; persisted queue context is never reusable authorization."
+              if "Optional generic completion/failure system notifications on Android, iOS, Mac Catalyst, and Windows." not in text:
+                  text = text.replace(implemented_anchor, implemented_anchor + "\n- Optional generic completion/failure system notifications on Android, iOS, Mac Catalyst, and Windows.", 1)
+              write(name, text)
+
+          # CHANGELOG.md
+          name = "CHANGELOG.md"
+          text = read(name)
+          marker = "### Cross-platform native terminal notifications"
+          if marker not in text:
+              anchor = "## Unreleased - 2026-08-15\n"
+              section = '''\n### Cross-platform native terminal notifications\n\n- Extended the existing opt-in Android terminal notification feature to iOS, Mac Catalyst, and Windows without adding a third-party notification package.\n- Apple notifications use local `UNUserNotificationCenter` alert/sound authorization requested only after explicit enable; a retained delegate presents enabled generic banner/sound notifications while the app is foregrounded.\n- Windows notifications use Windows App SDK app notifications with packaged toast/COM activation metadata, handler-before-register ordering, startup registration for an already-enabled preference, and unregister-on-shutdown cleanup.\n- Added localized English/Hindi generic completion/failure messages and localized platform guidance; notification-denial wording is platform-neutral.\n- Kept terminal notifications privacy-minimal: no filename, peer name, path, transfer content, pairing capability/fingerprint, transfer ID, or reusable authorization is placed in notification text.\n- Added `scripts/validate_windows_integration.py` and six regression tests to enforce Windows notification CLSID/activation/capability/source ordering/privacy invariants.\n- Portable verification now runs 16 Python helper tests plus the Windows integration validator on Ubuntu and Windows, while the existing portable xUnit suite remains 522 tests.\n- Release readiness now self-tests when the Windows integration validator changes and restores the explicit Apple shared-Core runtime used by the maintained green platform workflow.\n'''
+              text = text.replace(anchor, anchor + section, 1)
+              write(name, text)
+
+          # Manual testing notification section.
+          insert_before_branding(
+              "docs/testing/manual-test-matrix.md",
+              "## Native terminal notification matrix",
+              '''## Native terminal notification matrix\n\nUse synthetic transfers and ensure the notification preference starts disabled after a settings reset.\n\n- Android: enable notifications, exercise Android 13+ permission allow/deny where applicable, complete/fail a transfer, and confirm the terminal message is generic and transfer result is unaffected by permission/delivery failure.\n- iOS: enable notifications, verify alert/sound authorization allow/deny, foreground banner/sound presentation, background/system delivery, disabled preference behavior, English/Hindi text, and no transfer-specific content.\n- Mac Catalyst: repeat Apple authorization/presentation tests under the signed sandbox and system notification settings.\n- Windows signed package: verify clean-install/update toast/COM registration, activation, startup registration when the saved preference is already enabled, notification settings suppression, disable/re-enable behavior, and generic English/Hindi content.\n- On every platform confirm notification text contains no filename, peer name, path, transferred text/content, pairing link/nonce/fingerprint/code, transfer ID, or reusable authorization.\n- Force or simulate notification registration/presentation failure where practical and confirm queue/history transfer state still records the actual transfer outcome.\n''')
+
+          # Security testing notification section.
+          insert_before_branding(
+              "docs/testing/security-test-plan.md",
+              "## Native notification privacy and lifecycle",
+              '''## Native notification privacy and lifecycle\n\n- Verify optional terminal notifications are disabled by default and require explicit user enable.\n- Verify completion/failure bodies are generic localized resource values with no dynamic format placeholders.\n- Confirm no filename, peer/device name, path, transfer content, pairing capability/nonce/code/fingerprint, transfer ID, or reusable authorization reaches OS notification history.\n- Confirm Apple notification authorization is local alert/sound only and does not register a remote-push token or require a relay service.\n- Confirm Apple foreground notification presentation works only through the retained notification-center delegate and cleanup does not crash shutdown.\n- Confirm Windows retains `privateNetworkClientServer`, does not add `internetClient`, and uses matching toast/COM CLSIDs plus the expected activation arguments.\n- Confirm Windows attaches `NotificationInvoked` before `Register()` and registers at startup when the persisted preference is already enabled.\n- Confirm notification permission/registration/show failure never changes the underlying transfer result.\n- Run `scripts/validate_windows_integration.py` and all Windows validator regression tests before candidate packaging.\n''')
+
+          # Release checklist notification section.
+          insert_before_branding(
+              "docs/release/release-checklist.md",
+              "## Native terminal notification release gate",
+              '''## Native terminal notification release gate\n\n- [ ] Notification preference defaults to Off and persists correctly when explicitly enabled/disabled.\n- [ ] Android 13+ permission allow/deny and generic terminal delivery are verified on a signed build.\n- [ ] Signed iOS verifies alert/sound authorization, foreground banner/sound, background/system delivery, system settings denial, generic English/Hindi text, and disabled preference behavior.\n- [ ] Signed Mac Catalyst verifies the same local-notification behavior under the release sandbox/system settings.\n- [ ] Windows signed package/MSIX verifies toast/COM registration, clean install/update, notification activation, startup registration for an already-enabled preference, system-settings suppression, and uninstall/update cleanup behavior.\n- [ ] `scripts/validate_windows_integration.py` passes and confirms matching CLSIDs, exact activation arguments, handler-before-register ordering, local-only capability posture, and placeholder-free terminal messages.\n- [ ] No platform notification contains filename/peer/path/content/pairing/transfer-ID/authorization data.\n- [ ] Permission, registration, presentation, or activation failure cannot alter a transfer's success/failure state.\n''')
+
+          # Release process notification section.
+          insert_before_branding(
+              "docs/release/release-process.md",
+              "## Native notification candidate validation",
+              '''## Native notification candidate validation\n\nFor any candidate that ships optional terminal notifications:\n\n1. run both Apple and Windows integration validators through the portable gate;\n2. confirm the 16 Python helper tests and 522 xUnit tests pass;\n3. inspect the final Windows packaged manifest/COM activation metadata rather than relying on unpackaged source compile alone;\n4. verify signed Android/iOS/Mac Catalyst/Windows notification permission/registration/presentation behavior on real targets;\n5. verify English/Hindi terminal messages remain generic and contain no transfer-specific identifiers/content;\n6. verify notification denial/failure never changes transfer correctness;\n7. rebuild and repeat invalidated signed/package notification evidence after any notification-source/manifest/resource change.\n''')
+
+          # what_changed.md: append implementation record, leave final automated evidence for the final pass.
+          name = "what_changed.md"
+          text = read(name)
+          marker = "# 163. Native terminal notifications across maintained targets"
+          if marker not in text:
+              stripped = text.rstrip()
+              if stripped.endswith(BRANDING):
+                  stripped = stripped[:-len(BRANDING)].rstrip()
+              appendix = '''\n\n---\n\n# 163. Native terminal notifications across maintained targets\n\nThe next post-v1 source enhancement moved optional completion/failure system notifications from Android-only support to every maintained SwiftDrop product target while preserving the existing privacy-first opt-in model.\n\n- Android retains the existing local terminal-notification path.\n- iOS and Mac Catalyst use the platform User Notifications framework.\n- Windows uses Windows App SDK app notifications.\n- The preference remains off by default.\n- Permission/registration/presentation failure is best-effort and cannot change the underlying transfer outcome.\n\n# 164. Apple authorization and foreground presentation\n\nApple containing-app behavior now requests only alert/sound local-notification authorization after explicit user enable. A strongly retained `UNUserNotificationCenterDelegate` returns banner/sound presentation options so an enabled terminal notification can be visible while SwiftDrop is foregrounded. The delegate is removed/disposed during application shutdown.\n\nThe implementation does not register a remote-push token, add a relay service, or place transfer-specific data in the notification body. Signed iOS/Mac Catalyst authorization, foreground/background/system-settings behavior remains a release gate.\n\n# 165. Windows packaged app-notification lifecycle\n\nWindows uses `AppNotificationManager.Default` and `AppNotificationBuilder`. The package manifest now contains a `windows.toastNotificationActivation` extension and matching COM server/class using CLSID `A630B8B4-6522-4EA0-9BBE-A2C7C40BB839`, executable `$targetnametoken$.exe`, and activation arguments `----AppNotificationActivated:`.\n\nRegistration behavior is lifecycle-safe:\n\n- `NotificationInvoked` is attached before `Register()`;\n- an already-enabled saved notification preference registers during service startup;\n- showing a terminal notification reuses/ensures registration;\n- shutdown removes the handler and calls `Unregister()`;\n- registration/show failures remain isolated from transfer correctness.\n\nThe package retains `privateNetworkClientServer` and does not add `internetClient`. Signed MSIX install/update/activation remains external release evidence.\n\n# 166. Notification privacy and localization\n\nEnglish/Hindi resource catalogs now contain placeholder-free generic completion/failure notification bodies plus localized platform support guidance. The former Android-specific permission-denial explanation was replaced with platform-neutral English/Hindi wording.\n\nTerminal notification text intentionally excludes filenames, peer/device names, source/destination paths, transferred text/file content, pairing invitations/nonces/codes/fingerprints, transfer IDs, and reusable authorization/credentials.\n\n# 167. Portable Windows integration validator\n\nAdded `scripts/validate_windows_integration.py` and dedicated regression coverage. The validator checks:\n\n- one `swiftdrop` protocol registration;\n- `privateNetworkClientServer` is retained and `internetClient` is absent;\n- exactly one packaged toast activation extension and one COM notification server;\n- valid/matching toast and COM CLSIDs;\n- exact notification activation arguments;\n- generic nonempty placeholder-free English/Hindi terminal messages;\n- Windows notification source contains startup registration;\n- `NotificationInvoked` is attached before `Register()`;\n- notification show uses the generic resource keys.\n\nSix Windows validator tests now cover a valid contract, CLSID mismatch, forbidden Internet capability, placeholder injection, incorrect handler/register order, and missing startup registration. Together with the existing audit/evidence helper tests, the Python helper suite is now **16 tests**. Bash, PowerShell, normal CI, and release readiness execute the Windows validator.\n\n# 168. Focused notification and verification commit trail\n\nKey commits:\n\n- `308ecc0e110e707c9a4feb53b77dd9cce9d75e5a` — native Apple/Windows notification service support;\n- `16273054ea8b5540921a6df458f2a749ecd5c4e1` — enable native notification opt-in across targets;\n- `e7c5d9e15e9326acea9a8cae8d06a2b99ec05b5a` / `18df19940ce693225d23465b698e11675fe56ec6` — generic English/Hindi terminal messages;\n- `3af5636624fdfceab03be024dced3b2ef05121c0` — Windows packaged notification activation metadata;\n- `d2f2c5b867d451f300eeb41d7030cdcbfee7f526` — native notification registration cleanup;\n- `2315d4d5fa34242a05018a5bd3493bb424004b70` — Apple foreground presentation delegate;\n- `5d6f215c57f23d8ec657e41183c64f77976e0d6b` / `0221630bd57434054f9a0125c06bb0cc2e655c07` — Windows validator and initial tests;\n- `f48e9721761a2345cffcbd5a0e1c18177988b225` / `d0458b20cbc672cc13f6458d558f8817e5ccc648` — platform-neutral English/Hindi denial wording;\n- `12c64e44e1de55dfa0421a67b35ee25a2774a0bd` / `ef54cfa7bd269ba2c69f753d7f91f2b4193efe79` / `23104e4d1bf8810a39f56d7dda7f4584dc018583` — localized notification support guidance;\n- `c3bd4d9fd5389a56fd203a5e4edb31033631181a` — Windows startup registration when preference is already enabled;\n- `b3eab15d2f04462ff60f5bd9014acfb7ef490353` / `335eb067a3799e15ec96a3b1b7bee12614332ff6` — startup/order validator hardening and tests;\n- `bca13792b41b85464ac357b267c32667b79798c2` — normal CI integration;\n- `594e586dcda99d75b4d79da0ce9362813e28d4f5` — release-readiness Apple shared-Core restore correction discovered by the new self-test sequence.\n'''
+              write(name, stripped + appendix + "\n\n" + BRANDING + "\n")
+          PY
+      - name: Commit synchronized docs
+        shell: bash
+        run: |
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+          git add NEXT_STEPS.md PROJECT_STATUS.md CHANGELOG.md docs/testing/manual-test-matrix.md docs/testing/security-test-plan.md docs/release/release-checklist.md docs/release/release-process.md what_changed.md
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -s -m "docs(notifications): synchronize native notification contracts"
+          git push origin HEAD:main
