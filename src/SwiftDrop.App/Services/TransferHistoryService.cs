@@ -1,3 +1,4 @@
+using SwiftDrop.Core.Diagnostics;
 using SwiftDrop.Core.Models;
 using SwiftDrop.Core.Storage;
 
@@ -66,8 +67,7 @@ public sealed class TransferHistoryService
         if (settings.HistoryRetentionDays == 0) return;
         var storedPeer = settings.PrivacyMode ? PrivacyRedactionMarker : peerDeviceName;
         var storedName = settings.PrivacyMode ? PrivacyRedactionMarker : fileName;
-        var durationMilliseconds = ToOptionalDurationMilliseconds(duration);
-        var attributableBytes = ToOptionalMeasuredBytes(sizeBytes, measuredBytes, durationMilliseconds);
+        var measurement = TransferPerformanceAnalyzer.NormalizeOptionalMeasurement(duration, sizeBytes, measuredBytes);
         var entry = new TransferHistoryEntry(
             Guid.NewGuid().ToString("N"),
             direction,
@@ -77,8 +77,8 @@ public sealed class TransferHistoryService
             DateTimeOffset.UtcNow,
             status,
             integrityVerified,
-            durationMilliseconds,
-            attributableBytes);
+            measurement?.DurationMilliseconds,
+            measurement?.MeasuredBytes);
         await _store.AddAsync(entry, ct);
     }
 
@@ -106,19 +106,5 @@ public sealed class TransferHistoryService
     {
         await InitializeAsync(ct);
         await _store.ClearAsync(ct);
-    }
-
-    private static long? ToOptionalDurationMilliseconds(TimeSpan? duration)
-    {
-        if (duration is null || duration.Value < TimeSpan.Zero) return null;
-        if (duration.Value > TimeSpan.FromMilliseconds(TransferHistoryStore.MaxDurationMilliseconds)) return null;
-        return (long)Math.Ceiling(duration.Value.TotalMilliseconds);
-    }
-
-    private static long? ToOptionalMeasuredBytes(long logicalSizeBytes, long? measuredBytes, long? durationMilliseconds)
-    {
-        if (logicalSizeBytes < 0 || durationMilliseconds is not > 0 || measuredBytes is not > 0)
-            return null;
-        return measuredBytes <= logicalSizeBytes ? measuredBytes : null;
     }
 }
