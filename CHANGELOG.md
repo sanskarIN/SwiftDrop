@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased - 2026-08-15
+
+### Restart-safe queue progress and schema-v4 persistence
+
+- Extended the local SQLite schema from v3 to v4 with bounded queue `operation_kind`, `updated_utc`, `progress_basis_points`, `item_count`, and `completed_item_count` metadata.
+- Added a sequential v3→v4 migration that preserves legacy queue rows with safe defaults and regression coverage for v0/v1/v2/v3 upgrade paths.
+- Kept queue persistence deliberately non-authorizing: persisted labels remain generic and the schema contains no pairing nonce, reusable token/session authorization, certificate/private key, peer endpoint, source/destination path, or transferred content field.
+- Added bounded queue metadata validation for operation categories, timestamps, progress, item counts, and machine-oriented error codes.
+- Preserved last-known safe progress/context when stale `Queued`/`Running` work is marked `Interrupted` after restart; interrupted work is not automatically replayed and still requires fresh authorization for a new transfer attempt.
+- Wired file, batch, and text sender progress into the shared queue service while coarsening ordinary SQLite progress writes to 5% buckets plus state/item-count transitions.
+- Added operation category, percentage/item progress, and a progress bar to the queue UI; privacy-mode in-memory labels continue to follow the existing redaction behavior while persisted labels stay generic.
+- Expanded Core storage tests for rich queue round trips, interrupted-progress preservation, invalid progress/item relationships, schema-v4 migration, and explicit absence of authorization/endpoint field classes from queue persistence.
+- Updated storage, privacy, compatibility, roadmap, project-status, and engineering-ledger documentation to the v4 contract while preserving the external signed/device/store release-validation boundary.
+
 ## Unreleased - 2026-08-14
 
 ### Windows portable verification and SQLite resource-lifetime hardening
