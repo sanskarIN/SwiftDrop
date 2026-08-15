@@ -52,6 +52,60 @@ public sealed class TransferHistoryStoreTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task PerformanceQueryReturnsOnlyCompletedMeasuredRowsAtOrAfterCutoff()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var cutoff = now.AddHours(-4);
+        await _store.AddAsync(new TransferHistoryEntry(
+            "newer", "sent", "Desktop", "newer.bin", 2_000,
+            now.AddHours(-1), "completed", true, 1_000, 2_000));
+        await _store.AddAsync(new TransferHistoryEntry(
+            "older-in-window", "received", "Phone", "older.bin", 1_000,
+            now.AddHours(-3), "completed", true, 500, 1_000));
+        await _store.AddAsync(new TransferHistoryEntry(
+            "before-cutoff", "sent", "Desktop", "old.bin", 1_000,
+            now.AddHours(-5), "completed", true, 500, 1_000));
+        await _store.AddAsync(new TransferHistoryEntry(
+            "legacy", "sent", "Desktop", "legacy.bin", 1_000,
+            now.AddHours(-2), "completed", true));
+        await _store.AddAsync(new TransferHistoryEntry(
+            "failed", "sent", "Desktop", "failed.bin", 1_000,
+            now.AddMinutes(-30), "failed", false, 500, 1_000));
+        await _store.AddAsync(new TransferHistoryEntry(
+            "duration-only", "sent", "Desktop", "duration.bin", 1_000,
+            now.AddMinutes(-20), "completed", true, 500, null));
+
+        var rows = await _store.GetPerformanceEntriesSinceAsync(cutoff);
+
+        Assert.Equal(["older-in-window", "newer"], rows.Select(row => row.Id).ToArray());
+        Assert.All(rows, row => Assert.Equal("completed", row.Status));
+        Assert.All(rows, row => Assert.True(row.DurationMilliseconds > 0));
+        Assert.All(rows, row => Assert.True(row.MeasuredBytes > 0));
+    }
+
+    [Fact]
+    public async Task PerformanceQueryIncludesRowExactlyAtCutoff()
+    {
+        var cutoff = DateTimeOffset.UtcNow.AddHours(-1);
+        await _store.AddAsync(new TransferHistoryEntry(
+            "boundary", "sent", "Desktop", "boundary.bin", 100,
+            cutoff, "completed", true, 100, 100));
+
+        var row = Assert.Single(await _store.GetPerformanceEntriesSinceAsync(cutoff));
+
+        Assert.Equal("boundary", row.Id);
+    }
+
+    [Fact]
+    public async Task PerformanceQueryRejectsInvalidCutoff()
+    {
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            _store.GetPerformanceEntriesSinceAsync(DateTimeOffset.UnixEpoch.AddTicks(-1)));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            _store.GetPerformanceEntriesSinceAsync(DateTimeOffset.UtcNow.AddDays(3)));
+    }
+
+    [Fact]
     public async Task ClearRemovesEntries()
     {
         await _store.AddAsync(new TransferHistoryEntry(
