@@ -27,6 +27,10 @@ public sealed class TransferNotificationService : IDisposable
         _appleDelegate = new TransferNotificationCenterDelegate();
         UNUserNotificationCenter.Current.Delegate = _appleDelegate;
 #endif
+#if WINDOWS
+        if (_settings.Load().NotificationsEnabled)
+            EnsureWindowsRegistered();
+#endif
     }
 
     public bool IsSupported
