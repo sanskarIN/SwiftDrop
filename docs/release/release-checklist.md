@@ -1,6 +1,6 @@
 # SwiftDrop Release Checklist
 
-Updated: 2026-08-14
+Updated: 2026-08-15
 
 This checklist is a release gate, not a statement that the listed checks have already passed. A source implementation or configured workflow is not production validation.
 
@@ -17,6 +17,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] `docs/release/dependency-evidence.md` matches the workflow artifact names, report format, validator behavior, manifest schema, and current release-review process.
 - [ ] No secrets, signing keys, PFX/P12 files, keystores, provisioning secrets, tokens, pairing invitations, local databases, or real transferred files are committed.
 - [ ] No obsolete/dead batch compatibility handler can bypass stable transfer IDs; XAML and app call sites use the stable-ID coordinator API.
+- [ ] Current SQLite schema is v4 and documentation/tests/migrations agree on the v0/v1/v2/v3→v4 upgrade contract.
 - [ ] `CHANGELOG.md`, `PROJECT_STATUS.md`, `PRIVACY.md`, `THIRD_PARTY_NOTICES.md`, `NEXT_STEPS.md`, protocol/security/platform/testing/release docs, and `what_changed.md` match the exact candidate.
 
 ## Protocol, identity, and transport security
@@ -66,7 +67,7 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] Folder manifest ordering is deterministic for an unchanged source tree.
 - [ ] Stable batch IDs are retained across pause/failure retry and changed for a new explicit send.
 - [ ] Active app batch controls use the stable-ID path; the removed compatibility overload cannot create a fresh ID per retry.
-- [ ] Schema-v3 completed-batch metadata can skip only a still-present file matching the same transfer/root/source/length/SHA-256.
+- [ ] `completed_batch_items`, introduced in schema v3 and retained in current schema v4, can skip only a still-present file matching the same transfer/root/source/length/SHA-256.
 - [ ] Modifying/removing a previously completed destination before retry prevents false completed reuse.
 - [ ] Modifying/removing a previously completed destination after the retry plan but before its item ACK is caught by the second completed-item verification.
 
@@ -82,10 +83,13 @@ This checklist is a release gate, not a statement that the listed checks have al
 - [ ] No account is required for the local-transfer workflow.
 - [ ] No transferred file/text content is uploaded to a SwiftDrop-operated service.
 - [ ] Clipboard is read only after explicit user action.
-- [ ] Transfer bytes/text contents, private keys, reusable pairing authorization, and absolute receive-root paths are not stored in SQLite.
-- [ ] Schema-v3 `completed_batch_items` stores only bounded resume metadata and a hashed receive-root identity.
+- [ ] Transfer bytes/text contents, private keys, reusable pairing/transfer authorization, pairing nonces, queue peer endpoints, and queue source/destination paths are not stored in SQLite.
+- [ ] `completed_batch_items`, introduced in schema v3 and retained in v4, stores only bounded resume metadata and a hashed receive-root identity.
 - [ ] Completed-batch source path is canonical protocol identity; local destination metadata is re-confined/re-hashed before reuse.
-- [ ] Queue persistence remains metadata-only and does not replay authorization after restart.
+- [ ] Schema-v4 queue persistence stores only generic persisted labels, bounded state/error/operation/timestamp/progress/item metadata and never replays authorization after restart.
+- [ ] Queue progress remains bounded to `0..10000`; completed item count does not exceed total count.
+- [ ] Persisted `Queued`/`Running` rows become `Interrupted` on restart while retaining safe last-known progress/context and requiring fresh authorization for any new attempt.
+- [ ] Caller cancellation during queue initialization/best-effort persistence does not permanently disable later metadata persistence in the same app session.
 - [ ] Privacy mode redacts peer/file history labels and privacy-sensitive diagnostic identifiers.
 - [ ] Optional Android completion/failure notification text remains generic and content-free.
 - [ ] `PRIVACY.md` and store privacy declarations match final binaries.
@@ -170,7 +174,7 @@ Complete `docs/testing/manual-test-matrix.md` for supported sender/receiver comb
 - [ ] explicit text transfer and clipboard paste;
 - [ ] trust, revoke, identity reset, and identity-regeneration re-pair behavior;
 - [ ] receive-root change while listener is active;
-- [ ] queue restart/interrupted metadata behavior.
+- [ ] queue restart/interrupted metadata behavior, recovered progress/item display, and no stale authorization replay.
 
 ## Restricted-network and lifecycle validation
 
@@ -191,6 +195,7 @@ Complete `docs/testing/manual-test-matrix.md` for supported sender/receiver comb
 - [ ] Large text does not hide critical actions.
 - [ ] Status/errors do not rely only on color.
 - [ ] Pairing fingerprints remain readable and usable.
+- [ ] Queue operation/progress/item/timing/interrupted-state information remains readable at large text sizes and in Hindi.
 - [ ] Hindi layouts are checked for clipping/wrapping and long runtime messages.
 - [ ] Reduced-motion/high-contrast preferences behave acceptably on supported targets.
 
