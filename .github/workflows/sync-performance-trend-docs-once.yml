@@ -1,0 +1,33 @@
+name: Sync performance trend docs once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/swiftdrop-performance-trend-docs-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Refresh main and configure Git
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+      - name: Synchronize maintained documentation
+        env:
+          SWIFTDROP_DOC_SCRIPT_B64: ""+encoded+""
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          script = base64.b64decode(os.environ["SWIFTDROP_DOC_SCRIPT_B64"]).decode("utf-8")
+          exec(compile(script, "<swiftdrop-doc-sync>", "exec"))
+          PY
