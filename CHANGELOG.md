@@ -378,3 +378,13 @@
 - Added local device identity storage with platform secure storage for the certificate.
 - Added UDP discovery core service, SQLite trusted-peer store, project documentation, tests, and CI.
 - Added Apache-2.0 open-source licensing and project contribution/security policies.
+
+## Aggregate History performance trend and CSV export
+
+- Added rolling 30-day UTC performance trend aggregation based only on valid completed History measurements.
+- Added an untruncated cutoff query for retained performance samples.
+- Added deterministic aggregate CSV export with invariant UTC/date/rate formatting.
+- Added explicit OS share-sheet export from History and best-effort cleanup of prior matching cache exports.
+- Added English/Hindi trend/export UI strings and a seven-day recent measured-bucket preview.
+- Added aggregate-only privacy guarantees and cross-layer regression coverage.
+- Portable regression coverage is now 559 xUnit tests and 26 Python helper tests.
