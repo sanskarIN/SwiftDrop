@@ -13,6 +13,29 @@ public static class TransferPerformanceTrendAnalyzer
         int windowDays = DefaultWindowDays)
     {
         ArgumentNullException.ThrowIfNull(entries);
+        var samples = new List<TransferPerformanceSample>();
+        foreach (var entry in entries)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            if (!TransferPerformanceAnalyzer.IsValidMeasurement(entry))
+                continue;
+
+            samples.Add(new TransferPerformanceSample(
+                entry.TimestampUtc,
+                entry.SizeBytes,
+                entry.DurationMilliseconds!.Value,
+                entry.MeasuredBytes!.Value));
+        }
+
+        return BuildDaily(samples, windowEndUtc, windowDays);
+    }
+
+    public static IReadOnlyList<TransferPerformanceTrendPoint> BuildDaily(
+        IEnumerable<TransferPerformanceSample> samples,
+        DateTimeOffset windowEndUtc,
+        int windowDays = DefaultWindowDays)
+    {
+        ArgumentNullException.ThrowIfNull(samples);
         if (windowDays is < 1 or > MaxWindowDays)
             throw new ArgumentOutOfRangeException(nameof(windowDays));
         if (windowEndUtc < DateTimeOffset.UnixEpoch)
@@ -23,15 +46,17 @@ public static class TransferPerformanceTrendAnalyzer
         var startDate = endDate.AddDays(-(windowDays - 1));
         var buckets = new Dictionary<DateOnly, Bucket>();
 
-        foreach (var entry in entries)
+        foreach (var sample in samples)
         {
-            ArgumentNullException.ThrowIfNull(entry);
-            if (!TransferPerformanceAnalyzer.IsValidMeasurement(entry))
-                continue;
-            if (entry.TimestampUtc.ToUniversalTime() > windowEndUtc)
+            ArgumentNullException.ThrowIfNull(sample);
+            if (!sample.IsValid)
                 continue;
 
-            var date = DateOnly.FromDateTime(entry.TimestampUtc.UtcDateTime);
+            var timestampUtc = sample.TimestampUtc.ToUniversalTime();
+            if (timestampUtc > windowEndUtc)
+                continue;
+
+            var date = DateOnly.FromDateTime(timestampUtc.UtcDateTime);
             if (date < startDate || date > endDate)
                 continue;
 
@@ -41,7 +66,7 @@ public static class TransferPerformanceTrendAnalyzer
                 buckets.Add(date, bucket);
             }
 
-            bucket.Add(entry.MeasuredBytes!.Value, entry.DurationMilliseconds!.Value);
+            bucket.Add(sample.MeasuredBytes, sample.DurationMilliseconds);
         }
 
         return buckets
