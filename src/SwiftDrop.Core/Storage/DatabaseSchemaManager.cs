@@ -4,7 +4,7 @@ namespace SwiftDrop.Core.Storage;
 
 public static class DatabaseSchemaManager
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     public static async Task EnsureCurrentAsync(SqliteConnection connection, CancellationToken ct = default)
     {
@@ -151,6 +151,18 @@ public static class DatabaseSchemaManager
                         CHECK(duration_ms IS NULL OR (duration_ms >= 0 AND duration_ms <= 604800000));
 
                 PRAGMA user_version = 5;
+                """, ct);
+            version = 5;
+        }
+
+        if (version < 6)
+        {
+            await ApplyMigrationAsync(connection, """
+                ALTER TABLE transfer_history
+                    ADD COLUMN measured_bytes INTEGER NULL
+                        CHECK(measured_bytes IS NULL OR measured_bytes >= 0);
+
+                PRAGMA user_version = 6;
                 """, ct);
         }
     }
