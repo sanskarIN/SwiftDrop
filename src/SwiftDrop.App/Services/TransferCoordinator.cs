@@ -20,7 +20,17 @@ public sealed class TransferCoordinator
     public Task SendAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
         => _queue.ExecuteAsync(
             $"Send {Path.GetFileName(path)}",
-            token => SendCoreAsync(remote, path, progress, token),
+            TransferQueueOperationKind.File,
+            1,
+            (queueProgress, token) => SendCoreAsync(
+                remote,
+                path,
+                new ForwardingProgress<double>(value =>
+                {
+                    queueProgress.Report(value, value >= 1d ? 1 : 0, 1);
+                    progress?.Report(value);
+                }),
+                token),
             ct);
 
     public Task<BatchSendResult> SendBatchAsync(
@@ -38,12 +48,32 @@ public sealed class TransferCoordinator
             : $"Send {materialized.Length:N0} files";
         return _queue.ExecuteAsync(
             label,
-            token => SendBatchCoreAsync(remote, materialized, transferId, progress, token),
+            TransferQueueOperationKind.Batch,
+            materialized.Length,
+            (queueProgress, token) => SendBatchCoreAsync(
+                remote,
+                materialized,
+                transferId,
+                new ForwardingProgress<BatchProgress>(value =>
+                {
+                    queueProgress.Report(value.Fraction, value.CompletedItems, value.TotalItems);
+                    progress?.Report(value);
+                }),
+                token),
             ct);
     }
 
     public Task SendTextAsync(PairingPayload remote, string text, CancellationToken ct)
-        => _queue.ExecuteAsync("Send text snippet", token => SendTextCoreAsync(remote, text, token), ct);
+        => _queue.ExecuteAsync(
+            "Send text snippet",
+            TransferQueueOperationKind.Text,
+            1,
+            async (queueProgress, token) =>
+            {
+                await SendTextCoreAsync(remote, text, token);
+                queueProgress.Report(1d, 1, 1);
+            },
+            ct);
 
     private async Task SendCoreAsync(PairingPayload remote, string path, IProgress<double>? progress, CancellationToken ct)
     {
@@ -222,6 +252,18 @@ public sealed class TransferCoordinator
         ct.ThrowIfCancellationRequested();
         await _identity.InitializeAsync();
         return PairingCodec.Validate(remote, DateTimeOffset.UtcNow);
+    }
+
+    private sealed class ForwardingProgress<T> : IProgress<T>
+    {
+        private readonly Action<T> _report;
+
+        public ForwardingProgress(Action<T> report)
+        {
+            _report = report;
+        }
+
+        public void Report(T value) => _report(value);
     }
 }
 
