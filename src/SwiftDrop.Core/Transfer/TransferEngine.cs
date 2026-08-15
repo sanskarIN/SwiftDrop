@@ -66,15 +66,27 @@ public sealed class TransferEngine
     {
         ArgumentNullException.ThrowIfNull(network);
         ManifestValidator.ValidateEntry(entry);
+        if (offset < 0 || offset > entry.Length)
+            throw new ArgumentOutOfRangeException(nameof(offset));
+
         var finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
-        Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
-        finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
         var partialRelativePath = entry.RelativePath + ".swiftdrop.part";
         var partial = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, partialRelativePath);
-        var mode = offset == 0 ? FileMode.Create : FileMode.OpenOrCreate;
+        FileMode mode;
+        if (offset == 0)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
+            finalPath = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, entry.RelativePath);
+            partial = PathGuard.EnsureNoReparsePointsUnderRoot(destinationRoot, partialRelativePath);
+            mode = FileMode.Create;
+        }
+        else
+        {
+            mode = FileMode.Open;
+        }
+
         await using (var file = new FileStream(partial, mode, FileAccess.Write, FileShare.None, ProtocolConstants.ChunkSize, FileOptions.Asynchronous | FileOptions.SequentialScan))
         {
-            if (offset < 0 || offset > entry.Length) throw new ArgumentOutOfRangeException(nameof(offset));
             if (offset > 0 && file.Length < offset)
                 throw new InvalidDataException("Resume offset is beyond the available staged partial file.");
             if (file.Length > offset)
