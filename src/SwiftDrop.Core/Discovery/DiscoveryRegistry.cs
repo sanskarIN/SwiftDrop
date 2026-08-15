@@ -41,7 +41,7 @@ public sealed class DiscoveryRegistry
         lock (_gate)
         {
             var expired = _peers
-                .Where(x => x.Value.LastSeenUtc is null || nowUtc - x.Value.LastSeenUtc.Value > _expiry)
+                .Where(x => x.Value.LastSeenUtc is null || nowUtc - x.Value.LastSeenUtc.Value >= _expiry)
                 .Select(x => x.Key)
                 .ToArray();
             foreach (var id in expired) _peers.Remove(id);
