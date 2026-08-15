@@ -97,6 +97,31 @@ public sealed class OneTimeAuthorizationStoreTests
     }
 
     [Fact]
+    public void Register_NeverExceedsConfiguredCapacityConcurrently()
+    {
+        const int capacity = 16;
+        var store = new OneTimeAuthorizationStore(capacity);
+        var now = new DateTimeOffset(2026, 8, 15, 9, 30, 0, TimeSpan.Zero);
+        var successful = 0;
+
+        Parallel.For(0, 512, i =>
+        {
+            var nonce = $"nonce-{i:D6}-aaaaaaaaaaaa";
+            try
+            {
+                store.Register(nonce, now.AddMinutes(1), now);
+                Interlocked.Increment(ref successful);
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        });
+
+        Assert.Equal(capacity, successful);
+        Assert.Equal(capacity, store.Count);
+    }
+
+    [Fact]
     public void PruneExpired_ReclaimsCapacity()
     {
         var store = new OneTimeAuthorizationStore(1);
