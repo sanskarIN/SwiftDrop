@@ -111,8 +111,8 @@ public sealed class TransferHistoryService
         var cutoffUtc = new DateTimeOffset(
             windowEndUtc.UtcDateTime.Date.AddDays(-(windowDays - 1)),
             TimeSpan.Zero);
-        var entries = await _store.GetPerformanceEntriesSinceAsync(cutoffUtc, ct);
-        return TransferPerformanceTrendAnalyzer.BuildDaily(entries, windowEndUtc, windowDays);
+        var samples = await _store.GetPerformanceSamplesSinceAsync(cutoffUtc, ct);
+        return TransferPerformanceTrendAnalyzer.BuildDaily(samples, windowEndUtc, windowDays);
     }
 
     public async Task<string> ExportPerformanceTrendCsvAsync(
