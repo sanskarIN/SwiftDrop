@@ -49,6 +49,7 @@ public sealed class TransferHistoryService
         if (days == 0)
         {
             await _store.ClearAsync(ct);
+            CleanupPreviousPerformanceTrendExports(FileSystem.CacheDirectory);
             return;
         }
         await _store.PruneOlderThanAsync(DateTimeOffset.UtcNow.AddDays(-days), ct);
@@ -138,6 +139,7 @@ public sealed class TransferHistoryService
     {
         await InitializeAsync(ct);
         await _store.ClearAsync(ct);
+        CleanupPreviousPerformanceTrendExports(FileSystem.CacheDirectory);
     }
 
     private static void ValidateTrendWindow(int windowDays)
