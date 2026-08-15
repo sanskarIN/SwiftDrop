@@ -210,6 +210,7 @@ public partial class MainPage : ContentPage
         string status,
         bool verified,
         TimeSpan? duration,
+        long? measuredBytes,
         CancellationToken ct)
         => _history.AddAsync(
             "received",
@@ -219,7 +220,8 @@ public partial class MainPage : ContentPage
             status,
             verified,
             ct,
-            duration);
+            duration,
+            measuredBytes);
 
     private Task RecordIncomingTextAsync(IncomingTextPreview preview, string status, CancellationToken ct)
         => _history.AddAsync(

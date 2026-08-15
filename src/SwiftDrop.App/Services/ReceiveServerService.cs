@@ -17,7 +17,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
     private readonly BatchResumeStateService _batchResumeState;
     private readonly Func<string, bool> _consumePairingNonce;
     private readonly Func<IncomingTransferPreview, CancellationToken, Task<bool>> _approveTransfer;
-    private readonly Func<IncomingTransferPreview, string, bool, TimeSpan?, CancellationToken, Task>? _recordTransfer;
+    private readonly Func<IncomingTransferPreview, string, bool, TimeSpan?, long?, CancellationToken, Task>? _recordTransfer;
     private readonly Func<IncomingBatchPreview, CancellationToken, Task<IncomingBatchDecision>>? _approveBatch;
     private readonly Func<IncomingTextPreview, CancellationToken, Task<IncomingTextDecision>>? _approveText;
     private readonly Func<IncomingTextPreview, string, CancellationToken, Task>? _recordText;
@@ -37,7 +37,7 @@ public sealed class ReceiveServerService : IAsyncDisposable
         string receiveRoot,
         Func<string, bool> consumePairingNonce,
         Func<IncomingTransferPreview, CancellationToken, Task<bool>> approveTransfer,
-        Func<IncomingTransferPreview, string, bool, TimeSpan?, CancellationToken, Task>? recordTransfer = null,
+        Func<IncomingTransferPreview, string, bool, TimeSpan?, long?, CancellationToken, Task>? recordTransfer = null,
         Func<IncomingTextPreview, CancellationToken, Task<IncomingTextDecision>>? approveText = null,
         Func<IncomingTextPreview, string, CancellationToken, Task>? recordText = null,
         Func<IncomingPairingRequest, CancellationToken, Task<bool>>? approvePairing = null,
@@ -221,7 +221,13 @@ public sealed class ReceiveServerService : IAsyncDisposable
                 await new TransferEngine().ReceiveFileAsync(connection, _receiveRoot, effectiveEntry, offset, null, ct);
                 transferStopwatch.Stop();
                 await FrameProtocol.WriteJsonAsync(connection, new TransferAcknowledgement(true, effectiveEntry.Length), ct);
-                await RecordAsync(filePreview with { Entry = effectiveEntry }, "completed", true, ct, transferStopwatch.Elapsed);
+                await RecordAsync(
+                    filePreview with { Entry = effectiveEntry },
+                    "completed",
+                    true,
+                    ct,
+                    transferStopwatch.Elapsed,
+                    effectiveEntry.Length - offset);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -384,7 +390,13 @@ public sealed class ReceiveServerService : IAsyncDisposable
                         connection,
                         new TransferAcknowledgement(true, item.EffectiveEntry.Length),
                         ct);
-                    await RecordAsync(itemPreview, "completed", true, ct, itemStopwatch.Elapsed);
+                    await RecordAsync(
+                        itemPreview,
+                        "completed",
+                        true,
+                        ct,
+                        itemStopwatch.Elapsed,
+                        item.EffectiveEntry.Length - item.ResumeOffset);
                 }
                 catch
                 {
@@ -489,8 +501,9 @@ public sealed class ReceiveServerService : IAsyncDisposable
         string status,
         bool verified,
         CancellationToken ct,
-        TimeSpan? duration = null)
-        => _recordTransfer?.Invoke(preview, status, verified, duration, ct) ?? Task.CompletedTask;
+        TimeSpan? duration = null,
+        long? measuredBytes = null)
+        => _recordTransfer?.Invoke(preview, status, verified, duration, measuredBytes, ct) ?? Task.CompletedTask;
 
     private Task RecordTextAsync(IncomingTextPreview preview, string status, CancellationToken ct)
         => _recordText?.Invoke(preview, status, ct) ?? Task.CompletedTask;
