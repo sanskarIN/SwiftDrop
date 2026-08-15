@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Net;
 using System.Text;
 using SwiftDrop.Core.Discovery;
@@ -94,6 +95,32 @@ public sealed class MdnsCodecTests
     }
 
     [Fact]
+    public void AnnouncementParser_RejectsPtrNameThatReadsBeyondDeclaredRdata()
+    {
+        var peer = new PeerDevice(
+            "device123",
+            "Laptop",
+            "Windows",
+            "",
+            47821,
+            new string('A', 64));
+        var packet = MdnsCodec.CreateAnnouncement(peer, IPAddress.Parse("192.168.1.22"));
+
+        var firstOwnerEnd = SkipDnsName(packet, 12);
+        var rdLengthOffset = firstOwnerEnd + 8;
+        var rdLength = BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(rdLengthOffset, 2));
+        Assert.True(rdLength > 0);
+        var dataStart = rdLengthOffset + 2;
+
+        var malformed = new byte[packet.Length - rdLength];
+        packet.AsSpan(0, dataStart).CopyTo(malformed);
+        packet.AsSpan(dataStart + rdLength).CopyTo(malformed.AsSpan(dataStart));
+        BinaryPrimitives.WriteUInt16BigEndian(malformed.AsSpan(rdLengthOffset, 2), 0);
+
+        Assert.Null(MdnsCodec.TryParseAnnouncement(malformed, IPAddress.Loopback, DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
     public void QueryParser_RejectsImpossibleQuestionCountOnShortPacket()
     {
         var packet = new byte[12];
@@ -118,6 +145,19 @@ public sealed class MdnsCodecTests
         {
             var truncated = packet.AsSpan(0, length).ToArray();
             Assert.Null(MdnsCodec.TryParseAnnouncement(truncated, IPAddress.Loopback, DateTimeOffset.UtcNow));
+        }
+    }
+
+    private static int SkipDnsName(byte[] packet, int offset)
+    {
+        var cursor = offset;
+        while (true)
+        {
+            Assert.InRange(cursor, 0, packet.Length - 1);
+            var length = packet[cursor++];
+            if (length == 0) return cursor;
+            Assert.InRange(length, (byte)1, (byte)63);
+            cursor += length;
         }
     }
 
