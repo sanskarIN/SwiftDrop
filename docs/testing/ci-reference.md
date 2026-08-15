@@ -375,3 +375,9 @@ Always prefer the latest exact-candidate workflow results when preparing an actu
 Portable validation now includes **26 Python helper tests** and **559 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
 
 The Core suite additionally covers daily bucketing, resume-safe measured-byte math, UTC offset behavior, out-of-window/invalid sample exclusion, saturating aggregates, window bounds, deterministic CSV formatting, duplicate/inconsistent bucket rejection, and History store cutoff-query behavior.
+
+## Aggregate performance trend/export contract
+
+Portable validation now includes **26 Python helper tests** and **559 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
+
+The Core suite additionally covers daily bucketing, resume-safe measured-byte math, UTC offset behavior, out-of-window/invalid sample exclusion, saturating aggregates, window bounds, deterministic CSV formatting, duplicate/inconsistent bucket rejection, and History store cutoff-query behavior.
