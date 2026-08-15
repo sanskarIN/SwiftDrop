@@ -144,19 +144,21 @@ jobs:
       - name: Select Apple simulator runtimes
         shell: bash
         run: |
-          set -euo pipefail
-          arch="$(uname -m)"
-          if [ "$arch" = "arm64" ]; then
-            echo "IOS_SIM_RID=iossimulator-arm64" >> "$GITHUB_ENV"
+          if [ "$(uname -m)" = "arm64" ]; then
             echo "MACCATALYST_RID=maccatalyst-arm64" >> "$GITHUB_ENV"
+            echo "IOS_SIMULATOR_RID=iossimulator-arm64" >> "$GITHUB_ENV"
           else
-            echo "IOS_SIM_RID=iossimulator-x64" >> "$GITHUB_ENV"
             echo "MACCATALYST_RID=maccatalyst-x64" >> "$GITHUB_ENV"
+            echo "IOS_SIMULATOR_RID=iossimulator-x64" >> "$GITHUB_ENV"
           fi
-      - name: Restore Mac Catalyst app
-        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst -p:RuntimeIdentifierOverride=${{ env.MACCATALYST_RID }}
+      - name: Restore Mac Catalyst app and shared Core runtime
+        shell: bash
+        run: |
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-maccatalyst -p:RuntimeIdentifier="$MACCATALYST_RID"
+          dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier="$MACCATALYST_RID"
       - name: Build Mac Catalyst app
-        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore -p:RuntimeIdentifierOverride=${{ env.MACCATALYST_RID }}
+        shell: bash
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-maccatalyst -c Release --no-restore -p:RuntimeIdentifier="$MACCATALYST_RID"
       - name: Capture and validate Mac Catalyst dependency audit
         shell: bash
         run: |
@@ -166,12 +168,19 @@ jobs:
           dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-maccatalyst --include-transitive --no-restore --format json --output-version 1 > artifacts/apple/maccatalyst/packages.json
           dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-maccatalyst --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/apple/maccatalyst/vulnerabilities.json
           python3 scripts/validate_nuget_vulnerability_report.py artifacts/apple/maccatalyst/vulnerabilities.json
-      - name: Restore iOS simulator app and extension
-        run: dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifierOverride=${{ env.IOS_SIM_RID }}
+          unset SwiftDropTargetFrameworksOverride
+      - name: Restore iOS simulator app, extension, and shared Core runtime
+        shell: bash
+        run: |
+          dotnet restore src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -p:RuntimeIdentifier="$IOS_SIMULATOR_RID" -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements=
+          dotnet restore src/SwiftDrop.App/SwiftDrop.App.csproj -p:TargetFramework=net10.0-ios -p:RuntimeIdentifier="$IOS_SIMULATOR_RID" -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements=
+          dotnet restore src/SwiftDrop.Core/SwiftDrop.Core.csproj -p:RuntimeIdentifier="$IOS_SIMULATOR_RID"
       - name: Build iOS simulator share extension
-        run: dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifierOverride=${{ env.IOS_SIM_RID }} -p:CodesignKey= -p:CodesignProvision= -p:EnableCodeSigning=false
+        shell: bash
+        run: dotnet build src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID" -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements=
       - name: Build iOS simulator app
-        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifierOverride=${{ env.IOS_SIM_RID }} -p:CodesignKey= -p:CodesignProvision= -p:EnableCodeSigning=false
+        shell: bash
+        run: dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-ios -c Release --no-restore -p:RuntimeIdentifier="$IOS_SIMULATOR_RID" -p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false -p:CodesignEntitlements=
       - name: Capture and validate iOS dependency audits
         shell: bash
         run: |
@@ -180,6 +189,7 @@ jobs:
           export SwiftDropTargetFrameworksOverride=net10.0-ios
           dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-ios --include-transitive --no-restore --format json --output-version 1 > artifacts/apple/ios-app/packages.json
           dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-ios --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/apple/ios-app/vulnerabilities.json
+          unset SwiftDropTargetFrameworksOverride
           dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --no-restore --format json --output-version 1 > artifacts/apple/ios-share-extension/packages.json
           dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/apple/ios-share-extension/vulnerabilities.json
           python3 scripts/validate_nuget_vulnerability_report.py artifacts/apple/ios-app/vulnerabilities.json artifacts/apple/ios-share-extension/vulnerabilities.json
