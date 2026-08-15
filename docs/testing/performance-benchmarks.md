@@ -45,3 +45,11 @@ Record synthetic results for representative release hardware and compare like-fo
 When using History samples during release testing, compare similar devices, network conditions, file sizes, resume state, and sender/receiver roles. Do not combine unrelated environments into a marketing performance claim.
 
 Large-file validation should additionally observe peak memory and confirm that transfer code continues to stream rather than allocating a whole file. Benchmark and history data are engineering evidence, not a guarantee of a fixed transfer speed.
+
+## Local trend/export evidence
+
+The local History trend is an observational aid, not a benchmark guarantee. It groups valid completed measurements by UTC date and computes weighted throughput from actual measured bytes divided by measured elapsed time. Resumed transfers contribute only bytes transferred after the negotiated resume offset.
+
+Automated tests verify UTC bucketing, window boundaries, resumed-byte attribution, saturation behavior, invariant CSV output, aggregate-only columns, duplicate/inconsistent bucket rejection, and the untruncated cutoff query.
+
+For release/post-v1 performance claims, collect representative-device and representative-network samples, export the aggregate trend, and correlate those results with the synthetic benchmark harness. Do not present hosted CI or the local trend as proof of universal transfer speed.
