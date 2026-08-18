@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased - 2026-08-18
+
+### Deterministic state-machine regression hardening
+
+- Added a 5,000-operation seeded reference-model state machine for `AttemptRateLimiter`, covering sliding-window expiry, bounded first-seen key admission, independent keys, rejection, and reset behavior.
+- Added a 4,000-operation seeded reference-model state machine for `OneTimeAuthorizationStore`, covering register/consume/prune/clear transitions, exact expiry, duplicate/capacity rejection, and count invariants.
+- Added a 3,000-operation seeded reference-model state machine for `DiscoveryRegistry`, covering valid/invalid upserts, exact expiry, snapshots, exclusion, ordering, and clear behavior.
+- Expanded the portable xUnit contract from **569 to 572 tests** without adding a third-party test dependency or changing application/runtime source.
+- Exact test head `898f17a3157ab7af14d7aeb958b315dde1e1c2af` passed normal CI, CodeQL, security hygiene, and complete release readiness, including all hosted Android/Windows/Apple compile-audit jobs.
+- Synchronized current-state documentation to the 572/26 contract and removed a duplicated aggregate-performance-evidence section plus obsolete notification-era test counts from the release process.
+
 ## Unreleased - 2026-08-15
 
 

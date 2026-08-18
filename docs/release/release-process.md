@@ -1,6 +1,6 @@
 # SwiftDrop Release Process
 
-Updated: 2026-08-15
+Updated: 2026-08-18
 
 This process turns a source-complete commit into a release candidate and, only after all required evidence passes, into a publishable release.
 
@@ -299,7 +299,7 @@ Source completeness, hosted compilation, clean vulnerable-package reports, and m
 For any candidate that ships optional terminal notifications:
 
 1. run both Apple and Windows integration validators through the portable gate;
-2. confirm the 16 Python helper tests and 522 xUnit tests pass;
+2. confirm the 26 Python helper tests and 572 xUnit tests pass;
 3. inspect the final Windows packaged manifest/COM activation metadata rather than relying on unpackaged source compile alone;
 4. verify signed Android/iOS/Mac Catalyst/Windows notification permission/registration/presentation behavior on real targets;
 5. verify English/Hindi terminal messages remain generic and contain no transfer-specific identifiers/content;
