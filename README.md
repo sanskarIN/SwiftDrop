@@ -242,6 +242,7 @@ Portable tests include:
 - concurrent bounded-state admission for rate-limiter peer keys and one-time authorization nonces;
 - deterministic seeded reference-model state machines for rate-limiter window/reset/capacity behavior, one-time authorization register/consume/prune/clear behavior, and discovery upsert/expiry/snapshot/clear behavior;
 - deterministic seeded reference-model state machines for rate-limiter window/reset/capacity behavior, one-time authorization register/consume/prune/clear behavior, and discovery upsert/expiry/snapshot/clear behavior;
+- deterministic seeded reference-model state machines for rate-limiter window/reset/capacity behavior, one-time authorization register/consume/prune/clear behavior, and discovery upsert/expiry/snapshot/clear behavior;
 - resume failure paths that reject invalid/missing staged state without creating destination directories or partial files;
 - external staging symlink/reparse rejection through the same regular-source safety policy used by direct sends;
 - session-drain races;
