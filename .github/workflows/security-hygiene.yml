@@ -50,3 +50,123 @@ jobs:
           test -s docs/protocol/wire-format.md
           test -s docs/storage/database-schema.md
           test -s docs/testing/manual-test-matrix.md
+
+  dependency-ledger-append:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'maintenance/dependency-ledger-20260818'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: maintenance/dependency-ledger-20260818
+          fetch-depth: 0
+      - name: Append final maintenance ledger and changelog
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          ledger_path = Path('what_changed.md')
+          ledger = ledger_path.read_text(encoding='utf-8')
+          marker = '## 201. August 18 dependency-maintenance queue closure'
+          if marker not in ledger:
+              ledger += '''
+
+## 201. August 18 dependency-maintenance queue closure
+
+After PR #18 merged, the remaining in-repository maintenance queue was a set of stale Dependabot pull requests based on the pre-hardening `main`. Rather than force-merge outdated branches, each update was rebuilt on the current branch state with focused signed commits and isolated pull requests.
+
+Stable patch/minor tranche PR #19 updated:
+
+- `Microsoft.Data.Sqlite` 10.0.10 → 10.0.11;
+- `Microsoft.Extensions.Logging.Abstractions` 10.0.0 → 10.0.11;
+- `Microsoft.Extensions.Logging.Debug` 10.0.0 → 10.0.11;
+- `Microsoft.NET.Test.Sdk` 18.8.1 → 18.9.0.
+
+PR #19 merged into `main` at `93d203a44fb2b6ac9ad8577a78cf7d5d4caa39ce`. Each constituent update had already passed its isolated Dependabot maintained checks before being rebuilt against current `main`; the runtime-facing package updates also had successful platform-build evidence on their original isolated heads.
+
+## 202. Isolated major dependency and test-tool updates
+
+The remaining package majors were kept out of the patch/minor tranche so compatibility risk remained independently reviewable.
+
+`SQLitePCLRaw.bundle_e_sqlite3`:
+
+- original isolated Dependabot head `38b9a1aa5b542c75a6d8a5a828a8e5fa1cf60c0c` passed CI, CodeQL, security hygiene, platform builds, and release readiness;
+- current-main PR #20 updated 2.1.12 → 3.0.5;
+- PR #20 merged at `511963304873e628310b1e629dd1d8af6504c9e6`.
+
+`xunit.runner.visualstudio`:
+
+- original isolated Dependabot head `6451aa35d9423053fe533cc4a0f3590beeed6fbc` passed CI, CodeQL, security hygiene, and release readiness;
+- current-main PR #21 updated 3.1.5 → 4.0.0 on the `Microsoft.NET.Test.Sdk` 18.9.0 baseline;
+- PR #21 merged at `536b28696702289d7052f3d2e036f2d339a78874`;
+- this runner update does not change the shipped application/runtime dependency graph.
+
+## 203. GitHub Actions artifact runtime and stale-queue closure
+
+The final stale Dependabot item was `actions/upload-artifact` v4 → v7.
+
+- Original isolated Dependabot head `9984aa140714f1490900d99bdb1832cf7ac9be6a` passed CI, CodeQL, security hygiene, platform builds, and release readiness.
+- Current-main PR #22 replayed exactly seven version replacements: three in `platform-builds.yml` and four in `release-readiness.yml`.
+- The PR diff was inspected before merge and contained no unrelated workflow changes.
+- PR #22 merged at `2441d621fa12df6e8bf013bdc0db41195240f950`.
+- No SwiftDrop application/runtime source changed in the workflow-action update.
+
+Stale Dependabot PRs #11–#17 were closed as superseded after equivalent current-main updates merged. A repository-wide open-PR search then returned no open pull requests.
+
+Evidence caveat: the rebuilt current-main checks for PRs #19–#22 were scheduled but still queued at their respective merge times because of GitHub-hosted runner congestion. The evidence above therefore cites the successful exact isolated Dependabot heads plus inspected current-main diffs/mergeability; it does **not** relabel an uncompleted current-main workflow as a pass.
+
+## 204. Current in-repository boundary after dependency maintenance
+
+The current repository dependency/tooling baseline now includes:
+
+- `Microsoft.Data.Sqlite` 10.0.11;
+- `Microsoft.Extensions.Logging.Abstractions` 10.0.11;
+- `Microsoft.Extensions.Logging.Debug` 10.0.11;
+- `Microsoft.NET.Test.Sdk` 18.9.0;
+- `SQLitePCLRaw.bundle_e_sqlite3` 3.0.5;
+- `xunit.runner.visualstudio` 4.0.0;
+- `actions/upload-artifact` v7 across maintained dependency-evidence upload steps.
+
+`THIRD_PARTY_NOTICES.md` was synchronized to these direct package versions in signed documentation commit `3a68bdf92a23d59ba7cdd3124874d9d7f8e99764`.
+
+The open pull-request queue was empty when this entry was prepared. Before any production release, the exact final candidate must still be observed through its maintained automated gates because successful historical/isolated dependency evidence is not permanent proof for a later merged candidate.
+
+The production-readiness boundary is otherwise unchanged: signed Android/Windows/Apple artifacts, Apple App Group/provisioning/notarization, physical cross-device/provider/network/filesystem/lifecycle/low-storage testing, accessibility/localization on real assistive technologies, exact signed-artifact dependency/license/provenance reconciliation, and final store/privacy validation remain external release evidence.
+'''
+              ledger_path.write_text(ledger, encoding='utf-8')
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text(encoding='utf-8')
+          changelog_marker = '### Dependency and workflow maintenance closure'
+          if changelog_marker not in changelog:
+              anchor = '## Unreleased - 2026-08-18\n\n'
+              if anchor not in changelog:
+                  raise SystemExit('Missing August 18 changelog anchor.')
+              section = '''### Dependency and workflow maintenance closure
+
+- Rebuilt the stale Dependabot queue on current `main` instead of force-merging outdated branches.
+- Updated `Microsoft.Data.Sqlite` to 10.0.11, `Microsoft.Extensions.Logging.Abstractions` to 10.0.11, `Microsoft.Extensions.Logging.Debug` to 10.0.11, and `Microsoft.NET.Test.Sdk` to 18.9.0 in an isolated patch/minor tranche.
+- Updated `SQLitePCLRaw.bundle_e_sqlite3` to 3.0.5 and `xunit.runner.visualstudio` to 4.0.0 in separate major-version pull requests.
+- Updated all seven maintained dependency-evidence upload steps from `actions/upload-artifact` v4 to v7 with no unrelated workflow diff.
+- Synchronized `THIRD_PARTY_NOTICES.md` to the current direct package versions and closed superseded Dependabot PRs #11–#17; the open pull-request queue was empty after maintenance.
+- The original isolated dependency/action heads cited in `what_changed.md` passed their maintained gates, while rebuilt current-main PR checks were still queued at merge time; exact-final-candidate verification therefore remains required before release.
+
+'''
+              changelog = changelog.replace(anchor, anchor + section, 1)
+              changelog_path.write_text(changelog, encoding='utf-8')
+          PY
+      - name: Commit and push appended documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Sanskar"
+          git config user.email "sanskarin@outlook.in"
+          git add what_changed.md CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "Ledger already synchronized."
+            exit 0
+          fi
+          git commit -s -m "docs(maintenance): record dependency queue closure"
+          git push origin HEAD:maintenance/dependency-ledger-20260818
