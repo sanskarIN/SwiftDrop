@@ -70,7 +70,7 @@ jobs:
           dotnet package list --project benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/benchmark-vulnerabilities.json
           python3 scripts/validate_nuget_vulnerability_report.py artifacts/core-vulnerabilities.json artifacts/test-vulnerabilities.json artifacts/benchmark-vulnerabilities.json
           python3 scripts/create_dependency_evidence_manifest.py artifacts artifacts/manifest.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dependency-audit
           path: artifacts/
@@ -102,7 +102,7 @@ jobs:
           dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-android --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/android/vulnerabilities.json
           python3 scripts/validate_nuget_vulnerability_report.py artifacts/android/vulnerabilities.json
           python3 scripts/create_dependency_evidence_manifest.py artifacts/android artifacts/android/manifest.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: android-dependency-audit
           path: artifacts/android/
@@ -139,7 +139,7 @@ jobs:
           dotnet package list --project src/SwiftDrop.App/SwiftDrop.App.csproj --framework net10.0-windows10.0.19041.0 --include-transitive --vulnerable --no-restore --format json --output-version 1 | Out-File -Encoding utf8 artifacts/windows/vulnerabilities.json
           python scripts/validate_nuget_vulnerability_report.py artifacts/windows/vulnerabilities.json
           python scripts/create_dependency_evidence_manifest.py artifacts/windows artifacts/windows/manifest.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-dependency-audit
           path: artifacts/windows/
@@ -208,7 +208,7 @@ jobs:
           dotnet package list --project src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj --framework net10.0-ios --include-transitive --vulnerable --no-restore --format json --output-version 1 > artifacts/apple/ios-share-extension/vulnerabilities.json
           python3 scripts/validate_nuget_vulnerability_report.py artifacts/apple/ios-app/vulnerabilities.json artifacts/apple/ios-share-extension/vulnerabilities.json
           python3 scripts/create_dependency_evidence_manifest.py artifacts/apple artifacts/apple/manifest.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: apple-dependency-audit
           path: artifacts/apple/
