@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Updated: 2026-08-14
+Updated: 2026-08-18
 
 SwiftDrop is licensed under Apache-2.0. It also depends on third-party packages and platform SDK components that remain governed by their own licenses.
 
@@ -12,9 +12,9 @@ This file describes direct source references for review. It is **not** a substit
 
 Direct NuGet package references:
 
-- `Microsoft.Data.Sqlite` — 10.0.10 in the current project file.
-- `Microsoft.Extensions.Logging.Abstractions` — 10.0.0 in the current project file.
-- `SQLitePCLRaw.bundle_e_sqlite3` — 2.1.12 explicitly pinned in the current project file so restore does not select the previously blocked vulnerable native SQLite bundle path.
+- `Microsoft.Data.Sqlite` — 10.0.11 in the current project file.
+- `Microsoft.Extensions.Logging.Abstractions` — 10.0.11 in the current project file.
+- `SQLitePCLRaw.bundle_e_sqlite3` — 3.0.5 explicitly pinned in the current project file.
 
 The SQLite dependency surface includes transitive native/runtime components. Release review must inspect the exact restored graph and advisories for the candidate rather than treating the direct package list as the complete redistribution inventory.
 
@@ -23,7 +23,7 @@ The SQLite dependency surface includes transitive native/runtime components. Rel
 Direct NuGet package references:
 
 - `Microsoft.Maui.Controls` — 10.0.90 in the current project file.
-- `Microsoft.Extensions.Logging.Debug` — 10.0.0 in the current project file.
+- `Microsoft.Extensions.Logging.Debug` — 10.0.11 in the current project file.
 - `QRCoder` — 1.8.0 in the current project file.
 
 Direct project references:
@@ -49,7 +49,7 @@ Mac Catalyst uses the containing desktop app/native-drop path and does not have 
 
 `tests/SwiftDrop.Core.Tests` directly references:
 
-- `Microsoft.NET.Test.Sdk` — 18.8.1 in the current project file.
+- `Microsoft.NET.Test.Sdk` — 18.9.0 in the current project file.
 - `xunit` — 2.9.3 in the current project file.
 - `xunit.runner.visualstudio` — 3.1.5 in the current project file.
 - `coverlet.collector` — 10.0.1 in the current project file.
@@ -98,7 +98,7 @@ Before publishing any binary release:
 5. Confirm the vulnerable-package reports contain no findings under the configured advisory data and command semantics.
 6. Include transitive packages/framework/native components where redistribution or notice obligations apply.
 7. Review package provenance, versions, licenses, notices, vulnerabilities/security advisories, and redistribution terms manually.
-8. Confirm the restored graph does not reintroduce the previously blocked vulnerable SQLite native dependency version/path.
+8. Confirm the restored graph does not reintroduce a vulnerable or otherwise disallowed SQLite native dependency path.
 9. Compare the source/restored inventories against the final signed/package outputs; do not rely only on project files or hosted simulator/unpackaged reports.
 10. Include every required attribution/license text in the app/package/release materials.
 11. Repeat the review whenever package versions, workloads, SDKs, target frameworks, or shipped projects change.
