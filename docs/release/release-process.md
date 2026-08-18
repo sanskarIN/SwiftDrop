@@ -1,6 +1,6 @@
 # SwiftDrop Release Process
 
-Updated: 2026-08-15
+Updated: 2026-08-18
 
 This process turns a source-complete commit into a release candidate and, only after all required evidence passes, into a publishable release.
 
@@ -299,7 +299,7 @@ Source completeness, hosted compilation, clean vulnerable-package reports, and m
 For any candidate that ships optional terminal notifications:
 
 1. run both Apple and Windows integration validators through the portable gate;
-2. confirm the 16 Python helper tests and 522 xUnit tests pass;
+2. confirm the 26 Python helper tests and 572 xUnit tests pass;
 3. inspect the final Windows packaged manifest/COM activation metadata rather than relying on unpackaged source compile alone;
 4. verify signed Android/iOS/Mac Catalyst/Windows notification permission/registration/presentation behavior on real targets;
 5. verify English/Hindi terminal messages remain generic and contain no transfer-specific identifiers/content;
@@ -307,12 +307,6 @@ For any candidate that ships optional terminal notifications:
 7. rebuild and repeat invalidated signed/package notification evidence after any notification-source/manifest/resource change.
 
 **Made by the Sanskar**
-
-## Aggregate performance evidence
-
-For a release candidate, treat the local trend CSV as reproducible **device evidence**, not as hosted telemetry. Generate it only from the exact signed candidate while exercising representative devices/networks. Retain the exported aggregate CSV with the candidate test record if project policy permits, and correlate it with the synthetic benchmark harness.
-
-Before retaining or sharing any trend export, verify its schema is the aggregate-only five-column contract and contains no file/device/path/endpoint/authentication/content data. Hosted compile/test success validates implementation structure but does not substitute for physical measurement or store/privacy review.
 
 ## Aggregate performance evidence
 

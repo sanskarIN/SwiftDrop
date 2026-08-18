@@ -1,6 +1,16 @@
 # SwiftDrop Next Steps
 
-Updated: 2026-08-15
+Updated: 2026-08-18
+
+## August 18 deterministic state-machine hardening
+
+- Added deterministic reference-model state-machine regression suites for `AttemptRateLimiter`, `OneTimeAuthorizationStore`, and `DiscoveryRegistry`.
+- The suites execute **12,000 seeded generated operations** in total: 5,000 rate-limiter operations, 4,000 authorization-store operations, and 3,000 discovery-registry operations.
+- The reference models cover expiry boundaries, bounded admission, duplicate rejection, reset/prune/clear behavior, one-time consumption, invalid discovery inputs, trusted-first snapshot ordering, and self-exclusion.
+- Portable xUnit coverage is now **572 tests** while the Python helper suite remains **26 tests**.
+- Exact test head `898f17a3157ab7af14d7aeb958b315dde1e1c2af` passed normal CI, CodeQL, security hygiene, and the complete release-readiness aggregate including Android, Windows, Mac Catalyst, iOS Share Extension, and iOS containing-app hosted compile/audit jobs.
+- This tranche changes test/documentation coverage only; no application/runtime source behavior is changed.
+- Signed-package, real-device/provider/network/filesystem, accessibility/localization, exact signed-artifact dependency/license/provenance, Apple provisioning/notarization, Windows packaged activation, and store/privacy validation remain external release work.
 
 
 ## August 15 final in-repository defect-closure pass
@@ -8,7 +18,7 @@ Updated: 2026-08-15
 - The final source-level bug/error audit is complete across transfer/resume, external staging, one-time credentials, bounded security state, discovery/mDNS parsing, persistence, platform integration, and release automation.
 - Fixed invalid/missing resume-state filesystem side effects, external symlink/reparse staging, exact-expiry inconsistencies, concurrent rate-limiter/authorization capacity races, exact discovery expiry, and cross-record mDNS RDATA reads.
 - Release readiness now runs automatically for production source, tests, benchmark/build inputs, and its verification/audit/evidence inputs instead of only a narrow helper-script set.
-- Portable regression coverage is **569 xUnit tests** plus **26 Python helper tests**.
+- Portable regression coverage is **572 xUnit tests** plus **26 Python helper tests**.
 - No additional mandatory source feature is intentionally left on the repository roadmap. New source work should be driven by a reproducible defect, dependency/platform change, or deliberately scoped post-v1 feature.
 - Production release still requires the signed/package/device/network/provider/accessibility/store evidence listed below; hosted source validation cannot substitute for those external gates.
 
@@ -429,7 +439,7 @@ These are optional product improvements, not missing correctness work in the cur
 - broader localization beyond English/Hindi;
 - representative-device/cross-network trend evidence and synthetic-vs-real benchmark correlation using the implemented aggregate local History trend export;
 - trustworthy platform malware-scan integration only where a supported OS API exists;
-- additional property/fuzz/state-machine testing beyond current coverage.
+- further property/fuzz/state-machine hardening can continue opportunistically; the August 18 tranche added deterministic reference-model coverage for the attempt rate limiter, one-time authorization store, and discovery registry.
 
 ## Production-ready definition
 

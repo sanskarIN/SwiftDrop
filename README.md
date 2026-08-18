@@ -240,6 +240,7 @@ Portable tests include:
 - mDNS record-RDATA boundary isolation, including rejection of names that would read into a following record;
 - exact-expiry behavior for one-time pairing/transfer authorizations and discovered-peer presence;
 - concurrent bounded-state admission for rate-limiter peer keys and one-time authorization nonces;
+- deterministic seeded reference-model state machines for rate-limiter window/reset/capacity behavior, one-time authorization register/consume/prune/clear behavior, and discovery upsert/expiry/snapshot/clear behavior;
 - resume failure paths that reject invalid/missing staged state without creating destination directories or partial files;
 - external staging symlink/reparse rejection through the same regular-source safety policy used by direct sends;
 - session-drain races;
@@ -250,7 +251,7 @@ Configured GitHub Actions include:
 
 - documentation integrity validation;
 - **26 Python validation-helper regression tests**, including NuGet evidence helpers, packaged-integration validators, performance-history measurement contracts, and aggregate performance-trend export contracts;
-- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **569 xUnit tests**;
+- two-OS portable verification on Ubuntu and Windows PowerShell, currently covering **572 xUnit tests**;
 - portable Core build/tests;
 - localization validation;
 - Apple App Group/iOS Share Extension metadata validation;

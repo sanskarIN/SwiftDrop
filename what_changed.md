@@ -3266,3 +3266,41 @@ Notification failure remains deliberately non-authoritative: permission, registr
 - This appendix and its helper cleanup do not change runtime source `406c2cfb48c45e04cc34662776e67a68f167745d` or the final source/test/release-trigger candidate `6b1544b3a91ecfef2937a909f58a7e9faee31cff`.
 - Signed package/device/network/provider/accessibility/store validation remains external release evidence and is not replaced by hosted source checks.
 
+
+
+## 198. Deterministic reference-model state-machine hardening
+
+The next repository-executable post-v1 hardening item was additional property/fuzz/state-machine coverage. This continuation deliberately uses deterministic seeded reference models rather than non-reproducible smoke randomness.
+
+Focused signed commits:
+
+- `ab73209a94abcff4553cb1fccbec998672bd691c` — 5,000-operation `AttemptRateLimiter` reference-model state machine;
+- `d355d6c526593d1b78439d3168606707d0186247` — 4,000-operation `OneTimeAuthorizationStore` reference-model state machine;
+- `898f17a3157ab7af14d7aeb958b315dde1e1c2af` — 3,000-operation `DiscoveryRegistry` reference-model state machine.
+
+Together the suites execute **12,000 deterministic generated operations**. They compare the production object's externally visible result against an intentionally simple model across expiry, bounded capacity, duplicate/replay rejection, reset/prune/clear transitions, one-time consumption, invalid discovery inputs, trusted-first/name ordering, and snapshot self-exclusion. Fixed seeds keep every failure reproducible.
+
+No application/runtime source file changes in this tranche; it is regression-only hardening.
+
+## 199. Exact-head automated evidence and current-contract synchronization
+
+Exact test head `898f17a3157ab7af14d7aeb958b315dde1e1c2af` passed all maintained PR gates:
+
+- normal CI run `32126274113`: success;
+- CodeQL run `32126274127`: success;
+- security-hygiene run `32126274092`: success;
+- release-readiness run `32126274097`: success, including the final aggregate release gate.
+
+Release-readiness portable evidence included **26/26 Python helper tests**, documentation integrity (47 required files and 85 checked local Markdown links), English/Hindi localization validation, Apple/Windows integration metadata validation, Core Release build with zero warnings/errors, **572/572 xUnit tests**, benchmark Release build with zero warnings/errors, and machine-readable vulnerable-package validation with zero findings.
+
+The same release-readiness run also completed Android, focused Windows, Mac Catalyst, iOS Simulator Share Extension, and iOS Simulator containing-app hosted compile/audit jobs successfully and retained the configured dependency-audit artifacts.
+
+Current-state README/build/CI/roadmap/status documentation is synchronized from the prior 569-test contract to **572 xUnit tests** while older historical evidence sections remain unchanged.
+
+## 200. Release-process documentation defect closure and remaining boundary
+
+During synchronization, the canonical release process was found to contain the aggregate-performance-evidence section twice and to retain a notification-era instruction requiring only 16 Python helper tests / 522 xUnit tests. The duplicated section was reduced to one canonical copy and the current candidate instruction was aligned to **26 Python helper tests / 572 xUnit tests**.
+
+The August 18 state-machine tranche advances the optional property/fuzz/state-machine roadmap item but does not claim that adversarial testing is ever permanently exhausted. Further focused property testing remains appropriate when new defects, stateful components, protocol changes, or platform changes justify it.
+
+The production-readiness boundary is unchanged: signed Android/Windows/Apple packaging, Apple provisioning/App Group/notarization, real device/provider/network/filesystem/lifecycle/low-storage testing, accessibility/localization on actual assistive technologies, exact signed-artifact dependency/license/provenance reconciliation, and final store/privacy publication checks remain external or exact-candidate evidence. Hosted source tests do not substitute for those gates.

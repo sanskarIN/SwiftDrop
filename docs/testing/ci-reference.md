@@ -1,6 +1,6 @@
 # SwiftDrop CI and Verification Reference
 
-Updated: 2026-08-15
+Updated: 2026-08-18
 
 This document explains the maintained GitHub Actions gates and how their evidence should be interpreted.
 
@@ -375,6 +375,6 @@ Always prefer the latest exact-candidate workflow results when preparing an actu
 
 ## Current aggregate and final-hardening contract
 
-Portable validation now includes **26 Python helper tests** and **569 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
+Portable validation now includes **26 Python helper tests** and **572 xUnit tests**. `test_performance_trend_export_contract.py` protects UTC aggregation, aggregate-only invariant CSV schema, the untruncated storage cutoff query, cache/share-sheet export wiring, and English/Hindi UI resource completeness.
 
-The Core suite additionally covers daily bucketing/resume-safe measured-byte math plus the final hardening regressions for resume filesystem side effects, external source-link staging, exact one-time credential/discovery expiry, bounded concurrent security-state admission, and mDNS record-boundary parsing.
+The Core suite additionally covers daily bucketing/resume-safe measured-byte math plus the final hardening regressions for resume filesystem side effects, external source-link staging, exact one-time credential/discovery expiry, bounded concurrent security-state admission, and mDNS record-boundary parsing. It also includes deterministic seeded reference-model state machines for rate-limiter, one-time authorization, and discovery-registry transitions.
