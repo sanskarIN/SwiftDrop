@@ -1,5 +1,6 @@
 name: Dependency maintenance ledger append
 
+# One-shot PR helper. Removed after the ledger/changelog commit lands.
 on:
   pull_request:
     branches: [ main ]
