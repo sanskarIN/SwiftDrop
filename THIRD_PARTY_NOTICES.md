@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Updated: 2026-08-14
+Updated: 2026-08-18
 
 SwiftDrop is licensed under Apache-2.0. It also depends on third-party packages and platform SDK components that remain governed by their own licenses.
 
@@ -12,18 +12,18 @@ This file describes direct source references for review. It is **not** a substit
 
 Direct NuGet package references:
 
-- `Microsoft.Data.Sqlite` — 10.0.10 in the current project file.
-- `Microsoft.Extensions.Logging.Abstractions` — 10.0.0 in the current project file.
-- `SQLitePCLRaw.bundle_e_sqlite3` — 2.1.12 explicitly pinned in the current project file so restore does not select the previously blocked vulnerable native SQLite bundle path.
+- `Microsoft.Data.Sqlite` — 10.0.11 in the current project file.
+- `Microsoft.Extensions.Logging.Abstractions` — 10.0.11 in the current project file.
+- `SQLitePCLRaw.bundle_e_sqlite3` — 3.0.5 in the current project file.
 
-The SQLite dependency surface includes transitive native/runtime components. Release review must inspect the exact restored graph and advisories for the candidate rather than treating the direct package list as the complete redistribution inventory.
+The SQLite dependency surface includes transitive native/runtime components. Release review must inspect the exact restored graph and advisories for the candidate rather than treating the direct package list as the complete redistribution inventory. The prior 2.1.12 pin was originally introduced to avoid a blocked vulnerable native SQLite dependency path; the current 3.0.5 bundle must be reviewed from the exact final restored/signed candidate rather than assuming historical evidence applies permanently.
 
 ### `SwiftDrop.App`
 
 Direct NuGet package references:
 
 - `Microsoft.Maui.Controls` — 10.0.90 in the current project file.
-- `Microsoft.Extensions.Logging.Debug` — 10.0.0 in the current project file.
+- `Microsoft.Extensions.Logging.Debug` — 10.0.11 in the current project file.
 - `QRCoder` — 1.8.0 in the current project file.
 
 Direct project references:
@@ -49,9 +49,9 @@ Mac Catalyst uses the containing desktop app/native-drop path and does not have 
 
 `tests/SwiftDrop.Core.Tests` directly references:
 
-- `Microsoft.NET.Test.Sdk` — 18.8.1 in the current project file.
+- `Microsoft.NET.Test.Sdk` — 18.9.0 in the current project file.
 - `xunit` — 2.9.3 in the current project file.
-- `xunit.runner.visualstudio` — 3.1.5 in the current project file.
+- `xunit.runner.visualstudio` — 4.0.0 in the current project file.
 - `coverlet.collector` — 10.0.1 in the current project file.
 
 These test dependencies are not automatically part of a shipped application binary merely because they are used by CI/development tests.
