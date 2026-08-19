@@ -21,8 +21,13 @@ The validator requires the maintained repository-level files needed for a health
 - security and support policies;
 - contributing and Code of Conduct documents;
 - privacy and terms documents;
-- changelog, build guide, project status, and next-steps record;
-- canonical solution/build configuration.
+- changelog, build guide, project status, next-steps record, and final continuation ledger;
+- canonical solution/build configuration;
+- Dependabot configuration;
+- funding metadata;
+- bug-report and feature-request forms;
+- issue-template routing configuration;
+- pull-request template.
 
 Missing or empty required files fail validation.
 
@@ -40,10 +45,15 @@ This prevents accidental removal of a supported project from looking like a clea
 
 ### Required CI/release tooling
 
-The validator requires the maintained CI/security/release workflows and the canonical verification/release-evidence tools, including:
+The validator requires the maintained CI/security/platform/release workflows and the canonical verification/release-evidence tools, including:
 
-- CI, CodeQL, security-hygiene, and release-readiness workflows;
+- CI;
+- CodeQL;
+- security hygiene;
+- hosted platform builds;
+- release readiness;
 - Bash and PowerShell portable verification;
+- repository-completion validation itself;
 - documentation/localization/platform metadata validators;
 - NuGet vulnerability-report validation;
 - manual release-evidence validation;
@@ -62,6 +72,10 @@ Production source under `src/` must not contain the following unfinished impleme
 The check is intentionally scoped to production source rather than historical documentation or tests so a document can discuss those words without breaking CI.
 
 If future work is intentionally deferred, track it in a roadmap/issue or an explicit post-v1 design document rather than leaving an unfinished marker in production code.
+
+### Production source must remain readable UTF-8 text
+
+Maintained production source files covered by the completion scan must decode as UTF-8. This prevents malformed or accidentally binary source/configuration files from bypassing marker validation or creating platform-dependent repository behavior.
 
 ### No leaked placeholder release candidate
 
@@ -104,8 +118,9 @@ If this validator fails:
 1. do not remove the check simply to make CI green;
 2. restore the missing required artifact or project when it is still maintained;
 3. replace unfinished production markers with completed behavior or an explicit tracked post-v1 item;
-4. stamp real release-evidence records with the exact candidate commit rather than the placeholder;
-5. if the project contract intentionally changes, update the validator, its tests, the documentation index, and the owning release/architecture documentation in the same change.
+4. repair malformed production text instead of excluding it from validation;
+5. stamp real release-evidence records with the exact candidate commit rather than the placeholder;
+6. if the project contract intentionally changes, update the validator, its tests, the documentation index, and the owning release/architecture documentation in the same change.
 
 ## Completion definition
 
