@@ -116,7 +116,8 @@ public sealed class DiagnosticsViewModel : ObservableObject
         {
             var result = await action(ct);
             var resultLabel = AppText.Get(result.Passed ? "SelfTestPass" : "SelfTestFail");
-            SelfTestResult = AppText.Format("SelfTestResultFormat", resultLabel, result.Message);
+            var resultMessage = LocalizedSelfTestMessage(result);
+            SelfTestResult = AppText.Format("SelfTestResultFormat", resultLabel, resultMessage);
             await _log.RecordAsync(result.Passed ? "Info" : "Error", $"selftest.{result.Code}", result.Message, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -125,6 +126,21 @@ public sealed class DiagnosticsViewModel : ObservableObject
             await _log.RecordAsync("Error", "selftest.exception", $"Self-test failed with {ex.GetType().Name}.", ct);
         }
         await RefreshEventsAsync(ct);
+    }
+
+    private static string LocalizedSelfTestMessage(SelfTestResult result)
+    {
+        var key = (result.Code, result.Passed) switch
+        {
+            ("successful-roundtrip", true) => "SelfTestRoundTripPass",
+            ("successful-roundtrip", false) => "SelfTestRoundTripFail",
+            ("checksum-mismatch", true) => "SelfTestChecksumMismatchPass",
+            ("checksum-mismatch", false) => "SelfTestChecksumMismatchFail",
+            ("interrupted-receive", true) => "SelfTestInterruptedReceivePass",
+            ("interrupted-receive", false) => "SelfTestInterruptedReceiveFail",
+            _ => result.Passed ? "SelfTestPass" : "SelfTestFail"
+        };
+        return AppText.Get(key);
     }
 
     private async Task RefreshEventsAsync(CancellationToken ct)
