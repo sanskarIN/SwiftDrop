@@ -13,6 +13,7 @@ from typing import Any
 SCHEMA_VERSION = 1
 VALID_STATUSES = {"not-run", "in-progress", "blocked", "passed", "failed"}
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+UTC_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$")
 PLACEHOLDER_COMMIT = "0" * 40
 
 REQUIRED_CASES: dict[str, tuple[str, ...]] = {
@@ -117,8 +118,8 @@ def _parse_utc(value: Any, path: str, *, nullable: bool) -> datetime | None:
             return None
         raise _error(path, "must be an RFC 3339 UTC timestamp")
     text = _require_text(value, path, maximum=40)
-    if not text.endswith("Z"):
-        raise _error(path, "must use the canonical UTC 'Z' suffix")
+    if not UTC_TIMESTAMP_RE.fullmatch(text):
+        raise _error(path, "must use canonical YYYY-MM-DDTHH:MM:SS[.fraction]Z form")
     try:
         parsed = datetime.fromisoformat(text[:-1] + "+00:00")
     except ValueError as exc:
