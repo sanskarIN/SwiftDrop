@@ -37,6 +37,19 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             errors = MODULE.validate_repository(root)
             self.assertIn("missing required file: SECURITY.md", errors)
 
+    def test_missing_required_project_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.create_complete_repository(root)
+            project = root / "src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj"
+            project.unlink()
+
+            errors = MODULE.validate_repository(root)
+            self.assertIn(
+                "missing required file: src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj",
+                errors,
+            )
+
     def test_empty_required_file_fails(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -55,6 +68,16 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
 
             errors = MODULE.validate_repository(root)
             self.assertTrue(any("unfinished implementation marker 'TODO'" in error for error in errors))
+
+    def test_non_utf8_production_source_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.create_complete_repository(root)
+            source = root / "src/SwiftDrop.Core/Invalid.cs"
+            source.write_bytes(b"\xff\xfe\x00\x00")
+
+            errors = MODULE.validate_repository(root)
+            self.assertIn("production source is not UTF-8 text: src/SwiftDrop.Core/Invalid.cs", errors)
 
     def test_template_is_allowed_to_use_placeholder_commit(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
