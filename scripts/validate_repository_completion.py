@@ -25,6 +25,7 @@ REQUIRED_PATHS = (
     "docs/release/manual-release-evidence-generator.md",
     "docs/release/manual-release-evidence.template.json",
     "docs/release/continuation-status-2026-08-19.md",
+    "docs/release/repository-completion-2026-08-19.md",
     "what_changed.md",
     "what_changed_2026-08-19.md",
     "what_changed_2026-08-19_final.md",
@@ -48,6 +49,7 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
 )
 
 DOC_INDEX_LINKS = (
+    "release/repository-completion-2026-08-19.md",
     "release/continuation-status-2026-08-19.md",
     "../what_changed_2026-08-19_final.md",
     "release/manual-release-evidence.md",
