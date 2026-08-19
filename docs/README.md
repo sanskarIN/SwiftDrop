@@ -55,6 +55,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 ## Testing and quality
 
 - [CI reference](testing/ci-reference.md)
+- [Deterministic state-model testing](testing/deterministic-state-models.md)
 - [Security test plan](testing/security-test-plan.md)
 - [Manual test matrix](testing/manual-test-matrix.md)
 - [Release-candidate additional cases](testing/release-candidate-additional-cases.md)
