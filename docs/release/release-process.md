@@ -1,16 +1,27 @@
 # SwiftDrop Release Process
 
-Updated: 2026-08-18
+Updated: 2026-08-19
 
 This process turns a source-complete commit into a release candidate and, only after all required evidence passes, into a publishable release.
 
-The authoritative detailed checklist remains `docs/release/release-checklist.md`. The machine-readable dependency artifact contract is defined in `docs/release/dependency-evidence.md`. This document explains sequence and ownership of the evidence.
+The authoritative detailed checklist remains `docs/release/release-checklist.md`. The machine-readable dependency artifact contract is defined in `docs/release/dependency-evidence.md`. The manual signed/device/store evidence contract is defined in `docs/release/manual-release-evidence.md`, with candidate-record creation documented in `docs/release/manual-release-evidence-generator.md`. This document explains sequence and ownership of the evidence.
 
 ## 1. Define the candidate
 
 Choose one exact commit on `main` and record its full SHA.
 
 Do not call an unfrozen moving branch “the release candidate.” Every automated/manual/signed-package result must be traceable to an exact commit.
+
+Create a fresh manual evidence record for that exact commit instead of copying a previous candidate's results:
+
+```bash
+python3 scripts/create_manual_release_evidence.py \
+  --commit <40-hex-candidate-commit> \
+  --version <release-candidate-version> \
+  --output release-evidence/<candidate>.json
+```
+
+The generated record deliberately starts every external case as `not-run`.
 
 ## 2. Confirm source/document synchronization
 
@@ -26,8 +37,14 @@ Before candidate freeze, confirm the following reflect the same source state:
 - `THIRD_PARTY_NOTICES.md`;
 - `docs/README.md`;
 - protocol/security/architecture/platform/storage/testing docs;
-- release process/checklist, dependency-evidence contract, and store privacy declarations;
-- `what_changed.md` engineering ledger.
+- release process/checklist, dependency-evidence contract, manual-release-evidence contract/generator, and store privacy declarations;
+- `what_changed.md` plus the dated/final continuation ledgers.
+
+Run the repository completion contract before candidate freeze:
+
+```bash
+python3 scripts/validate_repository_completion.py
+```
 
 Confirm the current local database schema number and migration path agree across source, storage documentation, privacy documentation, compatibility policy, manual/security tests, and release checklist. For the current source that means schema **v6**, including safe v3 queue-row migration defaults, null-preserving v4/v5 History performance migrations, the non-authorizing restart-safe queue contract, and bounded optional duration/measured-byte metadata.
 
@@ -45,7 +62,9 @@ For the exact candidate, require the relevant maintained workflows:
 
 Review failures; do not bypass a gate simply to publish.
 
-The release-readiness workflow runs for production source, portable tests, benchmark/build inputs, and its verification/audit/evidence helper inputs on `main` and matching pull requests. This prevents normal candidate-affecting source changes from bypassing the aggregate Android/Windows/Apple release gate before a version tag is created.
+The release-readiness workflow runs for production source, portable tests, benchmark/build inputs, verification/audit helpers, manual release-evidence validator/generator changes, repository-completion validation, and helper tests on `main` and matching pull requests. This prevents candidate-affecting source or release-tooling changes from bypassing the aggregate Android/Windows/Apple release gate before a version tag is created.
+
+The portable gate explicitly runs `scripts/validate_repository_completion.py`; its invariants include required final documentation, no maintained unfinished markers in production source, release-readiness trigger coverage for release-critical tools, portable-verifier integration, canonical final documentation links, and structural validity of the checked-in manual-evidence template.
 
 ## 4. Retrieve and verify dependency evidence
 
@@ -181,6 +200,8 @@ Cover at minimum:
 - fresh authorization still being required after restart;
 - caller cancellation during queue initialization/best-effort persistence not permanently disabling later queue metadata persistence.
 
+Record each required external case in the exact candidate's manual evidence manifest while it is executed. Keep `not-run`, `in-progress`, `blocked`, `passed`, and `failed` states truthful; do not infer a pass from hosted CI.
+
 ## 10. Execute restricted-network/lifecycle cases
 
 Test real environments such as:
@@ -245,7 +266,21 @@ Do not claim that data is absent if the candidate actually stores/transmits it, 
 
 Complete every required applicable item in `docs/release/release-checklist.md`.
 
-Any unchecked required item means the candidate is not yet production-ready.
+Validate the in-progress manual record structurally throughout the campaign:
+
+```bash
+python3 scripts/validate_manual_release_evidence.py release-evidence/<candidate>.json
+```
+
+Only after every required real-target case has actually passed with retained evidence, require complete mode:
+
+```bash
+python3 scripts/validate_manual_release_evidence.py \
+  --require-complete \
+  release-evidence/<candidate>.json
+```
+
+Any unchecked required checklist item or incomplete/failed/blocked required manifest case means the candidate is not yet production-ready.
 
 ## 15. Version/tag/release notes
 
@@ -284,13 +319,14 @@ For a security-relevant defect:
 5. run the full relevant candidate gates;
 6. regenerate/re-verify dependency evidence if the restore graph or release tooling changed;
 7. produce/revalidate signed artifacts;
-8. publish a security patch/release note without exposing unnecessary exploit detail before users can update.
+8. update the manual evidence record for invalidated external cases;
+9. publish a security patch/release note without exposing unnecessary exploit detail before users can update.
 
 ## 19. Release completion rule
 
 SwiftDrop is production-ready only when the exact release candidate has passed the required automated gates **and** its signed target artifacts have completed the applicable physical-device/network/provider/storage/accessibility/localization/dependency/license/privacy/store checks.
 
-Source completeness, hosted compilation, clean vulnerable-package reports, and matching evidence hashes are necessary evidence, not the final release claim.
+Source completeness, hosted compilation, clean vulnerable-package reports, matching evidence hashes, and a structurally valid but incomplete manual manifest are necessary evidence, not the final release claim.
 
 ---
 
@@ -299,7 +335,7 @@ Source completeness, hosted compilation, clean vulnerable-package reports, and m
 For any candidate that ships optional terminal notifications:
 
 1. run both Apple and Windows integration validators through the portable gate;
-2. confirm the 26 Python helper tests and 572 xUnit tests pass;
+2. confirm the current **60 Python helper tests** and **580 xUnit tests** pass;
 3. inspect the final Windows packaged manifest/COM activation metadata rather than relying on unpackaged source compile alone;
 4. verify signed Android/iOS/Mac Catalyst/Windows notification permission/registration/presentation behavior on real targets;
 5. verify English/Hindi terminal messages remain generic and contain no transfer-specific identifiers/content;
