@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_DOCUMENTS = (
     "README.md",
+    "FINAL_REPOSITORY_STATUS.md",
     "BUILDING.md",
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
@@ -25,6 +26,9 @@ REQUIRED_DOCUMENTS = (
     "TERMS.md",
     "THIRD_PARTY_NOTICES.md",
     "what_changed.md",
+    "what_changed_2026-08-19.md",
+    "what_changed_2026-08-19_final.md",
+    "what_changed_2026-08-19_closure.md",
     "docs/README.md",
     "docs/installation.md",
     "docs/user-guide.md",
@@ -47,16 +51,23 @@ REQUIRED_DOCUMENTS = (
     "docs/security/THREAT_MODEL.md",
     "docs/storage/database-schema.md",
     "docs/testing/ci-reference.md",
+    "docs/testing/repository-completion-validation.md",
+    "docs/testing/deterministic-state-models.md",
     "docs/testing/security-test-plan.md",
     "docs/testing/manual-test-matrix.md",
     "docs/testing/release-candidate-additional-cases.md",
     "docs/testing/accessibility-checklist.md",
     "docs/testing/performance-benchmarks.md",
+    "docs/release/continuation-status-2026-08-19.md",
+    "docs/release/repository-completion-2026-08-19.md",
+    "docs/release/final-audit-2026-08-18.md",
     "docs/release/release-process.md",
     "docs/release/release-checklist.md",
     "docs/release/dependency-evidence.md",
     "docs/release/signing-configuration.md",
     "docs/release/store-privacy-declarations.md",
+    "docs/release/manual-release-evidence.md",
+    "docs/release/manual-release-evidence-generator.md",
     "docs/versioning-and-compatibility.md",
 )
 
@@ -72,15 +83,18 @@ INDEX_LINKS = (
     "diagnostics-and-bug-reports.md",
     "architecture/project-structure.md",
     "testing/ci-reference.md",
+    "testing/repository-completion-validation.md",
+    "testing/deterministic-state-models.md",
+    "release/repository-completion-2026-08-19.md",
+    "release/continuation-status-2026-08-19.md",
     "release/release-process.md",
+    "release/manual-release-evidence.md",
+    "release/manual-release-evidence-generator.md",
     "release/dependency-evidence.md",
     "versioning-and-compatibility.md",
 )
 
-# Inline Markdown links/images. Reference-style links are intentionally outside this
-# lightweight validator; the canonical docs use ordinary inline relative links.
 INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-
 SKIP_DIRS = {".git", "bin", "obj", "node_modules"}
 
 
@@ -101,8 +115,6 @@ def destination_token(raw: str) -> str:
         close = value.find(">")
         if close > 0:
             return value[1:close]
-    # Markdown allows an optional quoted title after the destination. SwiftDrop's
-    # local paths do not require spaces, so the first token is the destination.
     return value.split(maxsplit=1)[0]
 
 
@@ -112,9 +124,6 @@ def is_external_or_anchor(destination: str) -> bool:
     split = urlsplit(destination)
     if split.scheme or split.netloc:
         return True
-    # Repository-root absolute Markdown links are avoided because GitHub and local
-    # renderers can interpret them differently; ignore them here rather than
-    # pretending they are filesystem-absolute paths.
     return destination.startswith("/")
 
 
@@ -144,35 +153,28 @@ def validate_index(errors: list[str]) -> None:
 def validate_local_links(errors: list[str]) -> int:
     checked = 0
     root_resolved = ROOT.resolve()
-
     for markdown in markdown_files():
         text = markdown.read_text(encoding="utf-8")
         for match in INLINE_LINK_RE.finditer(text):
             destination = destination_token(match.group(1))
             if is_external_or_anchor(destination):
                 continue
-
             split = urlsplit(destination)
             relative_path = unquote(split.path)
             if not relative_path:
                 continue
-
             checked += 1
             target = (markdown.parent / relative_path).resolve()
             try:
                 target.relative_to(root_resolved)
             except ValueError:
-                errors.append(
-                    f"{markdown.relative_to(ROOT)} links outside repository: {destination}"
-                )
+                errors.append(f"{markdown.relative_to(ROOT)} links outside repository: {destination}")
                 continue
-
             if not target.exists():
                 errors.append(
                     f"Broken local Markdown link in {markdown.relative_to(ROOT)}: "
                     f"{destination} -> {target.relative_to(ROOT)}"
                 )
-
     return checked
 
 
@@ -192,8 +194,7 @@ def validate_no_completed_helpers(errors: list[str]) -> None:
     for path in forbidden:
         if path.exists():
             errors.append(
-                f"Completed one-time documentation helper must not remain: "
-                f"{path.relative_to(ROOT)}"
+                f"Completed one-time documentation helper must not remain: {path.relative_to(ROOT)}"
             )
 
 
@@ -203,13 +204,11 @@ def main() -> int:
     validate_index(errors)
     links_checked = validate_local_links(errors)
     validate_no_completed_helpers(errors)
-
     if errors:
         print("Documentation validation failed:", file=sys.stderr)
         for error in errors:
             print(f"- {error}", file=sys.stderr)
         return 1
-
     print(
         f"Documentation validation passed: {len(REQUIRED_DOCUMENTS)} required files "
         f"and {links_checked} local Markdown links checked."
