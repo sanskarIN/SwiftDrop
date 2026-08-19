@@ -30,6 +30,28 @@ public sealed class AsyncConcurrencyGateTests
         await using var thirdLease = await third.WaitAsync(TimeSpan.FromSeconds(1));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(65)]
+    public void EnterAsync_RejectsUnsupportedLimits(int limit)
+    {
+        var gate = new AsyncConcurrencyGate();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => gate.EnterAsync(limit));
+    }
+
+    [Fact]
+    public async Task EnterAsync_PreCancelledTokenDoesNotConsumeSlot()
+    {
+        var gate = new AsyncConcurrencyGate();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => gate.EnterAsync(1, cts.Token));
+        await using var lease = await gate.EnterAsync(1).AsTask().WaitAsync(TimeSpan.FromSeconds(1));
+    }
+
     [Fact]
     public async Task EnterAsync_QueuedCancellationDoesNotConsumeSlot()
     {
@@ -41,6 +63,18 @@ public sealed class AsyncConcurrencyGateTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled);
         await first.DisposeAsync();
+        await using var next = await gate.EnterAsync(1).AsTask().WaitAsync(TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public async Task Lease_DisposeAsync_IsIdempotent()
+    {
+        var gate = new AsyncConcurrencyGate();
+        var lease = await gate.EnterAsync(1);
+
+        await lease.DisposeAsync();
+        await lease.DisposeAsync();
+
         await using var next = await gate.EnterAsync(1).AsTask().WaitAsync(TimeSpan.FromSeconds(1));
     }
 }
