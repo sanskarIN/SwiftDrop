@@ -29,6 +29,7 @@ REQUIRED_PATHS = (
     "what_changed.md",
     "what_changed_2026-08-19.md",
     "what_changed_2026-08-19_final.md",
+    "what_changed_2026-08-19_closure.md",
     "scripts/validate_manual_release_evidence.py",
     "scripts/create_manual_release_evidence.py",
     "scripts/validate_repository_completion.py",
@@ -50,6 +51,7 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
 
 DOC_INDEX_LINKS = (
     "release/repository-completion-2026-08-19.md",
+    "../what_changed_2026-08-19_closure.md",
     "release/continuation-status-2026-08-19.md",
     "../what_changed_2026-08-19_final.md",
     "release/manual-release-evidence.md",
