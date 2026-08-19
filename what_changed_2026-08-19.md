@@ -1,8 +1,9 @@
 # SwiftDrop — What Changed (2026-08-19)
 
 Repository: https://github.com/sanskarIN/SwiftDrop  
-Working branch: `post-v1-hardening-20260819`  
-Pull request: #26
+Merged hardening branch: `post-v1-hardening-20260819`  
+Merged pull request: #26  
+Current continuation branch: `release-evidence-hardening-20260819`
 
 This addendum records the August 19 continuation work without rewriting the cumulative `what_changed.md` engineering ledger. It must be read together with that cumulative ledger.
 
@@ -12,7 +13,7 @@ The maintained roadmap already classifies the current master-prompt source scope
 
 No maintained source `TODO`, `FIXME`, or `NotImplementedException` marker was found during this continuation sweep.
 
-Accordingly, this continuation implements the roadmap's explicit optional post-v1 property/fuzz/state-machine hardening item. It does not manufacture source changes merely to increase commit count and does not claim external release validation that cannot be performed in hosted repository tooling.
+Accordingly, this continuation implements optional post-v1 deterministic hardening and adds machine-readable support for the external release-validation phase. It does not manufacture source changes merely to increase commit count and does not claim external release validation that cannot be performed in hosted repository tooling.
 
 ## Added deterministic staging-budget state model
 
@@ -170,17 +171,138 @@ Coverage:
 - positive-length staging remains rejected;
 - file-count exhaustion remains closed.
 
-## Portable test-count effect
+## Deterministic testing documentation
+
+Added:
+
+- `docs/testing/deterministic-state-models.md`;
+- canonical docs-index links to the deterministic testing guide and this dated ledger.
+
+The guide records seed stability, bounded randomized inputs, deterministic synchronization, temporary-filesystem isolation, failure-handling rules, and the distinction between portable automated evidence and signed/device validation.
+
+PR #26 was merged to `main` with merge commit:
+
+- `f25f9ff65ddeb538f408bc9a1884ee141172e63c`.
+
+The PR-head CI/CodeQL/security/release-readiness runs were queued at merge time and therefore were not recorded as passing evidence.
+
+## Portable xUnit test-count effect
 
 The pre-continuation portable xUnit baseline recorded by the repository was 572 tests.
 
-This tranche adds eight xUnit facts, so the expected suite size is 580 tests once the exact branch head completes CI. The number must not be recorded as passing evidence until the exact-head CI run reports success.
+The deterministic hardening tranche adds eight xUnit facts, so the expected suite size is **580 tests** once the applicable exact-head CI reports the suite. This document does not convert that expected count into passing evidence without a completed run.
 
-The existing Python helper-suite count is unchanged by these commits.
+## Added strict manual release-evidence validator
+
+File:
+
+- `scripts/validate_manual_release_evidence.py`.
+
+Initial commit:
+
+- `4c826c0a9eeb6a88f5ab69b202410793f4a38098` — `feat(release): add strict manual evidence validator`.
+
+The validator uses only the Python standard library and enforces a closed schema for the exact candidate commit/version plus nine required validation groups:
+
+- Android;
+- Windows;
+- iOS;
+- Mac Catalyst;
+- cross-device;
+- filesystem;
+- accessibility/localization;
+- dependency/license;
+- store.
+
+It rejects missing/unknown/duplicate groups and cases, malformed candidate identifiers/timestamps, inconsistent aggregate group states, malformed terminal-case evidence, duplicate evidence references, and common private-key/pairing-capability leakage markers.
+
+## Added structural release-evidence regression coverage
+
+File:
+
+- `scripts/tests/test_validate_manual_release_evidence.py`.
+
+Commit:
+
+- `109492dfa018104245dddd13c1657ca40f2ef215` — `test(release): cover manual evidence validator`.
+
+This adds ten Python helper tests covering a complete not-run structure, terminal evidence requirements, aggregate status consistency, missing groups, duplicate cases, unknown fields, canonical commit syntax, blocked-case notes, pairing-capability leakage, and a valid mixed/in-progress group.
+
+## Added canonical release-evidence template
+
+File:
+
+- `docs/release/manual-release-evidence.template.json`.
+
+Commit:
+
+- `c4abc3026d943e434495bab00fb68c850c7ef0b0` — `docs(release): add manual evidence manifest template`.
+
+The template enumerates every currently required high-level external validation case with accurate initial `not-run` state rather than pre-marking release work as passed.
+
+## Added checked-in template validation
+
+File:
+
+- `scripts/tests/test_manual_release_evidence_template.py`.
+
+Commit:
+
+- `f21b94a40533f95d9e753cec0a5fccedf2414817` — `test(release): validate checked-in evidence template`.
+
+The Python helper suite now verifies that the committed template remains structurally valid whenever the validator contract changes.
+
+## Added complete-candidate evidence mode
+
+Commit:
+
+- `95f5a0a3055742ca5e24fafc99dea7cf57437958` — `feat(release): add complete evidence gate mode`.
+
+`--require-complete` additionally requires:
+
+- a non-placeholder candidate commit SHA;
+- every required group to be `passed`;
+- therefore every required case to contain terminal timestamp, environment, and evidence.
+
+Structural validation remains available for an in-progress candidate. This prevents a schema-valid but unexecuted template from being confused with a release-complete evidence record.
+
+The same hardening pass applies sensitive-text rejection to environment strings and evidence references in addition to notes.
+
+## Added complete-mode regression coverage
+
+File:
+
+- `scripts/tests/test_manual_release_evidence_complete_mode.py`.
+
+Commit:
+
+- `a4dd1117f64fd5fe86f620276637f0eb647b516f` — `test(release): cover complete evidence gate mode`.
+
+Coverage includes:
+
+- the checked-in placeholder template must fail complete mode;
+- a fully populated all-passed candidate can pass complete mode;
+- a partially completed group cannot pass complete mode;
+- a pairing capability cannot be hidden inside an evidence reference.
+
+## Added manual release-evidence documentation
+
+Files/commits:
+
+- `docs/release/manual-release-evidence.md` — `f9e5e88a0fbcb428e243aeea14682df0460b3313`;
+- canonical documentation-index link — `ba06ba2e7e016597e1c2d49e1bb4c783ed195c08`.
+
+The guide documents the two validation modes, status aggregation, terminal evidence requirements, privacy/secret boundaries, exact-candidate usage, and the relationship between automated CI and real signed/device/store validation.
+
+## Python helper test-count effect
+
+The repository baseline before this release-evidence tranche was 26 Python helper tests.
+
+This tranche adds **15 Python helper tests**, so the expected helper-suite size is **41 tests** once the exact continuation head completes CI. This is an expected count, not a passing-evidence claim until CI completes.
 
 ## Runtime behavior
 
-These August 19 commits do not change production application runtime source. They strengthen deterministic regression coverage around existing security, transfer-staging, destination-reservation, concurrency, and networking lifecycle contracts.
+The August 19 deterministic-test and release-evidence tranches do not change production application runtime source. They strengthen regression coverage and make remaining external validation status machine-readable and harder to overstate.
 
 ## External release boundary remains unchanged
 
@@ -196,4 +318,6 @@ Still not verifiable from repository-only hosted tooling:
 - exact signed-candidate dependency/license/provenance reconciliation;
 - store metadata, screenshots, declarations, and privacy review.
 
-Do not convert any of those external gates into a source-complete claim.
+The new evidence manifest records those gates; it does not execute them.
+
+Do not convert any unexecuted external gate into a pass.
