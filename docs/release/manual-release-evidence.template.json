@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "candidate": {
+    "commit": "0000000000000000000000000000000000000000",
+    "version": "replace-with-release-candidate-version",
+    "created_utc": "2026-08-19T00:00:00Z"
+  },
+  "groups": [
+    {
+      "id": "android",
+      "status": "not-run",
+      "cases": [
+        {"id": "signed-install-upgrade", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "share-provider-metadata", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "foreground-background", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "multicast-discovery", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "windows",
+      "status": "not-run",
+      "cases": [
+        {"id": "signed-msix-install-upgrade", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "protocol-activation", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "firewall-network", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "folder-picker-drop", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "ios",
+      "status": "not-run",
+      "cases": [
+        {"id": "signed-device-build", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "share-extension", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "app-group-handoff", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "item-provider", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "maccatalyst",
+      "status": "not-run",
+      "cases": [
+        {"id": "signed-notarized-build", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "sandbox-network", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "native-drop", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "cross-device",
+      "status": "not-run",
+      "cases": [
+        {"id": "pairing-methods", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "file-folder-text", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "pause-cancel-resume", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "network-switching", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "low-storage", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "filesystem",
+      "status": "not-run",
+      "cases": [
+        {"id": "symlink-reparse", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "collision-pressure", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "destination-mutation", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "accessibility-localization",
+      "status": "not-run",
+      "cases": [
+        {"id": "screen-readers", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "large-text-high-contrast", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "hindi-layout", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "dependency-license",
+      "status": "not-run",
+      "cases": [
+        {"id": "exact-graph-audit", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "licenses-notices", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "provenance", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    },
+    {
+      "id": "store",
+      "status": "not-run",
+      "cases": [
+        {"id": "privacy-declarations", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "metadata-screenshots", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""},
+        {"id": "submission-signing", "status": "not-run", "executed_utc": null, "environment": "", "evidence": [], "notes": ""}
+      ]
+    }
+  ]
+}
