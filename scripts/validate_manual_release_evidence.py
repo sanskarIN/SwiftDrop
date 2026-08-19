@@ -13,6 +13,7 @@ from typing import Any
 SCHEMA_VERSION = 1
 VALID_STATUSES = {"not-run", "in-progress", "blocked", "passed", "failed"}
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+PLACEHOLDER_COMMIT = "0" * 40
 
 REQUIRED_CASES: dict[str, tuple[str, ...]] = {
     "android": (
@@ -71,6 +72,11 @@ TOP_LEVEL_KEYS = {"schema_version", "candidate", "groups"}
 CANDIDATE_KEYS = {"commit", "version", "created_utc"}
 GROUP_KEYS = {"id", "status", "cases"}
 CASE_KEYS = {"id", "status", "executed_utc", "environment", "evidence", "notes"}
+FORBIDDEN_TEXT_MARKERS = (
+    "-----begin private key-----",
+    "-----begin ec private key-----",
+    "swiftdrop://pair",
+)
 
 
 def _error(path: str, message: str) -> ValueError:
@@ -99,6 +105,12 @@ def _require_text(value: Any, path: str, *, maximum: int, allow_empty: bool = Fa
     return value
 
 
+def _reject_sensitive_text(value: str, path: str) -> None:
+    lowered = value.lower()
+    if any(marker in lowered for marker in FORBIDDEN_TEXT_MARKERS):
+        raise _error(path, "must not contain private-key material or a pairing capability")
+
+
 def _parse_utc(value: Any, path: str, *, nullable: bool) -> datetime | None:
     if value is None:
         if nullable:
@@ -123,26 +135,21 @@ def _validate_evidence(values: Any, path: str) -> None:
         raise _error(path, "must contain at most 32 references")
     seen: set[str] = set()
     for index, value in enumerate(values):
-        reference = _require_text(value, f"{path}[{index}]", maximum=512)
+        item_path = f"{path}[{index}]"
+        reference = _require_text(value, item_path, maximum=512)
         if reference != reference.strip():
-            raise _error(f"{path}[{index}]", "must not have surrounding whitespace")
+            raise _error(item_path, "must not have surrounding whitespace")
         if reference in seen:
-            raise _error(f"{path}[{index}]", "duplicates an earlier evidence reference")
+            raise _error(item_path, "duplicates an earlier evidence reference")
         if "\n" in reference or "\r" in reference:
-            raise _error(f"{path}[{index}]", "must be a single-line reference")
+            raise _error(item_path, "must be a single-line reference")
+        _reject_sensitive_text(reference, item_path)
         seen.add(reference)
 
 
 def _validate_notes(value: Any, path: str) -> None:
     notes = _require_text(value, path, maximum=2000, allow_empty=True)
-    lowered = notes.lower()
-    forbidden_markers = (
-        "-----begin private key-----",
-        "-----begin ec private key-----",
-        "swiftdrop://pair",
-    )
-    if any(marker in lowered for marker in forbidden_markers):
-        raise _error(path, "must not contain private-key material or a pairing capability")
+    _reject_sensitive_text(notes, path)
 
 
 def _aggregate_status(statuses: list[str]) -> str:
@@ -172,6 +179,7 @@ def _validate_case(case: Any, group_id: str, index: int) -> tuple[str, str]:
 
     executed = _parse_utc(case["executed_utc"], f"{path}.executed_utc", nullable=True)
     environment = _require_text(case["environment"], f"{path}.environment", maximum=300, allow_empty=True)
+    _reject_sensitive_text(environment, f"{path}.environment")
     _validate_evidence(case["evidence"], f"{path}.evidence")
     _validate_notes(case["notes"], f"{path}.notes")
 
@@ -193,7 +201,7 @@ def _validate_case(case: Any, group_id: str, index: int) -> tuple[str, str]:
     return case_id, status
 
 
-def validate_document(document: Any) -> None:
+def validate_document(document: Any, *, require_complete: bool = False) -> None:
     if not isinstance(document, dict):
         raise _error("root", "must be an object")
     _require_exact_keys(document, TOP_LEVEL_KEYS, "root")
@@ -209,6 +217,8 @@ def validate_document(document: Any) -> None:
     commit = _require_text(candidate["commit"], "candidate.commit", maximum=40)
     if not COMMIT_RE.fullmatch(commit):
         raise _error("candidate.commit", "must be a canonical lowercase 40-hex commit SHA")
+    if require_complete and commit == PLACEHOLDER_COMMIT:
+        raise _error("candidate.commit", "must not use the all-zero template placeholder in complete mode")
     version = _require_text(candidate["version"], "candidate.version", maximum=64)
     if version != version.strip():
         raise _error("candidate.version", "must not have surrounding whitespace")
@@ -265,32 +275,43 @@ def validate_document(document: Any) -> None:
                 f"{path}.status",
                 f"must be {expected_status!r} for the recorded case states, not {status!r}",
             )
+        if require_complete and status != "passed":
+            raise _error(f"{path}.status", "must be 'passed' in complete release-candidate mode")
 
     missing_groups = sorted(set(REQUIRED_CASES) - seen_groups)
     if missing_groups:
         raise _error("groups", f"missing required group(s): {', '.join(missing_groups)}")
 
 
-def load_and_validate(path: Path) -> None:
+def load_and_validate(path: Path, *, require_complete: bool = False) -> None:
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise ValueError(f"could not read {path}: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise ValueError(f"invalid JSON in {path}: {exc}") from exc
-    validate_document(document)
+    validate_document(document, require_complete=require_complete)
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print(f"usage: {Path(argv[0]).name} <manual-release-evidence.json>", file=sys.stderr)
+    args = argv[1:]
+    require_complete = False
+    if args and args[0] == "--require-complete":
+        require_complete = True
+        args = args[1:]
+    if len(args) != 1:
+        print(
+            f"usage: {Path(argv[0]).name} [--require-complete] <manual-release-evidence.json>",
+            file=sys.stderr,
+        )
         return 2
     try:
-        load_and_validate(Path(argv[1]))
+        load_and_validate(Path(args[0]), require_complete=require_complete)
     except ValueError as exc:
         print(f"manual release evidence invalid: {exc}", file=sys.stderr)
         return 1
-    print("manual release evidence valid")
+    mode = "complete" if require_complete else "structural"
+    print(f"manual release evidence valid ({mode} mode)")
     return 0
 
 
