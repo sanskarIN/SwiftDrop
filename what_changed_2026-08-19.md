@@ -120,11 +120,61 @@ Coverage:
 - drain completes only after the entire tracked set reaches terminal state;
 - terminal tracker count returns to zero.
 
+## Added one-time pairing-code concurrency coverage
+
+File:
+
+- `tests/SwiftDrop.Core.Tests/OneTimePairingCodeManagerConcurrencyTests.cs`
+
+Commit:
+
+- `040e3feb0cb2c2da9b61f9934f794a9009c0fb09` — `test(pairing): enforce single concurrent code consume`
+
+Coverage:
+
+- 64 simultaneous attempts against one valid code;
+- exactly one successful consumer;
+- all later replay attempts rejected.
+
+## Added reservation-disposal concurrency coverage
+
+File:
+
+- `tests/SwiftDrop.Core.Tests/DestinationReservationSetDisposalTests.cs`
+
+Commit:
+
+- `31731b4d358dfca00756e075e3fdf6b37d09bdfb` — `test(receive): verify reservation disposal idempotency`
+
+Coverage:
+
+- 32 concurrent `Dispose` calls against one lease;
+- reservation removal occurs safely once;
+- original destination becomes reservable again after disposal.
+
+## Added zero-byte-only staging-budget coverage
+
+File:
+
+- `tests/SwiftDrop.Core.Tests/TransferStagingBudgetZeroAggregateTests.cs`
+
+Commit:
+
+- `8d89ae52afcced0e6717227b33fef92252441a4d` — `test(staging): cover zero-byte-only aggregate budget`
+
+Coverage:
+
+- aggregate byte limit of zero;
+- per-file byte limit of zero;
+- configured zero-byte file count remains enforceable;
+- positive-length staging remains rejected;
+- file-count exhaustion remains closed.
+
 ## Portable test-count effect
 
 The pre-continuation portable xUnit baseline recorded by the repository was 572 tests.
 
-This tranche adds five xUnit facts, so the expected suite size is 577 tests once the exact branch head completes CI. The number must not be recorded as passing evidence until the exact-head CI run reports success.
+This tranche adds eight xUnit facts, so the expected suite size is 580 tests once the exact branch head completes CI. The number must not be recorded as passing evidence until the exact-head CI run reports success.
 
 The existing Python helper-suite count is unchanged by these commits.
 
