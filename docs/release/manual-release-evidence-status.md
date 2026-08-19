@@ -38,13 +38,15 @@ The JSON form reports:
 - each required group's aggregate status and local case-status counts;
 - `remaining`, containing the group, case ID, and recorded status for every case that is not passed;
 - `completion_blockers`, containing candidate-level conditions that still prevent completion;
-- `complete`, which is true only when every required case is recorded as passed **and** no candidate-level completion blocker remains.
+- `complete`, derived from the same `validate_document(..., require_complete=True)` contract used by the strict validator.
+
+The status helper deliberately does **not** maintain an independent definition of a complete release record. A structurally valid document is summarized first, then the authoritative complete-mode validator determines the `complete` flag. This means future complete-mode requirements fail closed automatically instead of silently drifting from the summary tool. If strict completion fails after every case is passed and no recognized candidate-specific blocker explains it, the helper emits a generic complete-validation blocker rather than an all-passed claim.
 
 The all-zero template commit is structurally valid so a fresh evidence template can be inspected, but it is never a complete release candidate. If every manual case is marked passed while `candidate.commit` is still forty zeroes, the helper reports `complete: false`, includes an explicit `candidate.commit` blocker, and `--remaining-only` prints that blocker instead of claiming that all required evidence is complete.
 
 The remaining case list deliberately omits evidence contents, environment text, and notes. It is a planning view, not a substitute for the underlying evidence record.
 
-`complete: true` is a progress summary, not an independent release-readiness decision. Before release, still run the strict complete validator:
+`complete: true` is still a progress summary, not independent release approval. Before release, run the strict complete validator directly against the exact candidate evidence:
 
 ```bash
 python3 scripts/validate_manual_release_evidence.py --require-complete path/to/manual-release-evidence.json
