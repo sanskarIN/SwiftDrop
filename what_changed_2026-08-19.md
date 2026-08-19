@@ -294,11 +294,21 @@ Files/commits:
 
 The guide documents the two validation modes, status aggregation, terminal evidence requirements, privacy/secret boundaries, exact-candidate usage, and the relationship between automated CI and real signed/device/store validation.
 
+## Canonical UTC timestamp hardening
+
+Commits/files:
+
+- `f3c7d765f726b1d44b7ea5bcc87bdcba0273eed3` — `fix(release): enforce canonical UTC evidence timestamps`;
+- `e2cc7dd5b6f6fb4a5b078091a0bcbe9c6ef6d687` — `test(release): cover canonical evidence timestamps`;
+- `scripts/tests/test_manual_release_evidence_timestamps.py`.
+
+The validator now requires exact `YYYY-MM-DDTHH:MM:SS[.fraction]Z` timestamps rather than accepting broader aliases supported by Python's ISO parser. Dedicated regressions reject a space-separated timestamp and an explicit `+00:00` alias while preserving canonical fractional UTC timestamps.
+
 ## Python helper test-count effect
 
 The repository baseline before this release-evidence tranche was 26 Python helper tests.
 
-This tranche adds **15 Python helper tests**, so the expected helper-suite size is **41 tests** once the exact continuation head completes CI. This is an expected count, not a passing-evidence claim until CI completes.
+This tranche adds **18 Python helper tests**, so the expected helper-suite size is **44 tests** once the exact continuation head completes CI. This is an expected count, not a passing-evidence claim until CI completes.
 
 ## Runtime behavior
 
