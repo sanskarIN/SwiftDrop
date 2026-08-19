@@ -54,7 +54,7 @@ The previously queued PR #28 validation completed successfully:
 
 That evidence included **580/580 xUnit tests**, **54/54 Python helper tests**, zero Core vulnerability findings, zero Core/benchmark build warnings or errors, documentation/localization/Apple/Windows metadata validation, and Windows portable verification.
 
-The consolidated final completion PR adds **12** repository-completion helper regressions, so its expected Python helper inventory is **66 tests** while xUnit remains **580**. Those final numbers become passing evidence only when the exact consolidated PR head completes the applicable workflows.
+The consolidated final completion PR adds **6** completion test cases with grouped assertions across the expanded contract, so its expected Python helper inventory is **60 tests** while xUnit remains **580**. Those final numbers become passing evidence only when the exact consolidated PR head completes the applicable workflows.
 
 ## Documentation status
 
