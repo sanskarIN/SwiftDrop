@@ -26,6 +26,12 @@
   <data name="SelfTestFailedFormat" xml:space="preserve"><value>Self-test failed with {0}.</value></data>
   <data name="SelfTestPass" xml:space="preserve"><value>PASS</value></data>
   <data name="SelfTestFail" xml:space="preserve"><value>FAIL</value></data>
+  <data name="SelfTestRoundTripPass" xml:space="preserve"><value>Known-good data completed and matched its SHA-256 digest.</value></data>
+  <data name="SelfTestRoundTripFail" xml:space="preserve"><value>The known-good round-trip verification did not pass.</value></data>
+  <data name="SelfTestChecksumMismatchPass" xml:space="preserve"><value>The checksum mismatch was rejected and invalid output was cleaned up.</value></data>
+  <data name="SelfTestChecksumMismatchFail" xml:space="preserve"><value>The checksum-mismatch protection self-test did not pass.</value></data>
+  <data name="SelfTestInterruptedReceivePass" xml:space="preserve"><value>The interrupted receive remained staged as resumable partial data.</value></data>
+  <data name="SelfTestInterruptedReceiveFail" xml:space="preserve"><value>The interrupted-receive recovery self-test did not pass.</value></data>
   <data name="QueueStateQueued" xml:space="preserve"><value>Queued</value></data>
   <data name="QueueStateRunning" xml:space="preserve"><value>Running</value></data>
   <data name="QueueStateCompleted" xml:space="preserve"><value>Completed</value></data>
