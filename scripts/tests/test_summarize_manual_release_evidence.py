@@ -35,10 +35,18 @@ class SummarizeManualReleaseEvidenceTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         return json.loads(output.read_text(encoding="utf-8"))
 
-    def run_summary(self, path: Path, *, as_json: bool = False) -> subprocess.CompletedProcess[str]:
+    def run_summary(
+        self,
+        path: Path,
+        *,
+        as_json: bool = False,
+        remaining_only: bool = False,
+    ) -> subprocess.CompletedProcess[str]:
         command = [sys.executable, str(SUMMARY_SCRIPT), str(path)]
         if as_json:
             command.append("--json")
+        if remaining_only:
+            command.append("--remaining-only")
         return subprocess.run(command, check=False, capture_output=True, text=True, encoding="utf-8")
 
     def test_text_summary_reports_initial_progress(self) -> None:
@@ -52,6 +60,19 @@ class SummarizeManualReleaseEvidenceTests(unittest.TestCase):
             self.assertIn("cases: 0/32 passed; 32 remaining", result.stdout)
             self.assertIn("complete: no", result.stdout)
             self.assertIn("android: not-run", result.stdout)
+
+    def test_remaining_only_lists_each_unpassed_required_case(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.json"
+            self.create_manifest(path)
+
+            result = self.run_summary(path, remaining_only=True)
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            lines = result.stdout.strip().splitlines()
+            self.assertEqual(32, len(lines))
+            self.assertIn("android/signed-install-upgrade: not-run", lines)
+            self.assertIn("store/submission-signing: not-run", lines)
 
     def test_json_summary_counts_blocked_case(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -72,6 +93,15 @@ class SummarizeManualReleaseEvidenceTests(unittest.TestCase):
             self.assertEqual(31, summary["case_counts"]["not-run"])
             self.assertEqual(1, summary["group_counts"]["blocked"])
             self.assertFalse(summary["complete"])
+            self.assertEqual(32, len(summary["remaining"]))
+            self.assertEqual(
+                {
+                    "group": "android",
+                    "case": "signed-install-upgrade",
+                    "status": "blocked",
+                },
+                summary["remaining"][0],
+            )
 
     def test_json_summary_reports_complete_when_every_case_passes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -94,6 +124,11 @@ class SummarizeManualReleaseEvidenceTests(unittest.TestCase):
             self.assertEqual(32, summary["passed_cases"])
             self.assertEqual(0, summary["remaining_cases"])
             self.assertEqual(9, summary["group_counts"]["passed"])
+            self.assertEqual([], summary["remaining"])
+
+            remaining = self.run_summary(path, remaining_only=True)
+            self.assertEqual(0, remaining.returncode, remaining.stderr)
+            self.assertEqual("all required manual release-evidence cases are passed", remaining.stdout.strip())
 
     def test_summary_rejects_invalid_evidence_before_reporting(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
