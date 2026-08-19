@@ -16,6 +16,14 @@ For machine-readable output:
 python3 scripts/summarize_manual_release_evidence.py path/to/manual-release-evidence.json --json
 ```
 
+To print only checks that are not yet passed:
+
+```bash
+python3 scripts/summarize_manual_release_evidence.py path/to/manual-release-evidence.json --remaining-only
+```
+
+Each remaining line uses `group/case: status`, so a release operator can work through the exact outstanding matrix without reading or rewriting the manifest. A fully passed manifest prints a single all-passed message.
+
 The helper validates the complete document structure before reporting anything. Invalid or inconsistent evidence fails instead of producing a potentially misleading progress report.
 
 ## Reported fields
@@ -28,7 +36,10 @@ The JSON form reports:
 - counts for every valid case status;
 - counts for every aggregate group status;
 - each required group's aggregate status and local case-status counts;
+- `remaining`, containing the group, case ID, and recorded status for every case that is not passed;
 - `complete`, which is true only when every required case is recorded as passed.
+
+The remaining list deliberately omits evidence contents, environment text, and notes. It is a planning view, not a substitute for the underlying evidence record.
 
 `complete: true` is a progress summary, not an independent release-readiness decision. Before release, still run the strict complete validator:
 
@@ -42,8 +53,9 @@ python3 scripts/validate_manual_release_evidence.py --require-complete path/to/m
 2. Execute only the physical/signed/store checks that were actually performed.
 3. Record accurate case states, environments, timestamps, evidence references, and blocking notes.
 4. Run structural validation.
-5. Run the status summary to see remaining work.
-6. Repeat until every required case is genuinely passed.
-7. Run complete validation immediately before release approval.
+5. Run the status summary to see aggregate progress.
+6. Run `--remaining-only` to identify the exact next external checks.
+7. Repeat until every required case is genuinely passed.
+8. Run complete validation immediately before release approval.
 
 Do not use the summary helper to infer a pass from source builds, hosted workflows, missing devices, absent store access, or unexecuted manual checks.
