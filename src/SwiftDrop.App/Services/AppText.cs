@@ -6,6 +6,7 @@ namespace SwiftDrop.App.Services;
 public static class AppText
 {
     private static readonly ResourceManager Resources = new("SwiftDrop.App.Resources.Strings.AppStrings", typeof(AppText).Assembly);
+    private static readonly ResourceManager UiPolishResources = new("SwiftDrop.App.Resources.Strings.UiPolishStrings", typeof(AppText).Assembly);
     private static readonly ResourceManager MainResources = new("SwiftDrop.App.Resources.Strings.MainStrings", typeof(AppText).Assembly);
     private static readonly ResourceManager DialogResources = new("SwiftDrop.App.Resources.Strings.DialogStrings", typeof(AppText).Assembly);
     private static readonly ResourceManager MainRuntimeResources = new("SwiftDrop.App.Resources.Strings.MainRuntimeStrings", typeof(AppText).Assembly);
@@ -17,7 +18,8 @@ public static class AppText
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         var culture = CultureInfo.CurrentUICulture;
-        return Resources.GetString(key, culture) ?? MainResources.GetString(key, culture) ?? DialogResources.GetString(key, culture) ??
+        return Resources.GetString(key, culture) ?? UiPolishResources.GetString(key, culture) ??
+               MainResources.GetString(key, culture) ?? DialogResources.GetString(key, culture) ??
                MainRuntimeResources.GetString(key, culture) ?? PlatformRuntimeResources.GetString(key, culture) ??
                BatchRuntimeResources.GetString(key, culture) ?? HistoryRuntimeResources.GetString(key, culture) ?? key;
     }
