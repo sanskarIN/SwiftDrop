@@ -9,6 +9,7 @@ trap 'rm -f "$audit_report"' EXIT
 
 dotnet --info
 python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+python3 scripts/validate_repository_completion.py
 python3 scripts/validate_documentation.py
 python3 scripts/validate_localization.py
 python3 scripts/validate_apple_integration.py
