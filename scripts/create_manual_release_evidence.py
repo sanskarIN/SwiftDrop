@@ -51,6 +51,8 @@ def build_document(commit: str, version: str, created_utc: str) -> dict[str, obj
 
 
 def write_document(document: dict[str, object], output: Path, *, force: bool) -> None:
+    if output.is_symlink():
+        raise ValueError(f"output must not be a symbolic link: {output}")
     if output.exists() and not force:
         raise ValueError(f"output already exists: {output} (use --force to replace it)")
     if output.exists() and not output.is_file():
@@ -58,7 +60,15 @@ def write_document(document: dict[str, object], output: Path, *, force: bool) ->
 
     output.parent.mkdir(parents=True, exist_ok=True)
     rendered = json.dumps(document, indent=2, ensure_ascii=False) + "\n"
-    output.write_text(rendered, encoding="utf-8")
+    if force:
+        output.write_text(rendered, encoding="utf-8")
+        return
+
+    try:
+        with output.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(rendered)
+    except FileExistsError as exc:
+        raise ValueError(f"output already exists: {output} (use --force to replace it)") from exc
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
