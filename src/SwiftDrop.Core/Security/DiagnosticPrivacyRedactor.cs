@@ -7,7 +7,7 @@ public static class DiagnosticPrivacyRedactor
     public static string Redact(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var tokens = value.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var tokens = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return string.Join(' ', tokens.Select(RedactToken));
     }
 

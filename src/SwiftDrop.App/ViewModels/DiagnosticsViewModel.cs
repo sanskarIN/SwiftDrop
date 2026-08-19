@@ -44,14 +44,20 @@ public sealed class DiagnosticsViewModel : ObservableObject
 
     public async Task RefreshAsync(CancellationToken ct = default)
     {
-        ProtocolStatus = $"Protocol version: {ProtocolConstants.CurrentVersion}";
+        ProtocolStatus = AppText.Format("ProtocolVersionFormat", ProtocolConstants.CurrentVersion);
         DeveloperOptionsEnabled = _settings.Load().DeveloperOptionsEnabled;
         Diagnostics.Clear();
         try
         {
             await _discovery.StartAsync(ct);
-            MdnsStatus = $"mDNS/Bonjour discovery: {(_discovery.IsMdnsRunning ? "running" : "unavailable")}";
-            UdpStatus = $"UDP broadcast fallback: {(_discovery.IsUdpRunning ? "running" : "unavailable")}";
+            var running = AppText.Get("StatusRunning");
+            var unavailable = AppText.Get("StatusUnavailable");
+            MdnsStatus = AppText.Format(
+                "MdnsDiscoveryStatusFormat",
+                _discovery.IsMdnsRunning ? running : unavailable);
+            UdpStatus = AppText.Format(
+                "UdpFallbackStatusFormat",
+                _discovery.IsUdpRunning ? running : unavailable);
             var current = _diagnostics.InspectLocalNetwork();
             foreach (var item in current)
             {
@@ -66,12 +72,13 @@ public sealed class DiagnosticsViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            MdnsStatus = "mDNS/Bonjour discovery: unavailable";
-            UdpStatus = "UDP broadcast fallback: unavailable";
+            var unavailable = AppText.Get("StatusUnavailable");
+            MdnsStatus = AppText.Format("MdnsDiscoveryStatusFormat", unavailable);
+            UdpStatus = AppText.Format("UdpFallbackStatusFormat", unavailable);
             Diagnostics.Add(new NetworkDiagnostic(
                 "diagnostics.discovery_error",
-                "Automatic discovery could not start",
-                "Automatic discovery is unavailable. QR or pasted pairing invitations can still be used when the receiver address is reachable.",
+                AppText.Get("AutomaticDiscoveryUnavailableTitle"),
+                AppText.Get("AutomaticDiscoveryUnavailableMessage"),
                 DiagnosticSeverity.Warning));
             await _log.RecordAsync("Warning", "diagnostics.discovery_error", $"Discovery startup failed with {ex.GetType().Name}.", ct);
         }
@@ -102,21 +109,38 @@ public sealed class DiagnosticsViewModel : ObservableObject
     {
         DeveloperOptionsEnabled = _settings.Load().DeveloperOptionsEnabled;
         if (!DeveloperOptionsEnabled)
-            throw new InvalidOperationException("Developer options are disabled.");
+            throw new InvalidOperationException(AppText.Get("DeveloperOptionsDisabled"));
 
-        SelfTestResult = "Running synthetic self-test…";
+        SelfTestResult = AppText.Get("RunningSyntheticSelfTest");
         try
         {
             var result = await action(ct);
-            SelfTestResult = $"{(result.Passed ? "PASS" : "FAIL")} — {result.Message}";
+            var resultLabel = AppText.Get(result.Passed ? "SelfTestPass" : "SelfTestFail");
+            var resultMessage = LocalizedSelfTestMessage(result);
+            SelfTestResult = AppText.Format("SelfTestResultFormat", resultLabel, resultMessage);
             await _log.RecordAsync(result.Passed ? "Info" : "Error", $"selftest.{result.Code}", result.Message, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            SelfTestResult = $"Self-test failed with {ex.GetType().Name}.";
+            SelfTestResult = AppText.Format("SelfTestFailedFormat", ex.GetType().Name);
             await _log.RecordAsync("Error", "selftest.exception", $"Self-test failed with {ex.GetType().Name}.", ct);
         }
         await RefreshEventsAsync(ct);
+    }
+
+    private static string LocalizedSelfTestMessage(SelfTestResult result)
+    {
+        var key = (result.Code, result.Passed) switch
+        {
+            ("successful-roundtrip", true) => "SelfTestRoundTripPass",
+            ("successful-roundtrip", false) => "SelfTestRoundTripFail",
+            ("checksum-mismatch", true) => "SelfTestChecksumMismatchPass",
+            ("checksum-mismatch", false) => "SelfTestChecksumMismatchFail",
+            ("interrupted-receive", true) => "SelfTestInterruptedReceivePass",
+            ("interrupted-receive", false) => "SelfTestInterruptedReceiveFail",
+            _ => result.Passed ? "SelfTestPass" : "SelfTestFail"
+        };
+        return AppText.Get(key);
     }
 
     private async Task RefreshEventsAsync(CancellationToken ct)

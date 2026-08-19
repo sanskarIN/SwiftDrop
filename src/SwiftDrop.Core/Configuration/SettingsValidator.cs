@@ -25,6 +25,7 @@ public static class SettingsValidator
             throw new ArgumentException("Theme must be System, Light, or Dark.", nameof(settings.Theme));
         if (!Languages.Contains(settings.Language))
             throw new ArgumentException("Language must be en or hi in this release.", nameof(settings.Language));
+        ArgumentNullException.ThrowIfNull(settings.DefaultReceiveFolder);
         if (settings.DefaultReceiveFolder.Length > 1024 || settings.DefaultReceiveFolder.Any(char.IsControl))
             throw new ArgumentException("Receive folder contains unsupported characters or is too long.", nameof(settings.DefaultReceiveFolder));
 
