@@ -28,4 +28,12 @@ public sealed class SettingsValidatorTests
         var result = SettingsValidator.Validate(AppSettings.Default with { Theme = "dark" });
         Assert.Equal("Dark", result.Theme);
     }
+
+    [Fact]
+    public void RejectsNullReceiveFolderWithoutNullReferenceFailure()
+    {
+        var settings = AppSettings.Default with { DefaultReceiveFolder = null! };
+
+        Assert.Throws<ArgumentNullException>(() => SettingsValidator.Validate(settings));
+    }
 }
