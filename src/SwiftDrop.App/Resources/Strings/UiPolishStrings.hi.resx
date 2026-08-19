@@ -26,6 +26,12 @@
   <data name="SelfTestFailedFormat" xml:space="preserve"><value>सेल्फ-टेस्ट {0} के साथ विफल हुआ।</value></data>
   <data name="SelfTestPass" xml:space="preserve"><value>PASS</value></data>
   <data name="SelfTestFail" xml:space="preserve"><value>FAIL</value></data>
+  <data name="SelfTestRoundTripPass" xml:space="preserve"><value>ज्ञात-सही डेटा सफलतापूर्वक पूरा हुआ और उसका SHA-256 डाइजेस्ट मेल खाया।</value></data>
+  <data name="SelfTestRoundTripFail" xml:space="preserve"><value>ज्ञात-सही राउंड-ट्रिप सत्यापन सफल नहीं हुआ।</value></data>
+  <data name="SelfTestChecksumMismatchPass" xml:space="preserve"><value>चेकसम असंगति अस्वीकार कर दी गई और अमान्य आउटपुट साफ़ कर दिया गया।</value></data>
+  <data name="SelfTestChecksumMismatchFail" xml:space="preserve"><value>चेकसम-असंगति सुरक्षा सेल्फ-टेस्ट सफल नहीं हुआ।</value></data>
+  <data name="SelfTestInterruptedReceivePass" xml:space="preserve"><value>बाधित प्राप्ति फिर से शुरू की जा सकने वाली आंशिक डेटा स्थिति में सुरक्षित रही।</value></data>
+  <data name="SelfTestInterruptedReceiveFail" xml:space="preserve"><value>बाधित-प्राप्ति पुनर्प्राप्ति सेल्फ-टेस्ट सफल नहीं हुआ।</value></data>
   <data name="QueueStateQueued" xml:space="preserve"><value>कतार में</value></data>
   <data name="QueueStateRunning" xml:space="preserve"><value>चल रहा है</value></data>
   <data name="QueueStateCompleted" xml:space="preserve"><value>पूर्ण</value></data>
