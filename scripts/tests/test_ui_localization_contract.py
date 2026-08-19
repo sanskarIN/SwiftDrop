@@ -73,8 +73,21 @@ class UiLocalizationContractTests(unittest.TestCase):
             "RunningSyntheticSelfTest",
             "SelfTestResultFormat",
             "SelfTestFailedFormat",
+            "SelfTestRoundTripPass",
+            "SelfTestRoundTripFail",
+            "SelfTestChecksumMismatchPass",
+            "SelfTestChecksumMismatchFail",
+            "SelfTestInterruptedReceivePass",
+            "SelfTestInterruptedReceiveFail",
         ):
             self.assertIn(key, diagnostics)
+
+        self.assertIn("LocalizedSelfTestMessage(result)", diagnostics)
+        self.assertNotIn('AppText.Format("SelfTestResultFormat", resultLabel, result.Message)', diagnostics)
+        self.assertIn(
+            'await _log.RecordAsync(result.Passed ? "Info" : "Error", $"selftest.{result.Code}", result.Message, ct);',
+            diagnostics,
+        )
 
         self.assertNotIn("entry.OperationKind.ToString()", queue)
         self.assertNotIn("entry.State.ToString()", queue)
@@ -96,6 +109,12 @@ class UiLocalizationContractTests(unittest.TestCase):
         for key in (
             "PairingQrCodeDescription",
             "CertificateFingerprintFormat",
+            "SelfTestRoundTripPass",
+            "SelfTestRoundTripFail",
+            "SelfTestChecksumMismatchPass",
+            "SelfTestChecksumMismatchFail",
+            "SelfTestInterruptedReceivePass",
+            "SelfTestInterruptedReceiveFail",
             "QueueStateInterrupted",
             "QueueOperationReceive",
         ):
