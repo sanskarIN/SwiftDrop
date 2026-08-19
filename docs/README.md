@@ -68,6 +68,8 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 ## Release and operations
 
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
+- [Final UI completion audit — 2026-08-19](audits/final-ui-polish-2026-08-19.md)
+- [Final UI what-changed appendix — 2026-08-19](../what_changed_2026-08-19_ui-polish.md)
 - [Repository completion — 2026-08-19](release/repository-completion-2026-08-19.md)
 - [Final repository closure ledger — 2026-08-19](../what_changed_2026-08-19_closure.md)
 - [Continuation hardening ledger — 2026-08-19](../what_changed_2026-08-19_continuation.md)
