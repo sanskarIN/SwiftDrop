@@ -17,7 +17,8 @@ Added focused xUnit coverage for:
 - text-snippet exact-expiry, maximum clock-skew, and UTF-8 byte boundaries;
 - local address selection safety and network diagnostic invariants;
 - asynchronous concurrency-gate invalid limits, pre-cancellation, lease idempotency, mixed-limit FIFO fairness, and cancelled-head progress;
-- asynchronous session tracking for null registration, successful/faulted/cancelled tasks, cancellation, and sessions added while draining.
+- asynchronous session tracking for null registration, successful/faulted/cancelled tasks, cancellation, and sessions added while draining;
+- settings concurrency/history boundaries, theme/language canonicalization, receive-folder trimming, length/control-character policy, and malformed null receive-folder input.
 
 ## Canonical text-snippet validation
 
@@ -30,6 +31,12 @@ The repository now has one canonical text-snippet policy under `SwiftDrop.Core.P
 A continuation audit found that diagnostic redaction split input only on the literal space character. Identifiers separated by tabs, LF, or CRLF could therefore remain embedded in a larger token and avoid IP/email recognition.
 
 Regression tests were added first, followed by a production fix that tokenizes on all whitespace. Existing output normalization remains space-separated, while IP addresses, endpoints, email-like identifiers, paths, pairing capabilities, GUIDs, and SHA-256 fingerprints continue to be replaced with `[redacted]`.
+
+## Settings validation hardening
+
+Malformed settings data could provide a null `DefaultReceiveFolder` even though the record is annotated non-nullable. Validation previously dereferenced that value while checking its length, leaking a `NullReferenceException` instead of rejecting persisted input at the validation boundary.
+
+A regression test now requires an explicit `ArgumentNullException`, and `SettingsValidator` guards the receive-folder value before length/control-character checks. Additional boundary tests lock the supported concurrency and history-retention ranges and canonical theme/language behavior.
 
 ## Manual release-evidence status tooling
 
@@ -58,7 +65,9 @@ Repository-completion validation now requires the helper and its documentation, 
 
 ## Commit strategy
 
-The continuation intentionally uses small Conventional Commits so independent tests, fixes, release tooling, CI wiring, and documentation remain reviewable in history. Commits are signed off with:
+This continuation is intentionally split into **30 small Conventional Commits** so independent tests, fixes, release tooling, CI wiring, and documentation remain reviewable in history. The branch should be merged without squashing so that history is preserved.
+
+Commits are signed off with:
 
 `Signed-off-by: Sanskar <sanskarin@outlook.in>`
 
