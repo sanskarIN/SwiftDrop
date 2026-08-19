@@ -10,7 +10,11 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from validate_manual_release_evidence import VALID_STATUSES, validate_document
+from validate_manual_release_evidence import PLACEHOLDER_COMMIT, VALID_STATUSES, validate_document
+
+PLACEHOLDER_COMMIT_BLOCKER = (
+    "candidate.commit: replace the all-zero template placeholder with the exact release-candidate commit"
+)
 
 
 def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
@@ -44,11 +48,17 @@ def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    candidate = dict(document["candidate"])
+    completion_blockers: list[str] = []
+    if candidate["commit"] == PLACEHOLDER_COMMIT:
+        completion_blockers.append(PLACEHOLDER_COMMIT_BLOCKER)
+
     total_cases = sum(case_counts.values())
     passed_cases = case_counts["passed"]
     return {
-        "candidate": dict(document["candidate"]),
-        "complete": passed_cases == total_cases,
+        "candidate": candidate,
+        "complete": passed_cases == total_cases and not completion_blockers,
+        "completion_blockers": completion_blockers,
         "total_groups": len(document["groups"]),
         "total_cases": total_cases,
         "passed_cases": passed_cases,
@@ -66,8 +76,12 @@ def render_text(summary: dict[str, Any]) -> str:
         f"candidate: {candidate['version']} @ {candidate['commit']}",
         f"cases: {summary['passed_cases']}/{summary['total_cases']} passed; {summary['remaining_cases']} remaining",
         f"complete: {'yes' if summary['complete'] else 'no'}",
-        "groups:",
     ]
+    blockers = summary["completion_blockers"]
+    if blockers:
+        lines.append("completion blockers:")
+        lines.extend(f"  - {blocker}" for blocker in blockers)
+    lines.append("groups:")
     for group in summary["groups"]:
         counts = ", ".join(
             f"{status}={count}"
@@ -79,13 +93,14 @@ def render_text(summary: dict[str, Any]) -> str:
 
 
 def render_remaining(summary: dict[str, Any]) -> str:
-    remaining = summary["remaining"]
-    if not remaining:
-        return "all required manual release-evidence cases are passed"
-    return "\n".join(
+    lines = [
         f"{item['group']}/{item['case']}: {item['status']}"
-        for item in remaining
-    )
+        for item in summary["remaining"]
+    ]
+    lines.extend(summary["completion_blockers"])
+    if not lines:
+        return "all required manual release-evidence cases are passed"
+    return "\n".join(lines)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -96,7 +111,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     output.add_argument(
         "--remaining-only",
         action="store_true",
-        help="list only required cases that are not yet passed",
+        help="list required cases and candidate blockers that still prevent completion",
     )
     return parser.parse_args(argv)
 
