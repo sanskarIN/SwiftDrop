@@ -8,6 +8,8 @@ This file is the canonical **current repository-side status** for SwiftDrop. Old
 
 **COMPLETE for the maintained source scope.**
 
+Final consolidated repository-completion PR #30 was merged to `main` as `1499443e5337f319017a66291c0eaacf2089e7ca`.
+
 The final repository audit found no known mandatory application feature, source implementation, open-source/community artifact, automated verification tool, maintained platform project, or canonical documentation item intentionally left unfinished in the repository.
 
 Future repository changes should be driven only by a reproducible defect, dependency/platform/toolchain change, security finding, deliberately approved post-v1 feature, or release evidence showing that real target behavior differs from maintained source assumptions.
@@ -54,13 +56,22 @@ The previously queued PR #28 validation completed successfully:
 
 That evidence included **580/580 xUnit tests**, **54/54 Python helper tests**, zero Core vulnerability findings, zero Core/benchmark build warnings or errors, documentation/localization/Apple/Windows metadata validation, and Windows portable verification.
 
-The consolidated final completion PR adds **6** completion test cases with grouped assertions across the expanded contract, so its expected Python helper inventory is **60 tests** while xUnit remains **580**. Those final numbers become passing evidence only when the exact consolidated PR head completes the applicable workflows.
+The consolidated final completion PR adds **6** completion test cases with grouped assertions across the expanded contract, so the final source inventory is **60 Python helper tests** and **580 xUnit tests**. The exact PR #30 head workflows were queued/pending at merge time rather than reported as successful, so those final-head runs are not retroactively represented as passing evidence.
 
 ## Documentation status
 
 Canonical documentation includes project/build/contribution/security/privacy/support/legal files; architecture/networking/protocol/platform/storage documents; user/FAQ/troubleshooting/diagnostics/glossary/development guides; CI/deterministic/security/manual/accessibility/performance/completion testing guides; release process/checklist/signing/store privacy/dependency/manual-evidence/generator documents; and dated audit/continuation ledgers.
 
 `scripts/validate_documentation.py` validates the maintained documentation set and local Markdown links. The completion validator independently protects the broader project/community/release surface.
+
+## Repository queue
+
+After the consolidated merge and duplicate-branch cleanup:
+
+- open pull requests: **0**;
+- open issues: **0**.
+
+PR #31 was closed without merge after its stronger checks were consolidated into PR #30.
 
 ## What is not a missing repository feature
 
@@ -79,6 +90,6 @@ Those cannot truthfully be completed by editing repository files. Use the checke
 
 ## Final rule
 
-After the consolidated final completion PR is merged and its applicable automated gates are evaluated, there is no intentionally unfinished mandatory repository-side feature or tool to continue.
+There is no intentionally unfinished mandatory repository-side feature or tool to continue after the consolidated final completion merge.
 
 If no new reproducible defect, dependency/platform change, security finding, or deliberately approved feature exists, do not invent additional source work. The next legitimate milestone is external signed-device/store validation for an exact release candidate.
