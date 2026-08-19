@@ -25,6 +25,8 @@ jobs:
           python-version: '3.13'
       - name: Test Python validation helpers
         run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+      - name: Validate repository completion contract
+        run: python3 scripts/validate_repository_completion.py
       - name: Validate documentation integrity
         run: python3 scripts/validate_documentation.py
       - name: Validate localization catalogs
