@@ -7,6 +7,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 ## Start here
 
 - [Project overview](../README.md)
+- [Final repository status](../FINAL_REPOSITORY_STATUS.md)
 - [Installation and source run](installation.md)
 - [User guide](user-guide.md)
 - [Settings reference](configuration.md)
@@ -55,6 +56,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 ## Testing and quality
 
 - [CI reference](testing/ci-reference.md)
+- [Repository completion validation](testing/repository-completion-validation.md)
 - [Deterministic state-model testing](testing/deterministic-state-models.md)
 - [Security test plan](testing/security-test-plan.md)
 - [Manual test matrix](testing/manual-test-matrix.md)
@@ -65,6 +67,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 ## Release and operations
 
+- [Final repository status](../FINAL_REPOSITORY_STATUS.md)
 - [Repository completion — 2026-08-19](release/repository-completion-2026-08-19.md)
 - [Final repository closure ledger — 2026-08-19](../what_changed_2026-08-19_closure.md)
 - [Continuation status — 2026-08-19](release/continuation-status-2026-08-19.md)
@@ -79,8 +82,8 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 - [Signing configuration](release/signing-configuration.md)
 - [Store privacy declarations](release/store-privacy-declarations.md)
 - [Versioning and compatibility](versioning-and-compatibility.md)
-- [Project status](../PROJECT_STATUS.md)
-- [Next validation steps](../NEXT_STEPS.md)
+- [Project status (historical detail)](../PROJECT_STATUS.md)
+- [Next validation steps (historical detail)](../NEXT_STEPS.md)
 - [Changelog](../CHANGELOG.md)
 - [Detailed engineering ledger](../what_changed.md)
 
