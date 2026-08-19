@@ -2,7 +2,8 @@
 
 Date: 2026-08-19  
 Repository: `https://github.com/sanskarIN/SwiftDrop`  
-Branch: `final/integrated-completion-20260819`
+Branch: `final/integrated-completion-20260819`  
+Pull request: #34
 
 This ledger records the final repository-side integration of the two remaining independent completion branches. It does not replace or shorten their detailed ledgers.
 
@@ -13,7 +14,7 @@ The integration commit `747b054e1be362425f4eb1d505c2ffcdade955dd` has two parent
 - `eca8571c9703f0d04be55fa2862118c7c95e91f7` — PR #32 post-v1 Core/security/release-evidence hardening, **37 granular commits**;
 - `cc84f819a2dd4f0ad02cee480c69de9a3ecd21b2` — PR #33 final UI/navigation/localization polish, **24 granular commits**.
 
-The resulting integration branch is **62 commits ahead of `main`**: both parent histories plus the explicit two-parent integration commit. No squashing or history rewriting is used.
+At the explicit two-parent integration commit, the branch was **62 commits ahead of `main`**: both parent histories plus the integration commit. PR #34 then adds four focused integration-only commits for this ledger, the canonical documentation index, the canonical repository status, and this final ledger synchronization. The resulting PR #34 head is therefore **66 commits ahead of `main`**, with no squash or history rewriting.
 
 ## Hardening/release-evidence work preserved
 
@@ -47,6 +48,7 @@ The only intentional content-level overlap requiring manual reconciliation was `
 
 The integrated documentation index keeps all unique links from both parents, including:
 
+- final integration ledger;
 - final UI completion audit;
 - final UI what-changed appendix;
 - continuation hardening ledger;
@@ -54,8 +56,14 @@ The integrated documentation index keeps all unique links from both parents, inc
 
 All other PR #33 changed files were overlaid on the PR #32 tree without dropping PR #32's independent Core/release files or its deletion of the duplicate security validator.
 
+## Parent PR disposition
+
+PR #32 and PR #33 are closed as **superseded, not discarded**. Their exact heads are direct parents of the integration history, so all work remains reviewable in PR #34.
+
+PR #34 is the single authoritative repository-side completion queue.
+
 ## Validation boundary
 
-This integration ledger does not claim queued or unexecuted GitHub Actions as successful. The integration branch must be evaluated by the maintained exact-head CI, CodeQL, security-hygiene, release-readiness, and platform-build workflows.
+This integration ledger does not claim queued or unexecuted GitHub Actions as successful. PR #34's exact final head must be evaluated by the maintained CI, CodeQL, security-hygiene, release-readiness, and platform-build workflows.
 
 Signed Android/Windows/Apple packages, real devices/providers/filesystems/networks, accessibility/Hindi behavior, Apple provisioning/App Group/notarization, exact signed-artifact dependency/license/provenance reconciliation, and store/privacy submission remain external release evidence rather than repository-source work.
