@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PairingQrCodeDescription" xml:space="preserve"><value>SwiftDrop पेयरिंग QR कोड</value></data>
+  <data name="BuyMeACoffeeLogoDescription" xml:space="preserve"><value>Buy Me a Coffee सहायता लोगो</value></data>
+  <data name="SupportSwiftDrop" xml:space="preserve"><value>SwiftDrop का समर्थन करें</value></data>
+  <data name="SupportOnBuyMeACoffee" xml:space="preserve"><value>Buy Me a Coffee पर SwiftDrop का समर्थन करें</value></data>
+  <data name="CertificateFingerprintFormat" xml:space="preserve"><value>प्रमाणपत्र फ़िंगरप्रिंट: {0}</value></data>
+  <data name="DoNotRetainHistory" xml:space="preserve"><value>इतिहास न रखें</value></data>
+  <data name="RetentionDaysFormat" xml:space="preserve"><value>{0} दिन</value></data>
+  <data name="ReceiveFolderSupportWindows" xml:space="preserve"><value>Windows सिस्टम फ़ोल्डर पिकर का उपयोग करता है। SwiftDrop केवल आपके चुने हुए फ़ोल्डर तक पहुँच का अनुरोध करता है।</value></data>
+  <data name="ReceiveFolderSupportPrivate" xml:space="preserve"><value>यह प्लेटफ़ॉर्म अभी SwiftDrop के ऐप-निजी Received फ़ोल्डर का उपयोग करता है। व्यापक फ़ाइल-सिस्टम पहुँच माँगने के बजाय कस्टम बाहरी फ़ोल्डर चयन बंद रखा गया है।</value></data>
+  <data name="ProtocolVersionFormat" xml:space="preserve"><value>प्रोटोकॉल संस्करण: {0}</value></data>
+  <data name="StatusRunning" xml:space="preserve"><value>चल रहा है</value></data>
+  <data name="StatusUnavailable" xml:space="preserve"><value>उपलब्ध नहीं</value></data>
+  <data name="MdnsDiscoveryStatusFormat" xml:space="preserve"><value>mDNS/Bonjour खोज: {0}</value></data>
+  <data name="UdpFallbackStatusFormat" xml:space="preserve"><value>UDP ब्रॉडकास्ट फ़ॉलबैक: {0}</value></data>
+  <data name="AutomaticDiscoveryUnavailableTitle" xml:space="preserve"><value>स्वचालित खोज शुरू नहीं हो सकी</value></data>
+  <data name="AutomaticDiscoveryUnavailableMessage" xml:space="preserve"><value>स्वचालित खोज उपलब्ध नहीं है। रिसीवर का पता पहुँच योग्य होने पर QR या पेस्ट किए गए पेयरिंग निमंत्रण अभी भी उपयोग किए जा सकते हैं।</value></data>
+  <data name="DeveloperOptionsDisabled" xml:space="preserve"><value>डेवलपर विकल्प बंद हैं।</value></data>
+  <data name="RunningSyntheticSelfTest" xml:space="preserve"><value>सिंथेटिक सेल्फ-टेस्ट चल रहा है…</value></data>
+  <data name="SelfTestResultFormat" xml:space="preserve"><value>{0} — {1}</value></data>
+  <data name="SelfTestFailedFormat" xml:space="preserve"><value>सेल्फ-टेस्ट {0} के साथ विफल हुआ।</value></data>
+  <data name="SelfTestPass" xml:space="preserve"><value>PASS</value></data>
+  <data name="SelfTestFail" xml:space="preserve"><value>FAIL</value></data>
+  <data name="QueueStateQueued" xml:space="preserve"><value>कतार में</value></data>
+  <data name="QueueStateRunning" xml:space="preserve"><value>चल रहा है</value></data>
+  <data name="QueueStateCompleted" xml:space="preserve"><value>पूर्ण</value></data>
+  <data name="QueueStateFailed" xml:space="preserve"><value>विफल</value></data>
+  <data name="QueueStateCancelled" xml:space="preserve"><value>रद्द</value></data>
+  <data name="QueueStateInterrupted" xml:space="preserve"><value>बाधित</value></data>
+  <data name="QueueOperationTransfer" xml:space="preserve"><value>ट्रांसफ़र</value></data>
+  <data name="QueueOperationFile" xml:space="preserve"><value>फ़ाइल</value></data>
+  <data name="QueueOperationBatch" xml:space="preserve"><value>बैच</value></data>
+  <data name="QueueOperationText" xml:space="preserve"><value>टेक्स्ट</value></data>
+  <data name="QueueOperationReceive" xml:space="preserve"><value>प्राप्ति</value></data>
+</root>
