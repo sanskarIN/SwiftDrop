@@ -14,6 +14,7 @@ This file is the dated `what_changed` appendix for the final defect-driven Swift
 - Settings Pickers coupled English display labels too closely to persisted theme/language values, making direct translation unsafe for the canonical configuration contract.
 - Settings retention, certificate-fingerprint, and receive-folder guidance text still contained English runtime literals.
 - Diagnostics protocol/discovery/self-test runtime presentation still contained English literals.
+- Core self-tests returned intentionally technical English messages for diagnostic logging, and Diagnostics was also displaying those raw messages in the localized UI.
 - Queue state and operation labels were displayed from enum `ToString()` values, leaking English identifiers in Hindi UI.
 
 ## Source changes
@@ -26,6 +27,8 @@ Added a focused English/Hindi resource pair:
 - `src/SwiftDrop.App/Resources/Strings/UiPolishStrings.hi.resx`.
 
 `AppText` now loads that pair and `scripts/validate_localization.py` validates key and placeholder parity.
+
+The catalog also contains localized outcome summaries for all three maintained synthetic self-tests in pass/fail form. This lets presentation remain localized without changing technical Core diagnostics.
 
 ### Home navigation
 
@@ -53,6 +56,8 @@ The Settings view model also localizes retention, certificate-fingerprint, and r
 
 User-facing protocol version, discovery availability, UDP fallback, discovery failure, developer-options, and synthetic self-test status text now flows through `AppText`. Stable safe-log codes remain machine-oriented.
 
+Self-test outcome details now map the stable Core `SelfTestResult.Code` plus `Passed` state to localized UI resource keys. The original `SelfTestResult.Message` remains unchanged in the safe diagnostic log so troubleshooting evidence is preserved without leaking English technical text into Hindi presentation.
+
 ### Queue
 
 `LocalizedStatusFormatter` now owns queue state and operation presentation. Queue counts are calculated from typed `TransferQueueEntry` values before translation, so translating the displayed state cannot break running/queued/interrupted counts.
@@ -67,6 +72,8 @@ Added `scripts/tests/test_ui_localization_contract.py` to the existing Python un
 - localized Settings runtime labels;
 - removal of English-only support literals;
 - localized Diagnostics status keys;
+- localized self-test outcome summaries rather than raw Core messages;
+- preservation of raw Core self-test messages in safe diagnostic logs;
 - no queue enum `ToString()` display leakage;
 - final-polish catalog loading/validator wiring.
 
@@ -101,7 +108,13 @@ Updated:
 - `6b23a799f7f963b8ec27752dce06f0776c20eb80` — final UI localization/navigation regression contract;
 - `80a0f7d427c897158881b35c84d22dea89e52019` — dated UI completion audit;
 - `83fed596b0e03208b8296d0df3c2b9cc01bec5c2` — documentation index;
-- `0410d40e97ab0ff22e218fc623ec5a9409a1ef59` — canonical final repository status synchronization.
+- `0410d40e97ab0ff22e218fc623ec5a9409a1ef59` — canonical final repository status synchronization;
+- `053b58b4885e6dd1598460426def1c4f97315357` — final UI what-changed appendix indexing;
+- `6441c5e757fec248344fc9734fdbd0c2ee697dd3` — English self-test outcome resources;
+- `8b6220260968491695ef6feb907d2c93c876e99b` — Hindi self-test outcome resources;
+- `fe825a02213bfae92f904cc1f2987398f7f02cdb` — localized self-test outcome presentation with technical logging preserved;
+- `844fad3becff4bddc165780f0d2fcb224dd1765f` — self-test message-leak regression contract;
+- `13408fd7506c5a8336abed4da13587e111fc9021` — audit clarification for the presentation/logging boundary.
 
 ## Validation boundary
 
