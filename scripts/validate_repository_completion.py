@@ -9,6 +9,7 @@ from pathlib import Path
 
 REQUIRED_FILES = (
     "README.md",
+    "FINAL_REPOSITORY_STATUS.md",
     "LICENSE",
     "NOTICE",
     "SECURITY.md",
