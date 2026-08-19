@@ -1,9 +1,9 @@
 # SwiftDrop — What Changed (2026-08-19)
 
 Repository: https://github.com/sanskarIN/SwiftDrop  
-Merged hardening branch: `post-v1-hardening-20260819`  
-Merged pull request: #26  
-Current continuation branch: `release-evidence-hardening-20260819`
+Merged hardening branch: `post-v1-hardening-20260819` — PR #26  
+Merged release-evidence branch: `release-evidence-hardening-20260819` — PR #27  
+Current continuation branch: `release-evidence-generator-20260819`
 
 This addendum records the August 19 continuation work without rewriting the cumulative `what_changed.md` engineering ledger. It must be read together with that cumulative ledger.
 
@@ -304,15 +304,76 @@ Commits/files:
 
 The validator now requires exact `YYYY-MM-DDTHH:MM:SS[.fraction]Z` timestamps rather than accepting broader aliases supported by Python's ISO parser. Dedicated regressions reject a space-separated timestamp and an explicit `+00:00` alias while preserving canonical fractional UTC timestamps.
 
+## Release-evidence validator merge
+
+PR #27 was merged to `main` with merge commit:
+
+- `4566d9eb24247eb0a52a693a851822a1af9a02a8`.
+
+The exact PR-head GitHub-hosted workflows were queued at merge time and were not represented as completed passing evidence.
+
+## Added candidate evidence generator
+
+File:
+
+- `scripts/create_manual_release_evidence.py`.
+
+Commits:
+
+- `98b5014c1586f7fb0beca63a1908e2bcbd7c20d1` — `feat(release): add candidate evidence generator`;
+- `6aaa6268f850dbdb239c0df88b735445be101e78` — `fix(release): make evidence output creation safer`.
+
+The generator creates a fresh schema-v1 evidence record for an exact candidate commit/version, stamps a canonical UTC creation time, and initializes every required external validation case to `not-run`.
+
+Output safety includes:
+
+- reject the all-zero placeholder candidate commit;
+- validate commit/version/timestamp through the canonical validator contract;
+- create parent directories as needed;
+- refuse overwrite by default;
+- use exclusive creation for a new file;
+- reject symbolic-link output targets;
+- reject non-regular existing output targets;
+- allow intentional replacement of an existing regular file only with `--force`.
+
+## Added generator regression coverage
+
+Files/commits:
+
+- `scripts/tests/test_create_manual_release_evidence.py` — `7d11093aa51673bde0a6100355a3577d2bdc3f04`;
+- `scripts/tests/test_create_manual_release_evidence_defaults.py` — `559656cbb04d58fe0f3412d38a36edf941fc7e66`.
+
+The ten added helper tests cover:
+
+- structurally valid generated output;
+- every generated group/case begins `not-run`;
+- placeholder commit rejection;
+- noncanonical commit rejection;
+- noncanonical timestamp rejection;
+- no-clobber default behavior;
+- explicit force replacement of a regular file;
+- parent-directory creation;
+- canonical default UTC timestamps;
+- refusal to replace a directory even with `--force`.
+
+## Added generator documentation
+
+Files/commits:
+
+- `docs/release/manual-release-evidence-generator.md` — `092156b678e7154641d42b65d9a33c3b65dad6fc`;
+- canonical documentation-index link — `0a03ea86daefa7902791d6d262884ef891d8b39a`.
+
+The guide documents generation, deterministic timestamp override, output safety, structural validation, complete-mode expectations, candidate workflow, and privacy rules.
+
 ## Python helper test-count effect
 
-The repository baseline before this release-evidence tranche was 26 Python helper tests.
+The repository baseline before August 19 release-evidence work was 26 Python helper tests.
 
-This tranche adds **18 Python helper tests**, so the expected helper-suite size is **44 tests** once the exact continuation head completes CI. This is an expected count, not a passing-evidence claim until CI completes.
+The validator tranche adds 18 helper tests and the generator tranche adds 10 more, so the expected helper-suite size is **54 tests** once the exact continuation head completes CI. This is an expected count, not a passing-evidence claim until CI completes.
 
 ## Runtime behavior
 
-The August 19 deterministic-test and release-evidence tranches do not change production application runtime source. They strengthen regression coverage and make remaining external validation status machine-readable and harder to overstate.
+The August 19 deterministic-test, release-evidence validator, and release-evidence generator tranches do not change production application runtime source. They strengthen regression coverage and make remaining external validation status machine-readable and harder to overstate.
 
 ## External release boundary remains unchanged
 
@@ -328,6 +389,6 @@ Still not verifiable from repository-only hosted tooling:
 - exact signed-candidate dependency/license/provenance reconciliation;
 - store metadata, screenshots, declarations, and privacy review.
 
-The new evidence manifest records those gates; it does not execute them.
+The evidence tooling creates and validates records for those gates; it does not execute them.
 
 Do not convert any unexecuted external gate into a pass.
