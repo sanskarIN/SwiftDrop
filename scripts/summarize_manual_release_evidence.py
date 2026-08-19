@@ -15,6 +15,17 @@ from validate_manual_release_evidence import PLACEHOLDER_COMMIT, VALID_STATUSES,
 PLACEHOLDER_COMMIT_BLOCKER = (
     "candidate.commit: replace the all-zero template placeholder with the exact release-candidate commit"
 )
+STRICT_COMPLETION_BLOCKER = (
+    "complete validation: evidence does not satisfy strict release-candidate completion requirements"
+)
+
+
+def _passes_complete_validation(document: dict[str, Any]) -> bool:
+    try:
+        validate_document(document, require_complete=True)
+    except ValueError:
+        return False
+    return True
 
 
 def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
@@ -53,11 +64,15 @@ def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
     if candidate["commit"] == PLACEHOLDER_COMMIT:
         completion_blockers.append(PLACEHOLDER_COMMIT_BLOCKER)
 
+    complete = _passes_complete_validation(document)
+    if not complete and not remaining and not completion_blockers:
+        completion_blockers.append(STRICT_COMPLETION_BLOCKER)
+
     total_cases = sum(case_counts.values())
     passed_cases = case_counts["passed"]
     return {
         "candidate": candidate,
-        "complete": passed_cases == total_cases and not completion_blockers,
+        "complete": complete,
         "completion_blockers": completion_blockers,
         "total_groups": len(document["groups"]),
         "total_cases": total_cases,
