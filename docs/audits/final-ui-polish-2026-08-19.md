@@ -57,6 +57,8 @@ The same pass localized:
 
 User-facing protocol/discovery/self-test statuses in `DiagnosticsViewModel` were constructed with English literals. These now resolve through `AppText` while diagnostic event codes and safe technical log records remain stable machine-oriented values.
 
+A second pass found that `TransferSelfTestService` correctly returns stable English technical messages from Core for logging/debugging, but `DiagnosticsViewModel` was also displaying that raw `SelfTestResult.Message` in the localized UI. The UI now maps the stable self-test code plus pass/fail state to a localized outcome summary. The original Core message is still written unchanged to the safe diagnostic log, preserving useful technical evidence without leaking English presentation text into Hindi UI.
+
 Localized runtime presentation now covers:
 
 - protocol version label;
@@ -64,7 +66,10 @@ Localized runtime presentation now covers:
 - UDP fallback status;
 - discovery-unavailable title/message;
 - developer-options-disabled message;
-- self-test running/pass/fail/failure presentation.
+- self-test running/pass/fail/failure presentation;
+- successful round-trip outcome detail;
+- checksum-mismatch protection outcome detail;
+- interrupted-receive recovery outcome detail.
 
 ### Queue enum names leaked English
 
@@ -92,6 +97,7 @@ A focused resource pair was added:
 - localized Settings runtime labels;
 - removal of English-only support-card literals;
 - localized Diagnostics runtime keys;
+- localized self-test outcome details while preserving Core technical messages in safe logs;
 - removal of queue enum `ToString()` presentation;
 - final-polish resource loading and validation wiring.
 
