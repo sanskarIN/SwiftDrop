@@ -20,6 +20,9 @@ on:
       - 'scripts/validate_nuget_vulnerability_report.py'
       - 'scripts/create_dependency_evidence_manifest.py'
       - 'scripts/validate_windows_integration.py'
+      - 'scripts/validate_manual_release_evidence.py'
+      - 'scripts/create_manual_release_evidence.py'
+      - 'scripts/validate_repository_completion.py'
       - 'scripts/tests/**'
   pull_request:
     branches: [ main ]
@@ -37,6 +40,9 @@ on:
       - 'scripts/validate_nuget_vulnerability_report.py'
       - 'scripts/create_dependency_evidence_manifest.py'
       - 'scripts/validate_windows_integration.py'
+      - 'scripts/validate_manual_release_evidence.py'
+      - 'scripts/create_manual_release_evidence.py'
+      - 'scripts/validate_repository_completion.py'
       - 'scripts/tests/**'
 
 permissions:
