@@ -19,7 +19,7 @@ Results:
 - no open GitHub issue;
 - no open GitHub pull request before the closure branch was opened.
 
-The sweep did find one concrete release-automation gap and several documentation/evidence synchronization opportunities. Those are fixed by this tranche.
+The sweep found release-automation trigger gaps and documentation/evidence synchronization opportunities. Those are fixed by this tranche.
 
 ## Verified baseline that arrived during closure audit
 
@@ -55,7 +55,9 @@ Windows portable job `95930524327`:
 
 This turns the earlier expected 580/54 inventory into verified cross-OS evidence for the pre-closure source state.
 
-## Fixed release-readiness trigger gap
+## Fixed release-readiness trigger gaps
+
+### Manual release-evidence tooling
 
 The release-evidence validator and candidate evidence generator had helper-test coverage, but their script paths were not directly included in the aggregate `release-readiness.yml` path filters.
 
@@ -70,6 +72,28 @@ Fixed by adding these paths to both `push.paths` and `pull_request.paths`:
 Commit:
 
 - `7f66c37d1214c66ca75200418249eb6d7c994888` — `ci(release): gate final release tooling changes`.
+
+### Portable validator trigger completeness
+
+A second workflow review found that `verify-core.sh` executes documentation, localization, and Apple integration validators, but direct changes to those validator scripts were not themselves listed as release-readiness path triggers.
+
+That gap is closed in:
+
+- `587c33bea42d7d4b0bc50d18eedf950c27502790` — `ci(release): trigger on all portable validation helpers`.
+
+Release readiness now directly triggers for:
+
+- `scripts/validate_documentation.py`;
+- `scripts/validate_localization.py`;
+- `scripts/validate_apple_integration.py`;
+- `scripts/validate_windows_integration.py`;
+- NuGet vulnerability/evidence helpers;
+- manual release-evidence validator/generator;
+- the repository-completion validator;
+- both portable verifier entry points;
+- the helper-test tree.
+
+The completion contract itself now protects that complete trigger list.
 
 ## Added permanent repository-completion validator
 
@@ -90,11 +114,13 @@ The validator enforces:
 - canonical documentation-index final status/evidence links remain present;
 - the manual release-evidence template remains structurally valid.
 
-Follow-up commit:
+Follow-up commits:
 
-- `4e4e7dcbc3bc9824b07e586ee0bc8968e7c80530` — `feat(audit): require final completion certificate`.
+- `4e4e7dcbc3bc9824b07e586ee0bc8968e7c80530` — `feat(audit): require final completion certificate`;
+- `5429834ad30dc24da7141be83461d8127e84654d` — `feat(audit): require closure engineering ledger`;
+- `e9745fdb414a4de7c4ff39572e4bd3d2330d76fd` — `feat(audit): protect core quality workflows and helpers`.
 
-That follow-up adds `docs/release/repository-completion-2026-08-19.md` to the permanent required-document and canonical-index contract.
+The final contract additionally requires the closure certificate/ledger, documentation/localization/platform/dependency validators and generators, plus the maintained CI, platform-build, CodeQL, security-hygiene, and release-readiness workflow files. A future change cannot silently remove a core quality workflow and still satisfy the completion contract.
 
 ## Added completion-validator regression suite
 
@@ -115,7 +141,7 @@ Six new Python helper tests cover:
 - missing required repository-file rejection;
 - invalid manual release-evidence template rejection.
 
-The Python helper inventory therefore moves from the verified 54-test baseline to an expected **60 tests** on the exact closure head.
+The Python helper inventory therefore moves from the verified 54-test baseline to **60 tests** on the closure head.
 
 The xUnit inventory remains **580 tests** because this closure tranche changes no production/Core C# runtime behavior and adds no new xUnit fact.
 
@@ -176,17 +202,35 @@ The certificate is the canonical current-scope statement that:
 
 ## Linked final completion status
 
-Canonical documentation index:
+Canonical documentation-index commits:
 
-- `ba491a61e37d7771732c3bf190d82284456131ab` — `docs(index): link repository completion certificate`.
+- `ba491a61e37d7771732c3bf190d82284456131ab` — `docs(index): link repository completion certificate`;
+- `0c0131ff7dfab2d5619b223cd52326e068d1a94a` — `docs(index): link final closure ledger`.
 
-The completion validator now makes removal of this final canonical completion link a CI failure.
+The completion validator makes removal of those final canonical completion links a CI failure.
+
+## First closure-head proof before the last trigger-hardening commits
+
+The first PR #30 head `0c0131ff7dfab2d5619b223cd52326e068d1a94a` completed the Ubuntu Core CI job successfully before the final release-trigger hardening commits moved the PR head.
+
+That job proved:
+
+- **60/60 Python helper tests**;
+- repository-completion validator passed;
+- documentation validation: **47 required files and 95 local Markdown links**;
+- localization/Apple/Windows validators passed;
+- Core Release build: **0 warnings / 0 errors**;
+- **580/580 xUnit tests**;
+- benchmark Release build: **0 warnings / 0 errors**;
+- Core vulnerability audit: **0 findings**.
+
+Because later commits changed release-readiness/completion tooling, this successful job is supporting evidence only. The final frozen closure head must complete the applicable hosted gates again before merge.
 
 ## Runtime-source impact
 
 No production application runtime source file is changed by this final closure tranche.
 
-The only defect fixed here is the release-readiness trigger coverage gap. Other work is repository enforcement, tests for that enforcement, and final release/documentation synchronization.
+The defects fixed here are release/readiness enforcement gaps. Other work is repository enforcement, tests for that enforcement, and final release/documentation synchronization.
 
 ## Current completion boundary
 
