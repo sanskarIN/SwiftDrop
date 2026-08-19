@@ -19,6 +19,7 @@ def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
     case_counts = Counter({status: 0 for status in sorted(VALID_STATUSES)})
     group_counts = Counter({status: 0 for status in sorted(VALID_STATUSES)})
     groups: list[dict[str, Any]] = []
+    remaining: list[dict[str, str]] = []
 
     for group in document["groups"]:
         group_counts[group["status"]] += 1
@@ -26,6 +27,14 @@ def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
         for case in group["cases"]:
             case_counts[case["status"]] += 1
             local_counts[case["status"]] += 1
+            if case["status"] != "passed":
+                remaining.append(
+                    {
+                        "group": group["id"],
+                        "case": case["id"],
+                        "status": case["status"],
+                    }
+                )
 
         groups.append(
             {
@@ -47,6 +56,7 @@ def summarize_document(document: dict[str, Any]) -> dict[str, Any]:
         "case_counts": dict(sorted(case_counts.items())),
         "group_counts": dict(sorted(group_counts.items())),
         "groups": groups,
+        "remaining": remaining,
     }
 
 
@@ -68,10 +78,26 @@ def render_text(summary: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def render_remaining(summary: dict[str, Any]) -> str:
+    remaining = summary["remaining"]
+    if not remaining:
+        return "all required manual release-evidence cases are passed"
+    return "\n".join(
+        f"{item['group']}/{item['case']}: {item['status']}"
+        for item in remaining
+    )
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", type=Path, help="manual release-evidence JSON document")
-    parser.add_argument("--json", action="store_true", help="emit the summary as JSON")
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--json", action="store_true", help="emit the summary as JSON")
+    output.add_argument(
+        "--remaining-only",
+        action="store_true",
+        help="list only required cases that are not yet passed",
+    )
     return parser.parse_args(argv)
 
 
@@ -86,6 +112,8 @@ def main(argv: list[str]) -> int:
 
     if args.json:
         print(json.dumps(summary, indent=2, ensure_ascii=False))
+    elif args.remaining_only:
+        print(render_remaining(summary))
     else:
         print(render_text(summary))
     return 0
