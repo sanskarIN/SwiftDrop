@@ -48,10 +48,15 @@ The helper validates the evidence document before reporting progress and support
 - `--json` machine-readable output;
 - exact case/group status counts;
 - a `remaining` JSON collection containing every non-passed required case;
-- `--remaining-only` output for an actionable `group/case: status` checklist;
-- an explicit all-passed message when no required case remains.
+- `completion_blockers` for candidate-level conditions that prevent a complete release record;
+- `--remaining-only` output for actionable case and candidate blockers;
+- an explicit all-passed message only when no required case or candidate blocker remains.
 
-The helper never changes evidence and never infers a pass from hosted CI or source compilation.
+A final audit found a fail-open edge case in the first implementation: structurally valid evidence using the all-zero template `candidate.commit` could report `complete: true` once all 32 manual cases were marked passed, even though `validate_manual_release_evidence.py --require-complete` correctly rejects that placeholder candidate.
+
+The status helper now imports the validator's canonical `PLACEHOLDER_COMMIT`, reports an explicit `candidate.commit` completion blocker, keeps `complete` false, and surfaces the blocker in human, JSON, and `--remaining-only` output. Regression coverage verifies the all-passed placeholder case while preserving normal all-passed behavior for an exact non-placeholder commit.
+
+The helper never changes evidence and never infers a pass from hosted CI, source compilation, or a template candidate identity.
 
 ## Release workflow integration
 
@@ -65,7 +70,7 @@ Repository-completion validation now requires the helper and its documentation, 
 
 ## Commit strategy
 
-This continuation is intentionally split into **30 small Conventional Commits** so independent tests, fixes, release tooling, CI wiring, and documentation remain reviewable in history. The branch should be merged without squashing so that history is preserved.
+This continuation is intentionally split into **34 small Conventional Commits** so independent tests, fixes, release tooling, CI wiring, and documentation remain reviewable in history. The branch should be merged without squashing so that history is preserved.
 
 Commits are signed off with:
 
