@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_DOCUMENTS = (
     "README.md",
+    "FINAL_REPOSITORY_STATUS.md",
     "BUILDING.md",
     "CHANGELOG.md",
     "CODE_OF_CONDUCT.md",
@@ -90,10 +91,7 @@ INDEX_LINKS = (
     "versioning-and-compatibility.md",
 )
 
-# Inline Markdown links/images. Reference-style links are intentionally outside this
-# lightweight validator; the canonical docs use ordinary inline relative links.
 INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-
 SKIP_DIRS = {".git", "bin", "obj", "node_modules"}
 
 
@@ -114,8 +112,6 @@ def destination_token(raw: str) -> str:
         close = value.find(">")
         if close > 0:
             return value[1:close]
-    # Markdown allows an optional quoted title after the destination. SwiftDrop's
-    # local paths do not require spaces, so the first token is the destination.
     return value.split(maxsplit=1)[0]
 
 
@@ -125,9 +121,6 @@ def is_external_or_anchor(destination: str) -> bool:
     split = urlsplit(destination)
     if split.scheme or split.netloc:
         return True
-    # Repository-root absolute Markdown links are avoided because GitHub and local
-    # renderers can interpret them differently; ignore them here rather than
-    # pretending they are filesystem-absolute paths.
     return destination.startswith("/")
 
 
