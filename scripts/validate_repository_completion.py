@@ -11,16 +11,43 @@ from validate_manual_release_evidence import load_and_validate
 
 REQUIRED_PATHS = (
     "README.md",
+    "FINAL_REPOSITORY_STATUS.md",
     "BUILDING.md",
     "CHANGELOG.md",
     "PROJECT_STATUS.md",
     "NEXT_STEPS.md",
     "SECURITY.md",
+    "SUPPORT.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
     "PRIVACY.md",
+    "TERMS.md",
+    "LICENSE",
+    "NOTICE",
     "THIRD_PARTY_NOTICES.md",
+    "SwiftDrop.slnx",
+    "Directory.Build.props",
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    ".github/FUNDING.yml",
+    ".github/dependabot.yml",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/platform-builds.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/security-hygiene.yml",
+    ".github/workflows/release-readiness.yml",
     "docs/README.md",
+    "docs/testing/repository-completion-validation.md",
     "docs/release/release-checklist.md",
     "docs/release/release-process.md",
+    "docs/release/dependency-evidence.md",
+    "docs/release/signing-configuration.md",
+    "docs/release/store-privacy-declarations.md",
     "docs/release/manual-release-evidence.md",
     "docs/release/manual-release-evidence-generator.md",
     "docs/release/manual-release-evidence.template.json",
@@ -30,6 +57,8 @@ REQUIRED_PATHS = (
     "what_changed_2026-08-19.md",
     "what_changed_2026-08-19_final.md",
     "what_changed_2026-08-19_closure.md",
+    "scripts/verify-core.sh",
+    "scripts/verify-core.ps1",
     "scripts/validate_documentation.py",
     "scripts/validate_localization.py",
     "scripts/validate_apple_integration.py",
@@ -39,11 +68,14 @@ REQUIRED_PATHS = (
     "scripts/validate_manual_release_evidence.py",
     "scripts/create_manual_release_evidence.py",
     "scripts/validate_repository_completion.py",
-    ".github/workflows/ci.yml",
-    ".github/workflows/platform-builds.yml",
-    ".github/workflows/codeql.yml",
-    ".github/workflows/security-hygiene.yml",
-    ".github/workflows/release-readiness.yml",
+)
+
+REQUIRED_PROJECTS = (
+    "src/SwiftDrop.Core/SwiftDrop.Core.csproj",
+    "src/SwiftDrop.App/SwiftDrop.App.csproj",
+    "src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj",
+    "tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj",
+    "benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj",
 )
 
 RELEASE_CRITICAL_TRIGGER_PATHS = (
@@ -62,6 +94,8 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
 )
 
 DOC_INDEX_LINKS = (
+    "../FINAL_REPOSITORY_STATUS.md",
+    "testing/repository-completion-validation.md",
     "release/repository-completion-2026-08-19.md",
     "../what_changed_2026-08-19_closure.md",
     "release/continuation-status-2026-08-19.md",
@@ -70,8 +104,21 @@ DOC_INDEX_LINKS = (
     "release/manual-release-evidence-generator.md",
 )
 
-SOURCE_SUFFIXES = {".cs", ".xaml", ".csproj", ".props", ".targets"}
-UNFINISHED_PATTERN = re.compile(r"\bTODO\b|\bFIXME\b|\bTBD\b|NotImplementedException")
+SOURCE_SUFFIXES = {
+    ".cs",
+    ".xaml",
+    ".csproj",
+    ".props",
+    ".targets",
+    ".plist",
+    ".xml",
+    ".entitlements",
+}
+UNFINISHED_PATTERN = re.compile(
+    r"\bTODO\b|\bFIXME\b|\bTBD\b|NotImplementedException|#warning"
+)
+PLACEHOLDER_COMMIT = "0" * 40
+ALLOWED_PLACEHOLDER_FILE = Path("docs/release/manual-release-evidence.template.json")
 
 
 def _read_text(path: Path) -> str:
@@ -80,7 +127,7 @@ def _read_text(path: Path) -> str:
 
 def validate_required_paths(root: Path) -> list[str]:
     errors: list[str] = []
-    for relative in REQUIRED_PATHS:
+    for relative in REQUIRED_PATHS + REQUIRED_PROJECTS:
         path = root / relative
         if not path.is_file():
             errors.append(f"required repository file is missing: {relative}")
@@ -177,14 +224,34 @@ def validate_documentation_index(root: Path) -> list[str]:
 
 
 def validate_release_template(root: Path) -> list[str]:
-    template = root / "docs/release/manual-release-evidence.template.json"
+    template = root / ALLOWED_PLACEHOLDER_FILE
     if not template.is_file():
         return ["manual release evidence template is missing"]
     try:
         load_and_validate(template)
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         return [f"manual release evidence template is invalid: {exc}"]
     return []
+
+
+def validate_no_placeholder_leaks(root: Path) -> list[str]:
+    errors: list[str] = []
+    for path in sorted(root.rglob("*.json")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        if relative == ALLOWED_PLACEHOLDER_FILE:
+            continue
+        try:
+            text = _read_text(path)
+        except (OSError, UnicodeError):
+            continue
+        if PLACEHOLDER_COMMIT in text:
+            errors.append(
+                "all-zero release-candidate placeholder leaked outside canonical template: "
+                f"{relative.as_posix()}"
+            )
+    return errors
 
 
 def validate_repository(root: Path) -> list[str]:
@@ -195,6 +262,7 @@ def validate_repository(root: Path) -> list[str]:
     errors.extend(validate_portable_verifier_integration(root))
     errors.extend(validate_documentation_index(root))
     errors.extend(validate_release_template(root))
+    errors.extend(validate_no_placeholder_leaks(root))
     return errors
 
 
