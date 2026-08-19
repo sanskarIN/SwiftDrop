@@ -56,6 +56,8 @@ A final audit found a fail-open edge case in the first implementation: structura
 
 The status helper now imports the validator's canonical `PLACEHOLDER_COMMIT`, reports an explicit `candidate.commit` completion blocker, keeps `complete` false, and surfaces the blocker in human, JSON, and `--remaining-only` output. Regression coverage verifies the all-passed placeholder case while preserving normal all-passed behavior for an exact non-placeholder commit.
 
+The final hardening step removes independent completion-policy drift: the summary's `complete` flag is now derived by invoking the authoritative `validate_document(..., require_complete=True)` contract. The explicit placeholder blocker remains for actionable operator output, and a generic strict-completion blocker is retained as a fail-closed fallback if future complete-mode rules are added without a dedicated summary message.
+
 The helper never changes evidence and never infers a pass from hosted CI, source compilation, or a template candidate identity.
 
 ## Release workflow integration
@@ -70,7 +72,7 @@ Repository-completion validation now requires the helper and its documentation, 
 
 ## Commit strategy
 
-This continuation is intentionally split into **34 small Conventional Commits** so independent tests, fixes, release tooling, CI wiring, and documentation remain reviewable in history. The branch should be merged without squashing so that history is preserved.
+This continuation is intentionally split into **37 small Conventional Commits** so independent tests, fixes, release tooling, CI wiring, and documentation remain reviewable in history. The branch should be merged without squashing so that history is preserved.
 
 Commits are signed off with:
 
