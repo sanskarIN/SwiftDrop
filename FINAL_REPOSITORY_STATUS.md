@@ -2,7 +2,7 @@
 
 Updated: 2026-08-20
 
-This file is the canonical **current repository-side status** for SwiftDrop. Older dated sections in `PROJECT_STATUS.md`, `NEXT_STEPS.md`, `CHANGELOG.md`, and the engineering ledgers remain historical evidence and should not be read as newer than this record.
+This file is the canonical **current repository-side status** for SwiftDrop. Older dated sections in `PROJECT_STATUS.md`, `NEXT_STPS.md`, `CHANGELOG.md`, and the engineering ledgers remain historical evidence and should not be read as newer than this record.
 
 ## Repository-side status
 
@@ -30,13 +30,13 @@ The repository now contains `.github/CODEOWNERS` with `@sanskarIN` as the fallba
 
 `scripts/validate_repository_completion.py` now verifies that the fallback and sensitive ownership entries remain present and assigned to the maintainer. Its regression suite covers ownership removal/reassignment so governance erosion becomes a CI failure instead of a documentation-only concern.
 
-`docs/repository-governance.md` defines the expected review policy and the required remote protection posture for `main`.
+`docs/repository-governance.md` defines the expected review policy and the required remote protection posture for `main`, including a safe single-maintainer policy that avoids configuring an impossible self-review requirement.
 
 ### Remote protection boundary
 
 At the start of the 2026-08-20 continuation, the GitHub API reported `main` as **not protected**. CODEOWNERS alone does not enforce Code Owner approval. The connected repository tooling available for this work does not expose a branch-protection/ruleset mutation, so the remote setting has not been represented as enabled.
 
-The remaining repository-administration action is to enable the `main` protections documented in `docs/repository-governance.md`: pull-request-only changes, approving/Code Owner review, applicable required checks, resolved conversations, stale-approval handling, and force-push/deletion protection.
+The remaining repository-administration action is to enable the feasible `main` protections documented in `docs/repository-governance.md`: pull-request-only changes, applicable required checks, resolved conversations, and force-push/deletion protection. Because `@sanskarIN` is currently the sole CODEOWNER, approval-count/required-Code-Owner rules should be enabled only after a trusted independent reviewer exists; otherwise they can create a merge lockout that is bypassed routinely and therefore weakens rather than strengthens governance.
 
 This is an external GitHub repository setting, not unfinished application source.
 
