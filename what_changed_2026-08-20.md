@@ -10,6 +10,8 @@ Baseline: `main` at `292fd17758f795e08211b78f617ff6d4b858a4c0` (`docs(status): r
 
 Working branch: `quality/repository-governance-20260820`.
 
+Pull request: `#36`.
+
 ## Completed source-side work
 
 ### CODEOWNERS
@@ -55,22 +57,36 @@ Added `docs/repository-governance.md` covering:
 
 - ownership intent and sensitive review surfaces;
 - recommended `main` branch/ruleset protections;
-- CODEOWNER review expectations;
-- stale-approval and conversation-resolution expectations;
-- force-push/deletion restrictions;
+- single-maintainer-safe protection rules that do not depend on impossible self-review;
+- the stronger approval/Code Owner policy to enable once a trusted independent reviewer exists;
+- conversation-resolution and force-push/deletion restrictions;
 - emergency-bypass evidence requirements;
 - dependency/automation, protocol/security, storage/transfer, and platform-review expectations;
 - the distinction between source-side policy and remotely enforced GitHub settings.
 
 Updated `docs/README.md` and `docs/testing/repository-completion-validation.md` so governance is canonical, discoverable, and part of the documented validation model.
 
+### Static-review correction
+
+A pre-merge static review identified that requiring an approval and Code Owner review immediately would be unsafe for a repository whose only declared CODEOWNER is also the pull-request author. GitHub does not turn self-approval into independent review, so such a rule can force routine administrator bypasses or lock normal merges.
+
+The policy was corrected before merge: enable pull-request, required-check, conversation-resolution, force-push, and deletion protections now; add mandatory approval/Code Owner enforcement once at least one trusted independent reviewer is available.
+
 ## Remote GitHub governance finding
 
 The GitHub API reported `main` as **not protected** at the start of this continuation pass. The available repository connector does not expose a branch-protection/ruleset mutation action, so this external setting cannot be truthfully represented as enabled by this source change.
 
-The exact external administration action is documented in `docs/repository-governance.md`: require pull requests, at least one approval, Code Owner review, applicable status checks, resolved conversations, and protection from force-push/deletion, with administrators covered where supported.
+The exact external administration action is documented in `docs/repository-governance.md`. With the current single-maintainer ownership model, the immediately feasible policy is:
 
-Until that remote setting is enabled and rechecked, CODEOWNERS provides ownership metadata and review routing but not proof of enforced approval.
+- require pull-request flow;
+- require the applicable maintained status checks;
+- require resolved conversations;
+- block force pushes and deletion;
+- avoid an unsatisfiable approval/Code Owner requirement until a second trusted reviewer exists.
+
+Once an independent reviewer exists, require at least one approval, Code Owner review for owned paths, and stale-approval dismissal.
+
+Until remote settings are enabled and rechecked, CODEOWNERS provides ownership metadata and review routing but not proof of enforced protection.
 
 ## Versioning decision
 
@@ -105,7 +121,7 @@ The pull request for this milestone must provide hosted evidence for the existin
 
 Do not record a queued workflow as passing evidence.
 
-## Commits created in this milestone
+## Commits created before hosted-validation evidence
 
 - `73842b8e4387f1a5b4634a44a13ebd79c7094a94` — `chore(governance): add repository code ownership`
 - `0bc39b7a97879797c8ee6358c0fd9fc588f62acb` — `docs(governance): define protected change policy`
@@ -113,14 +129,19 @@ Do not record a queued workflow as passing evidence.
 - `92af2290752a552e32b0c13ce681590fc74b2cd9` — `test(quality): cover ownership-policy regressions`
 - `7295a16fdf27601848c584a1a7b49cdc311cd4a0` — `docs(index): expose repository governance policy`
 - `e1b47a9a9be8f134dbfacedeb79a6057ed5e7917` — `docs(testing): document ownership validation contract`
+- `a8402ae3a4cf302ac65d9e5388cb7e075d4e7bdd` — `docs(ledger): record governance hardening milestone`
+- `66b19f1c98aecebc8d2c110c42e748aac8ae0676` — `docs(status): record governance hardening state`
+- `2ff2d23bf0737869e8f0f2076e3b44837844b969` — `docs(index): link governance continuation ledger`
+- `ced5aa513f2002f75a139396010df363f7e56339` — `docs(governance): prevent solo-maintainer review lockout`
+- `53ccabfa95180c2587df6a5799887ea2ad3e809d` — `docs(status): clarify single-maintainer protection policy`
 
-Additional documentation/evidence commits created after this file will be appended once hosted validation is available.
+The final validation/merge evidence and any subsequent correction commits must be recorded only after they exist.
 
 ## Remaining external actions
 
 These are not missing application source features:
 
-1. Enable and recheck protected-branch/ruleset enforcement for `main` according to the governance guide.
+1. Enable and recheck the feasible protected-branch/ruleset enforcement for `main` according to the governance guide; add mandatory independent approval/Code Owner enforcement once a trusted second reviewer exists.
 2. Continue the existing exact signed-candidate/device/store validation process when an actual release candidate is prepared.
 
 No other mandatory runtime feature is intentionally introduced or deferred by this governance milestone.
