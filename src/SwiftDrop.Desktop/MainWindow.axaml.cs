@@ -387,7 +387,9 @@ public sealed partial class MainWindow : Window
     {
         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
         if (clipboard is null) return;
-        await clipboard.SetTextAsync(_localPairingLinkBox.Text ?? string.Empty);
+        await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(
+            clipboard,
+            _localPairingLinkBox.Text ?? string.Empty);
         SetStatus("Pairing link copied");
     }
 
@@ -454,7 +456,7 @@ public sealed partial class MainWindow : Window
 
             var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
             if (clipboard is null) return DesktopIncomingTextDecision.Accept;
-            await clipboard.SetTextAsync(preview.Text);
+            await Avalonia.Input.Platform.ClipboardExtensions.SetTextAsync(clipboard, preview.Text);
             return DesktopIncomingTextDecision.AcceptAndCopy;
         }, ct);
     }
