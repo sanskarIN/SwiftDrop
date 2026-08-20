@@ -11,7 +11,7 @@ public sealed partial class MainWindow
         foreach (var argument in arguments)
         {
             if (string.IsNullOrWhiteSpace(argument)) continue;
-            var value = argument.Trim();
+            var value = argument;
             if (!value.StartsWith("swiftdrop://pair", StringComparison.OrdinalIgnoreCase)) continue;
 
             try
