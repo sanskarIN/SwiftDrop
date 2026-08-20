@@ -42,13 +42,21 @@ BIN_DIR="${HOME}/.local/bin"
 APP_DIR="${PREFIX}/applications"
 ICON_DIR="${PREFIX}/icons/hicolor/scalable/apps"
 SOURCE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_ROOT="${PREFIX}/swiftdrop"
+EXECUTABLE="${INSTALL_ROOT}/SwiftDrop.Desktop"
+DESKTOP_FILE="${APP_DIR}/in.sanskar.swiftdrop.desktop"
 
 mkdir -p "$BIN_DIR" "$APP_DIR" "$ICON_DIR"
-rm -rf "$PREFIX/swiftdrop"
-mkdir -p "$PREFIX/swiftdrop"
-cp -a "$SOURCE/bin/." "$PREFIX/swiftdrop/"
-ln -sfn "$PREFIX/swiftdrop/SwiftDrop.Desktop" "$BIN_DIR/swiftdrop"
-cp "$SOURCE/share/applications/in.sanskar.swiftdrop.desktop" "$APP_DIR/in.sanskar.swiftdrop.desktop"
+rm -rf "$INSTALL_ROOT"
+mkdir -p "$INSTALL_ROOT"
+cp -a "$SOURCE/bin/." "$INSTALL_ROOT/"
+chmod +x "$EXECUTABLE"
+ln -sfn "$EXECUTABLE" "$BIN_DIR/swiftdrop"
+
+awk -v executable="$EXECUTABLE" '
+  /^Exec=/ { print "Exec=\"" executable "\" %u"; next }
+  { print }
+' "$SOURCE/share/applications/in.sanskar.swiftdrop.desktop" > "$DESKTOP_FILE"
 cp "$SOURCE/share/icons/hicolor/scalable/apps/swiftdrop.svg" "$ICON_DIR/swiftdrop.svg"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
@@ -61,7 +69,7 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
   gtk-update-icon-cache -f -t "${PREFIX}/icons/hicolor" || true
 fi
 
-printf 'SwiftDrop installed. Ensure %s is on PATH.\n' "$BIN_DIR"
+printf 'SwiftDrop installed at %s. CLI link: %s\n' "$EXECUTABLE" "$BIN_DIR/swiftdrop"
 INSTALL
 chmod +x "$PACKAGE_ROOT/install.sh"
 chmod +x "$PACKAGE_ROOT/bin/SwiftDrop.Desktop"
