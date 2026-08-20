@@ -15,16 +15,27 @@ The explicit entries are intentional even though the fallback already covers the
 
 ## Required protection for `main`
 
-CODEOWNERS identifies reviewers, but GitHub only *enforces* CODEOWNER approval when branch protection or a repository ruleset requires it. For production-grade maintenance, configure `main` with the following protections in GitHub repository settings:
+CODEOWNERS identifies ownership and review routing, but GitHub only *enforces* approval when branch protection or a repository ruleset requires it. For production-grade maintenance, configure `main` with the following protections in GitHub repository settings:
 
 1. Require changes to reach `main` through a pull request.
-2. Require at least one approving review and require review from Code Owners.
-3. Dismiss stale approvals when new commits materially change the pull request.
-4. Require all conversations to be resolved before merge.
-5. Require the maintained CI/security/release-readiness checks that apply to the change.
-6. Block force pushes and branch deletion.
-7. Restrict direct bypasses to genuine emergency maintenance and record any bypass in the engineering ledger.
-8. Keep repository administrators subject to the same protected-branch policy where the account/repository plan supports that configuration.
+2. Require the maintained CI/security/release-readiness checks that apply to the change.
+3. Require all conversations to be resolved before merge.
+4. Block force pushes and branch deletion.
+5. Restrict direct bypasses to genuine emergency maintenance and record any bypass in the engineering ledger.
+6. Keep repository administrators subject to the same protected-branch policy where the account/repository plan supports that configuration and doing so does not create an unrecoverable single-maintainer lockout.
+
+### Approval policy for a single-maintainer repository
+
+At the time of this policy, CODEOWNERS assigns the current maintainer account `@sanskarIN`. GitHub does not treat a pull-request author's self-approval as an independent review. Requiring one approving review plus Code Owner approval while the author is the only eligible reviewer can therefore make ordinary pull requests impossible to merge without a bypass.
+
+Until at least one trusted independent maintainer/reviewer is available:
+
+- keep pull-request, required-check, conversation-resolution, force-push, and deletion protections enabled;
+- use CODEOWNERS for ownership visibility and automatic review routing;
+- do **not** enable an approval count or required-Code-Owner setting that cannot be satisfied without bypassing the rule;
+- require the full automated validation surface before merge and document exceptional bypasses.
+
+When a trusted independent reviewer is added, strengthen the rule to require at least one approval, require Code Owner review for owned paths, and dismiss stale approvals when new commits materially change the pull request. Add that reviewer to the appropriate CODEOWNERS entries in the same reviewed change.
 
 The exact visible status-check names can evolve with GitHub Actions job naming. Select the current required checks from a known-good pull request rather than documenting stale opaque check identifiers here.
 
@@ -32,7 +43,7 @@ The exact visible status-check names can evolve with GitHub Actions job naming. 
 
 Branch protection/rulesets are GitHub-hosted repository settings, not files in this source tree. Portable repository validation can verify that CODEOWNERS and this policy exist and remain structurally correct, but it cannot prove that the remote GitHub setting is enabled.
 
-As of the 2026-08-20 governance audit, the GitHub API reported `main` as not protected. Treat enabling the protections above as an external repository-administration action. Do not describe CODEOWNER approval as enforced until the remote setting has actually been enabled and rechecked.
+As of the 2026-08-20 governance audit, the GitHub API reported `main` as not protected. Treat enabling the feasible protections above as an external repository-administration action. Do not describe approval or CODEOWNER enforcement as enabled until the remote setting has actually been configured and rechecked.
 
 ## Review expectations by change type
 
