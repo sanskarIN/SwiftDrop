@@ -39,7 +39,7 @@
                 <TextBlock Text="Pairing link or manual IP" FontSize="20" FontWeight="SemiBold" />
                 <TextBox x:Name="RemotePairingLinkBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" Watermark="Paste a swiftdrop://pair link" />
                 <Button x:Name="UsePairingLinkButton" Content="Use pairing link" HorizontalAlignment="Left" />
-                <Grid ColumnDefinitions="2*,Auto,* ,Auto" ColumnSpacing="8">
+                <Grid ColumnDefinitions="2*,Auto,*,Auto" ColumnSpacing="8">
                   <TextBox x:Name="ManualHostBox" Watermark="Local IP, e.g. 192.168.1.20" />
                   <TextBox x:Name="ManualPortBox" Grid.Column="1" Width="82" Text="53317" />
                   <TextBox x:Name="ManualCodeBox" Grid.Column="2" Watermark="8-digit pairing code" MaxLength="8" />
