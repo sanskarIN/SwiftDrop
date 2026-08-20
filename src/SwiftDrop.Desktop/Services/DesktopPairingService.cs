@@ -91,7 +91,7 @@ public sealed class DesktopPairingService
     public PairingPayload DecodePairingLink(string pairingLink)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(pairingLink);
-        return PairingCodec.Decode(pairingLink.Trim());
+        return PairingCodec.Decode(pairingLink);
     }
 
     private Task WritePairingRequestAsync(Stream stream, string? pairingCode, CancellationToken ct)
