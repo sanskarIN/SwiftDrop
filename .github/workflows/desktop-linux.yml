@@ -1,0 +1,71 @@
+name: Desktop Linux
+
+on:
+  push:
+    branches: [ main, feature/linux-cross-platform ]
+    paths:
+      - 'src/SwiftDrop.Core/**'
+      - 'src/SwiftDrop.Desktop/**'
+      - 'SwiftDrop.slnx'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - '.github/workflows/desktop-linux.yml'
+  pull_request:
+    paths:
+      - 'src/SwiftDrop.Core/**'
+      - 'src/SwiftDrop.Desktop/**'
+      - 'SwiftDrop.slnx'
+      - 'Directory.Build.props'
+      - 'global.json'
+      - '.github/workflows/desktop-linux.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [linux-x64, linux-arm64]
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore desktop host
+        run: dotnet restore src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
+
+      - name: Build desktop host
+        run: dotnet build src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj -c Release --no-restore
+
+      - name: Publish ${{ matrix.rid }}
+        run: >-
+          dotnet publish src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained false
+          -p:PublishTrimmed=false
+          -o artifacts/${{ matrix.rid }}
+
+      - name: Verify publish output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "artifacts/${{ matrix.rid }}/SwiftDrop.Desktop.dll"
+          test -f "artifacts/${{ matrix.rid }}/SwiftDrop.Desktop.deps.json"
+          test -f "artifacts/${{ matrix.rid }}/SwiftDrop.Desktop.runtimeconfig.json"
+
+      - name: Audit desktop dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet package list --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj --include-transitive --vulnerable --format json --output-version 1 > /tmp/desktop-vulnerabilities.json
+          python3 scripts/validate_nuget_vulnerability_report.py /tmp/desktop-vulnerabilities.json
