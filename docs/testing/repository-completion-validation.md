@@ -12,7 +12,7 @@ It uses only the Python standard library plus the repository's own manual-releas
 
 ## Required repository surface
 
-The completion contract requires the maintained application/test/benchmark projects, core open-source/community/legal files, canonical final status/ledgers, Dependabot/funding/community templates, and the maintained CI/security/platform/release workflows and release-evidence tools.
+The completion contract requires the maintained application/test/benchmark projects, core open-source/community/legal files, canonical final status/ledgers, CODEOWNERS/governance policy, Dependabot/funding/community templates, and the maintained CI/security/platform/release workflows and release-evidence tools.
 
 A required file that is missing, unreadable, or empty fails validation.
 
@@ -40,6 +40,22 @@ Maintained production source/configuration under `src/` must not contain:
 
 Covered source/configuration files must also decode as UTF-8. Deferred work belongs in an issue, roadmap, or explicit post-v1 design record rather than as an unfinished production marker.
 
+## Repository ownership integrity
+
+The validator requires `.github/CODEOWNERS` and checks the source-side ownership contract rather than treating the file as an unvalidated decoration.
+
+It requires:
+
+- a repository-wide `*` fallback assigned to `@sanskarIN`;
+- explicit maintainer ownership for GitHub automation, shared build properties, SDK selection, and verification scripts;
+- explicit ownership for Core security, protocol, networking, transfer, and storage boundaries;
+- explicit ownership for native platform integration and the iOS Share Extension;
+- explicit ownership for security/privacy/third-party notice and security/protocol/release documentation.
+
+This makes accidental removal or reassignment of a sensitive ownership boundary fail the portable quality contract.
+
+CODEOWNERS is not, by itself, proof that GitHub requires Code Owner approval. The remote branch-protection/ruleset requirement is an external repository setting documented in `docs/repository-governance.md`.
+
 ## Release-readiness trigger integrity
 
 The validator requires the release-readiness workflow to watch the release-critical helper surface for both `push` and `pull_request`, including:
@@ -66,7 +82,7 @@ Release readiness calls the canonical portable verification path, so completion 
 
 ## Documentation index integrity
 
-The canonical docs index must link the final repository status/completion record, closure/final continuation ledgers, manual release-evidence docs, and evidence generator guide. This prevents older historical status files from silently becoming the apparent current state.
+The canonical docs index must link the current final repository status, governance policy, completion record, closure/final continuation ledgers, manual release-evidence docs, and evidence generator guide. This prevents older historical status files from silently becoming the apparent current state or repository governance from becoming undiscoverable.
 
 ## Release template validity and placeholder safety
 
@@ -82,6 +98,7 @@ Repository completion validation does not replace:
 - CodeQL/security hygiene;
 - dependency vulnerability audits;
 - hosted platform compilation;
+- remote GitHub branch-protection/ruleset enforcement;
 - signed package installation/upgrade;
 - real devices/providers/networks/filesystems;
 - Apple provisioning/App Group/notarization;
@@ -95,8 +112,10 @@ Those are separate automated or external release evidence gates.
 
 If completion validation fails, repair the contract rather than deleting or weakening the check merely to make CI green. If the maintained project scope intentionally changes, update the validator, its regression tests, final status, docs index, and owning architecture/release documentation together.
 
+If ownership boundaries intentionally change, update CODEOWNERS, the governance guide, this validation reference, and the validator/test expectations in the same reviewed change.
+
 ## Completion definition
 
-For SwiftDrop, **repository-side complete** means the maintained implementation/project structure, community/open-source surface, validation/release tooling, and canonical documentation are present and free of known unfinished production markers, while release-critical trigger coverage remains enforced.
+For SwiftDrop, **repository-side complete** means the maintained implementation/project structure, community/open-source/governance surface, validation/release tooling, and canonical documentation are present and free of known unfinished production markers, while release-critical trigger and source-side ownership coverage remain enforced by automated validation.
 
-It does not mean unexecuted signed-device/store checks have passed. External evidence must still be recorded honestly for the exact release candidate.
+It does not mean remote branch protection or unexecuted signed-device/store checks have passed. External evidence must still be recorded honestly for the exact repository/release candidate state.
