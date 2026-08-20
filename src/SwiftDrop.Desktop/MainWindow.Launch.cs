@@ -22,7 +22,12 @@ public sealed partial class MainWindow
                 ShowRemote(payload);
                 SetStatus("Pairing link received from desktop launch");
             }
-            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or FormatException)
+            catch (Exception ex) when (ex is
+                InvalidDataException or
+                ArgumentException or
+                FormatException or
+                NotSupportedException or
+                InvalidOperationException)
             {
                 SetStatus($"Launch pairing link rejected: {ex.Message}");
             }
