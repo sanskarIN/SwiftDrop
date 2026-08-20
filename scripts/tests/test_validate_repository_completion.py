@@ -77,7 +77,26 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             self.assertTrue(any("NOTICE" in error and "empty" in error for error in required_errors))
             self.assertTrue(any("SwiftDrop.ShareExtension.csproj" in error for error in required_errors))
             self.assertTrue(any("FINAL_REPOSITORY_STATUS.md" in error for error in index_errors))
+            self.assertTrue(any("repository-governance.md" in error for error in index_errors))
             self.assertTrue(any("repository-completion-validation.md" in error for error in index_errors))
+
+    def test_codeowners_requires_fallback_and_sensitive_ownership(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            codeowners = root / ".github" / "CODEOWNERS"
+            codeowners.parent.mkdir(parents=True)
+            codeowners.write_text(
+                "* @someone-else\n"
+                "/.github/ @sanskarIN\n"
+                "/src/SwiftDrop.Core/Security/ @someone-else\n",
+                encoding="utf-8",
+            )
+
+            errors = completion.validate_codeowners(root)
+
+            self.assertTrue(any("'*'" in error and "@sanskarIN" in error for error in errors))
+            self.assertTrue(any("Security" in error and "@sanskarIN" in error for error in errors))
+            self.assertTrue(any("/src/SwiftDrop.Core/Protocol/" in error and "missing" in error for error in errors))
 
     def test_manual_release_template_must_remain_structurally_valid(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
