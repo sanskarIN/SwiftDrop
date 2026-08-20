@@ -8,6 +8,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 - [Project overview](../README.md)
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
+- [Repository governance and protected change policy](repository-governance.md)
 - [Installation and source run](installation.md)
 - [User guide](user-guide.md)
 - [Settings reference](configuration.md)
@@ -57,6 +58,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 - [CI reference](testing/ci-reference.md)
 - [Repository completion validation](testing/repository-completion-validation.md)
+- [Repository governance and protected change policy](repository-governance.md)
 - [Deterministic state-model testing](testing/deterministic-state-models.md)
 - [Security test plan](testing/security-test-plan.md)
 - [Manual test matrix](testing/manual-test-matrix.md)
@@ -68,6 +70,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 ## Release and operations
 
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
+- [Governance continuation ledger — 2026-08-20](../what_changed_2026-08-20.md)
 - [Repository completion — 2026-08-19](release/repository-completion-2026-08-19.md)
 - [Final repository closure ledger — 2026-08-19](../what_changed_2026-08-19_closure.md)
 - [Continuation status — 2026-08-19](release/continuation-status-2026-08-19.md)
@@ -89,6 +92,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 ## Community and legal
 
+- [Repository governance and protected change policy](repository-governance.md)
 - [Support](../SUPPORT.md)
 - [Diagnostics and bug reports](diagnostics-and-bug-reports.md)
 - [Code of Conduct](../CODE_OF_CONDUCT.md)
@@ -123,6 +127,7 @@ When source behavior changes, update the document that owns that contract in the
 - user-visible workflow -> user guide/FAQ/README;
 - settings/defaults -> settings reference;
 - build/tooling -> `BUILDING.md` and development guide;
+- repository ownership/review policy -> `.github/CODEOWNERS` and repository governance guide;
 - architecture/project boundaries -> architecture docs;
 - network/ports/address policy -> networking guide and protocol/security docs;
 - protocol/canonicality -> protocol docs and compatibility policy;
