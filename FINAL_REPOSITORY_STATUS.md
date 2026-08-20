@@ -2,7 +2,7 @@
 
 Updated: 2026-08-20
 
-This file is the canonical **current repository-side status** for SwiftDrop. Older dated sections in `PROJECT_STATUS.md`, `NEXT_STPS.md`, `CHANGELOG.md`, and the engineering ledgers remain historical evidence and should not be read as newer than this record.
+This file is the canonical **current repository-side status** for SwiftDrop. Older dated sections in `PROJECT_STATUS.md`, `NEXT_STEPS.md`, `CHANGELOG.md`, and the engineering ledgers remain historical evidence and should not be read as newer than this record.
 
 ## Repository-side status
 
