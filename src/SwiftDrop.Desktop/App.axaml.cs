@@ -12,7 +12,11 @@ public sealed partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            desktop.MainWindow = new MainWindow();
+        {
+            var window = new MainWindow();
+            window.ApplyLaunchArguments(Environment.GetCommandLineArgs().Skip(1));
+            desktop.MainWindow = window;
+        }
 
         base.OnFrameworkInitializationCompleted();
     }
