@@ -1,0 +1,124 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="SwiftDrop.Desktop.MainWindow"
+        Title="SwiftDrop"
+        Width="1080"
+        Height="760"
+        MinWidth="820"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen">
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0" Padding="18,14" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource ThemeBorderLowBrush}">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="2">
+          <TextBlock Text="SwiftDrop" FontSize="26" FontWeight="SemiBold" />
+          <TextBlock x:Name="DeviceText" Text="Initializing secure local identity…" Opacity="0.72" />
+        </StackPanel>
+        <TextBlock x:Name="StatusText" Grid.Column="1" VerticalAlignment="Center" Text="Starting…" />
+      </Grid>
+    </Border>
+
+    <TabControl Grid.Row="1" Margin="16">
+      <TabItem Header="Send">
+        <ScrollViewer>
+          <StackPanel Margin="8" Spacing="16">
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Nearby devices" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="Select a discovered SwiftDrop device, then request a fresh certificate-pinned pairing authorization." TextWrapping="Wrap" Opacity="0.72" />
+                <ListBox x:Name="NearbyList" Height="130" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button x:Name="PairNearbyButton" Content="Pair selected device" />
+                  <Button x:Name="RefreshNearbyButton" Content="Refresh" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Pairing link or manual IP" FontSize="20" FontWeight="SemiBold" />
+                <TextBox x:Name="RemotePairingLinkBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" Watermark="Paste a swiftdrop://pair link" />
+                <Button x:Name="UsePairingLinkButton" Content="Use pairing link" HorizontalAlignment="Left" />
+                <Grid ColumnDefinitions="2*,Auto,* ,Auto" ColumnSpacing="8">
+                  <TextBox x:Name="ManualHostBox" Watermark="Local IP, e.g. 192.168.1.20" />
+                  <TextBox x:Name="ManualPortBox" Grid.Column="1" Width="82" Text="53317" />
+                  <TextBox x:Name="ManualCodeBox" Grid.Column="2" Watermark="8-digit pairing code" MaxLength="8" />
+                  <Button x:Name="ManualPairButton" Grid.Column="3" Content="Pair by IP" />
+                </Grid>
+                <TextBlock x:Name="RemoteDeviceText" Text="No remote device paired yet." TextWrapping="Wrap" Opacity="0.72" />
+              </StackPanel>
+            </Border>
+
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Send files or folders" FontSize="20" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button x:Name="SendFilesButton" Content="Choose files and send" />
+                  <Button x:Name="SendFolderButton" Content="Choose folder and send" />
+                  <Button x:Name="CancelSendButton" Content="Cancel" IsEnabled="False" />
+                </StackPanel>
+                <ProgressBar x:Name="TransferProgress" Minimum="0" Maximum="100" Height="8" />
+                <TextBlock x:Name="TransferDetailText" Text="Ready." TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Send text" FontSize="20" FontWeight="SemiBold" />
+                <TextBox x:Name="SendTextBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" Watermark="Type or paste text to send" />
+                <Button x:Name="SendTextButton" Content="Send text" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Receive">
+        <ScrollViewer>
+          <StackPanel Margin="8" Spacing="16">
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Receive location" FontSize="20" FontWeight="SemiBold" />
+                <TextBox x:Name="ReceiveRootBox" IsReadOnly="True" />
+                <Button x:Name="ChangeReceiveRootButton" Content="Change receive folder" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Border>
+
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Pairing link" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="Share this short-lived link only with the device you want to authorize. Each transfer authorization is one-time." TextWrapping="Wrap" Opacity="0.72" />
+                <TextBox x:Name="LocalPairingLinkBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="86" IsReadOnly="True" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button x:Name="RefreshPairingLinkButton" Content="Generate fresh link" />
+                  <Button x:Name="CopyPairingLinkButton" Content="Copy link" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="16" CornerRadius="10" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Manual pairing code" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="Generate an eight-digit one-time code for manual local-IP pairing." TextWrapping="Wrap" Opacity="0.72" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button x:Name="GeneratePairingCodeButton" Content="Generate code" />
+                  <TextBlock x:Name="PairingCodeText" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <TextBlock Text="Incoming files, folders, text, and nearby pairing requests always require an explicit approval in this desktop client." TextWrapping="Wrap" Opacity="0.72" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="About">
+        <StackPanel Margin="24" Spacing="10">
+          <TextBlock Text="SwiftDrop Desktop" FontSize="26" FontWeight="SemiBold" />
+          <TextBlock Text="A cross-platform .NET desktop host for SwiftDrop on Linux, Windows, and macOS, sharing the same secure SwiftDrop.Core protocol used by the MAUI mobile/desktop app." TextWrapping="Wrap" />
+          <TextBlock Text="Transfers remain local-network peer-to-peer. The desktop host does not require an account or a SwiftDrop cloud service." TextWrapping="Wrap" />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+  </Grid>
+</Window>
