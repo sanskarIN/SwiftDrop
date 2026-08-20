@@ -6,6 +6,11 @@ on:
     paths:
       - 'src/SwiftDrop.Core/**'
       - 'src/SwiftDrop.Desktop/**'
+      - 'packaging/linux/**'
+      - 'scripts/publish-linux.sh'
+      - 'scripts/validate_linux_integration.py'
+      - 'scripts/validate_nuget_vulnerability_report.py'
+      - 'scripts/create_dependency_evidence_manifest.py'
       - 'SwiftDrop.slnx'
       - 'Directory.Build.props'
       - 'global.json'
@@ -14,10 +19,16 @@ on:
     paths:
       - 'src/SwiftDrop.Core/**'
       - 'src/SwiftDrop.Desktop/**'
+      - 'packaging/linux/**'
+      - 'scripts/publish-linux.sh'
+      - 'scripts/validate_linux_integration.py'
+      - 'scripts/validate_nuget_vulnerability_report.py'
+      - 'scripts/create_dependency_evidence_manifest.py'
       - 'SwiftDrop.slnx'
       - 'Directory.Build.props'
       - 'global.json'
       - '.github/workflows/desktop-linux.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -40,32 +51,39 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Validate Linux integration contracts
+        run: python3 scripts/validate_linux_integration.py
+
       - name: Restore desktop host
         run: dotnet restore src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
 
       - name: Build desktop host
         run: dotnet build src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj -c Release --no-restore
 
-      - name: Publish ${{ matrix.rid }}
-        run: >-
-          dotnet publish src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
-          -c Release
-          -r ${{ matrix.rid }}
-          --self-contained false
-          -p:PublishTrimmed=false
-          -o artifacts/${{ matrix.rid }}
+      - name: Build self-contained ${{ matrix.rid }} package
+        run: bash scripts/publish-linux.sh ${{ matrix.rid }}
 
-      - name: Verify publish output
+      - name: Verify package output
         shell: bash
         run: |
           set -euo pipefail
-          test -f "artifacts/${{ matrix.rid }}/SwiftDrop.Desktop.dll"
-          test -f "artifacts/${{ matrix.rid }}/SwiftDrop.Desktop.deps.json"
-          test -f "artifacts/${{ matrix.rid }}/SwiftDrop.Desktop.runtimeconfig.json"
+          test -x "artifacts/linux/${{ matrix.rid }}/package/bin/SwiftDrop.Desktop"
+          test -f "artifacts/linux/${{ matrix.rid }}/package/share/applications/in.sanskar.swiftdrop.desktop"
+          test -f "artifacts/linux/SwiftDrop-${{ matrix.rid }}.tar.gz"
 
-      - name: Audit desktop dependencies
+      - name: Capture and validate desktop dependency audit
         shell: bash
         run: |
           set -euo pipefail
-          dotnet package list --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj --include-transitive --vulnerable --format json --output-version 1 > /tmp/desktop-vulnerabilities.json
-          python3 scripts/validate_nuget_vulnerability_report.py /tmp/desktop-vulnerabilities.json
+          mkdir -p "artifacts/linux/${{ matrix.rid }}/audit"
+          dotnet package list --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj --framework net10.0 --include-transitive --format json --output-version 1 > "artifacts/linux/${{ matrix.rid }}/audit/packages.json"
+          dotnet package list --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj --framework net10.0 --include-transitive --vulnerable --format json --output-version 1 > "artifacts/linux/${{ matrix.rid }}/audit/vulnerabilities.json"
+          python3 scripts/validate_nuget_vulnerability_report.py "artifacts/linux/${{ matrix.rid }}/audit/vulnerabilities.json"
+          python3 scripts/create_dependency_evidence_manifest.py "artifacts/linux/${{ matrix.rid }}/audit" "artifacts/linux/${{ matrix.rid }}/audit/manifest.json"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: swiftdrop-${{ matrix.rid }}
+          path: |
+            artifacts/linux/SwiftDrop-${{ matrix.rid }}.tar.gz
+            artifacts/linux/${{ matrix.rid }}/audit/
