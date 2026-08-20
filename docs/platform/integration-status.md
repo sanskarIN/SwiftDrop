@@ -1,8 +1,13 @@
 # Platform Integration Status
 
-Updated: 2026-08-15
+Updated: 2026-08-20
 
-This document describes source-level integration currently present in SwiftDrop. It does not replace signed package, store, provider, network, notification, or physical-device validation.
+This document describes source-level integration currently present in SwiftDrop. It does not replace signed package, store/distribution, provider, network, notification, or physical-device/desktop validation.
+
+SwiftDrop maintains two UI/platform hosts over the same protocol/security Core:
+
+- `SwiftDrop.App`: .NET MAUI for Android, iOS, Mac Catalyst, and Windows;
+- `SwiftDrop.Desktop`: Avalonia desktop host for Linux (`linux-x64` and `linux-arm64` maintained package RIDs).
 
 ## Android
 
@@ -152,7 +157,7 @@ Implemented in source:
 - Notification manager registration is lazy and failure-isolated from transfer results.
 - Packaged notification activation uses matching `windows.toastNotificationActivation` and `windows.comServer` manifest registrations with a single fixed CLSID and the Windows App SDK activation argument contract.
 - Notification activation is informational and carries no transfer identifiers or file/content data.
-- A portable validator now checks the packaged notification CLSID pairing, activation arguments, local-only capability posture, notification source contract, and placeholder-free English/Hindi terminal messages.
+- A portable validator checks the packaged notification CLSID pairing, activation arguments, local-only capability posture, notification source contract, and placeholder-free English/Hindi terminal messages.
 - Focused CI target-matrix controls prevent the Windows compile job from traversing unrelated Android/iOS/Mac Catalyst workloads.
 - WinUI launch/drag event types are explicitly qualified to avoid MAUI/WinUI/legacy Windows namespace ambiguity.
 
@@ -165,13 +170,69 @@ Validation still required:
 - App-notification registration/activation across signed install/update and Windows notification-settings deny/allow behavior.
 - Verify generic terminal notifications do not expose transfer-specific content in the final package/runtime.
 - Drag/drop under packaged release runtime.
-- Windows→Android/iOS/Mac folder interoperability using exact canonical relative paths.
-- IPv4/IPv6 LAN combinations.
+- Windows→Android/iOS/Mac/Linux folder interoperability using exact canonical relative paths.
+- IPv4/IPv6 LAN combinations within the shared transport's currently supported behavior.
 - Narrator, keyboard-only, high-DPI, high-contrast, and large-text behavior.
+
+## Linux desktop
+
+Implemented in source:
+
+- Dedicated Avalonia `SwiftDrop.Desktop` application targeting .NET 10.
+- Maintained release RIDs: `linux-x64` and `linux-arm64`.
+- Direct project reference to `SwiftDrop.Core` rather than a Linux-specific protocol fork.
+- mDNS/DNS-SD discovery plus bounded UDP fallback through shared Core discovery services.
+- Nearby certificate-pinned pairing.
+- Strict canonical `swiftdrop://pair` decoding through shared `PairingCodec`.
+- Manual numeric local-IP pairing with an eight-digit, short-lived one-time pairing code.
+- Local device P-256 certificate identity with Core certificate usability/renewal policy.
+- XDG-aware config/data/cache directories.
+- Best-effort current-user Unix permission restriction for Linux identity/settings/SQLite files.
+- Native Avalonia file/folder pickers for explicit sends and receive-location selection.
+- Single-file send with SHA-256 manifest and receiver resume offset.
+- Multiple-file/folder batch send using the shared deterministic, link-safe batch source builder.
+- Text-snippet send.
+- Explicit incoming file approval/rejection.
+- Explicit incoming batch approval/rejection.
+- Explicit incoming text approval/rejection; clipboard copy only after acceptance.
+- Explicit incoming nearby-pairing approval.
+- Shared strict typed request validation and one-time authorization consumption.
+- Shared storage-capacity preflight, path confinement, collision-safe destination reservation, `.swiftdrop.part` staging, SHA-256 verification, and non-overwrite promotion.
+- Metadata-only completed-batch resume persistence using the shared SQLite completion store.
+- Completed-file verification during retry planning and immediate re-verification before zero-byte completion ACK.
+- Cancellation and file/batch progress presentation.
+- Freedesktop `.desktop` launcher with `x-scheme-handler/swiftdrop` registration.
+- Desktop launch arguments restricted to `swiftdrop://pair` and passed unchanged into the strict canonical Core decoder.
+- Self-contained x64/ARM64 archive generation through `scripts/publish-linux.sh`.
+- User-local installer that uses an absolute installed executable path for desktop activation and an optional `$HOME/.local/bin/swiftdrop` convenience symlink.
+- Dedicated integration validator covering solution/project/Core reference/RIDs/launcher/protocol-handler/package/workflow contracts.
+- Dedicated Ubuntu workflow configured to build/package both Linux RIDs, validate direct/transitive vulnerability evidence, create deterministic evidence manifests, and upload archives/evidence.
+
+Current intentional parity boundaries:
+
+- Linux does not use the MAUI UI shell; MAUI-specific History/Queue/Trusted Devices/Diagnostics/Settings dashboards are not claimed as one-for-one Linux UI parity in this host.
+- Native optional completion/failure system notifications are currently implemented on Android/iOS/Mac Catalyst/Windows, not the Linux Avalonia host.
+- The shared `TlsPeerServer` currently retains its existing IPv4 listener behavior; adding the Linux UI host does not itself create IPv6-only transport parity.
+
+Validation still required before a tagged Linux release:
+
+- Exact candidate Linux x64 and ARM64 hosted build/package/audit jobs.
+- Launch/install/update/remove behavior of generated archives on representative physical Linux systems.
+- GNOME and KDE file/folder picker behavior.
+- X11/XWayland operation and HiDPI scaling.
+- Clipboard acceptance behavior.
+- `swiftdrop:` activation from the installed desktop environment/browser.
+- Local firewall behavior and mDNS/UDP discovery on real LANs.
+- Linux↔Android/iOS/macOS/Windows file/folder/text transfer and rejection flows.
+- Resume/interruption, collision, low-storage, integrity-failure, and shutdown/session-drain behavior.
+- Keyboard-only, screen-reader/high-contrast, scaling, and accessibility review.
+- ARM64 runtime validation on real ARM64 Linux hardware where available.
+
+See `docs/platforms/linux.md` for build, install, XDG storage, networking, security, and release procedures.
 
 ## Cross-platform shared behavior
 
-Implemented consistently in shared code/services:
+Implemented consistently in shared code/services used by the transfer hosts:
 
 - Account-free local-first path.
 - Receiver certificate pinning and sender client certificate.
@@ -181,9 +242,7 @@ Implemented consistently in shared code/services:
 - Type-specific request shape validation.
 - Canonical raw Base64URL pairing capability representation with no whitespace/query aliases.
 - One-time transfer authorization after strict request/manifest validation and authenticated client-certificate presence.
-- Certificate-bound trusted-device metadata.
-- Single/multi/folder/text transfer.
-- Selective receive.
+- Single/multi/folder/text transfer protocol.
 - Canonical `/` manifest relative paths across every sender OS.
 - Rooted/traversal/empty-segment/backslash/noncanonical manifest rejection before authorization.
 - Maximum 64 relative-path segments and bounded manifest path metadata.
@@ -192,33 +251,35 @@ Implemented consistently in shared code/services:
 - Outgoing single-file source revalidation at stream open.
 - Bounded deterministic folder enumeration with source symlink/reparse rejection.
 - Portable case/Unicode/sanitation collision deconfliction before hashing.
-- Stable batch transfer-ID token syntax and stable ID across pause/failure retry.
+- Stable batch transfer-ID token syntax for interoperable retry/resume flows.
 - Removed obsolete implicit fresh-ID batch compatibility overload.
 - Collision handling and non-overwrite final promotion.
 - Receive-root path confinement including existing reparse/symlink component rejection.
 - `.swiftdrop.part` resume.
-- Schema-v3 verified completed-file reuse for idempotent interrupted-batch resume within current schema v4.
+- Verified completed-file reuse introduced in schema v3 and retained in current schema v6.
 - Completed-file verification while building retry plan **and again immediately before zero-byte item completion ACK**.
 - SHA-256 integrity verification.
-- Schema-v4 privacy-minimal restart-safe queue status/progress/item metadata; interrupted work never replays stale authorization.
+- Privacy-minimal restart-safe queue status/progress/item metadata retained in current schema v6; interrupted MAUI work never replays stale authorization.
 - Queue/history/diagnostics/resume metadata only; transfer contents excluded from SQLite.
 - UTF-8-byte-bounded external text intake.
 - Shared external staging budget used by Android share, iOS Share Extension, and Mac native drop.
-- Optional terminal notification preference is off by default and cannot change the underlying transfer result if permission/registration/presentation fails.
-- Terminal notification body text is generic and English/Hindi catalog parity remains CI-validated.
+- Optional terminal notification preference on notification-enabled MAUI targets is off by default and cannot change the underlying transfer result if permission/registration/presentation fails.
+- Terminal notification body text is generic and English/Hindi catalog parity remains CI-validated on those targets.
+
+Host-specific features remain documented in the platform sections above; a shared Core capability should not be mistaken for identical UI integration on every host.
 
 ## Source-complete vs release-validated
 
-The current master-prompt source scope includes the iOS Share Extension, Mac Catalyst native drop, stable batch resume, canonical cross-platform manifest paths, source-link safety, strict pairing representation, external staging-budget controls, schema-v4 restart-safe queue context, and optional native terminal notifications on all maintained product targets. Those items are **implemented in source**, not yet **release-validated**.
+The current source scope includes the iOS Share Extension, Mac Catalyst native drop, stable/verified batch resume primitives, canonical cross-platform manifest paths, source-link safety, strict pairing representation, external staging-budget controls, schema-v6 restart-safe queue/history/resume metadata, optional native terminal notifications on Android/iOS/Mac Catalyst/Windows, and the Linux Avalonia secure transfer host/package surface. These items are **implemented in source**, not automatically **release-validated**.
 
 A platform is release-validated only after:
 
-1. the exact candidate commit passes configured automated jobs;
-2. release workloads compile the app and any applicable extension;
-3. real signing/provisioning/package identity succeeds;
-4. signed package install/upgrade works;
-5. provider/App Group/ContentResolver/notification behavior works under real platform conditions;
-6. physical-device/network/transfer/resume/low-storage/accessibility validation passes;
-7. privacy/store declarations match the shipped binary.
+1. the exact candidate commit passes configured automated jobs for that target;
+2. release workloads compile the application and any applicable extension/package;
+3. real signing/provisioning/package/desktop identity requirements succeed where applicable;
+4. install/upgrade/launch behavior works on the real target environment;
+5. provider/App Group/ContentResolver/desktop-protocol/notification behavior works under real platform conditions where applicable;
+6. physical-device/desktop/network/transfer/resume/low-storage/accessibility validation passes;
+7. privacy/store/distribution declarations match the shipped binary/artifact.
 
-See `NEXT_STEPS.md`, `docs/testing/security-test-plan.md`, `docs/testing/manual-test-matrix.md`, and `docs/release/release-checklist.md`.
+See `NEXT_STEPS.md`, `docs/platforms/linux.md`, `docs/testing/security-test-plan.md`, `docs/testing/manual-test-matrix.md`, and `docs/release/release-checklist.md`.
