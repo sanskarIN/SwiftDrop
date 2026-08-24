@@ -46,6 +46,7 @@ REQUIRED_PATHS = (
     "docs/platforms/linux.md",
     "docs/testing/repository-completion-validation.md",
     "docs/release/2.5.18-preparation.md",
+    "docs/release/2.5.18-release-notes.md",
     "docs/release/release-checklist.md",
     "docs/release/release-process.md",
     "docs/release/dependency-evidence.md",
@@ -108,6 +109,7 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
 
 DOC_INDEX_LINKS = (
     "release/2.5.18-preparation.md",
+    "release/2.5.18-release-notes.md",
     "../what_changed_2026-08-24.md",
     "../FINAL_REPOSITORY_STATUS.md",
     "testing/repository-completion-validation.md",
