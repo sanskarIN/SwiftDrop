@@ -28,8 +28,10 @@ public sealed class SettingsViewModel : ObservableObject
     private bool _reduceMotion;
     private bool _largerInterface;
     private bool _developerOptionsEnabled;
-    private string _theme = "System";
-    private string _language = "English";
+    private int _themeIndex;
+    private int _languageIndex;
+    private IReadOnlyList<string> _themeOptions = Array.Empty<string>();
+    private IReadOnlyList<string> _languageOptions = Array.Empty<string>();
     private bool _useDefaultReceiveFolder = true;
 
     public SettingsViewModel(
@@ -64,10 +66,14 @@ public sealed class SettingsViewModel : ObservableObject
     public bool ReduceMotion { get => _reduceMotion; set => SetProperty(ref _reduceMotion, value); }
     public bool LargerInterface { get => _largerInterface; set => SetProperty(ref _largerInterface, value); }
     public bool DeveloperOptionsEnabled { get => _developerOptionsEnabled; set => SetProperty(ref _developerOptionsEnabled, value); }
-    public string Theme { get => _theme; set => SetProperty(ref _theme, value); }
-    public string Language { get => _language; set => SetProperty(ref _language, value); }
+    public int ThemeIndex { get => _themeIndex; set => SetProperty(ref _themeIndex, value); }
+    public int LanguageIndex { get => _languageIndex; set => SetProperty(ref _languageIndex, value); }
+    public IReadOnlyList<string> ThemeOptions { get => _themeOptions; private set => SetProperty(ref _themeOptions, value); }
+    public IReadOnlyList<string> LanguageOptions { get => _languageOptions; private set => SetProperty(ref _languageOptions, value); }
     public string ConcurrencyText => $"{(int)TransferConcurrency}";
-    public string RetentionText => HistoryRetentionDays == 0 ? "Do not retain history" : $"{(int)HistoryRetentionDays} days";
+    public string RetentionText => HistoryRetentionDays == 0
+        ? AppText.Get("DoNotRetainHistory")
+        : AppText.Format("RetentionDaysFormat", (int)HistoryRetentionDays);
 
     public async Task LoadAsync(CancellationToken ct = default)
     {
@@ -75,7 +81,7 @@ public sealed class SettingsViewModel : ObservableObject
         await _identity.InitializeAsync();
         var settings = _settings.Load();
         DeviceName = _identity.DeviceName;
-        IdentityFingerprint = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
+        IdentityFingerprint = FormatIdentityFingerprint();
         TransferConcurrency = settings.TransferConcurrency;
         HistoryRetentionDays = settings.HistoryRetentionDays;
         PrivacyMode = settings.PrivacyMode;
@@ -94,16 +100,15 @@ public sealed class SettingsViewModel : ObservableObject
         ReduceMotion = settings.ReduceMotion;
         LargerInterface = settings.LargerInterface;
         DeveloperOptionsEnabled = settings.DeveloperOptionsEnabled;
-        Theme = settings.Theme;
-        Language = string.Equals(settings.Language, "hi", StringComparison.OrdinalIgnoreCase) ? "Hindi" : "English";
+        RefreshLocalizedOptions(settings.Theme, settings.Language);
         _useDefaultReceiveFolder = string.IsNullOrWhiteSpace(settings.DefaultReceiveFolder);
         ReceiveFolder = _useDefaultReceiveFolder
             ? _receiveLocation.GetDefaultAppReceiveRoot()
             : settings.DefaultReceiveFolder;
 #if WINDOWS
-        ReceiveFolderSupport = "Windows uses the system folder picker. SwiftDrop requests access only to the folder you choose.";
+        ReceiveFolderSupport = AppText.Get("ReceiveFolderSupportWindows");
 #else
-        ReceiveFolderSupport = "This platform currently uses SwiftDrop's app-private Received folder. Custom external-folder selection is disabled rather than requesting broad filesystem access.";
+        ReceiveFolderSupport = AppText.Get("ReceiveFolderSupportPrivate");
 #endif
         RaiseComputedLabels();
     }
@@ -136,24 +141,39 @@ public sealed class SettingsViewModel : ObservableObject
             notificationsEnabled = false;
             NotificationsEnabled = false;
         }
+
+        var theme = ThemeIndex switch
+        {
+            1 => "Light",
+            2 => "Dark",
+            _ => "System"
+        };
+        var language = LanguageIndex == 1 ? "hi" : "en";
         var settings = new AppSettings(
             (int)TransferConcurrency,
             (int)HistoryRetentionDays,
             PrivacyMode,
             AutoAcceptTrustedDevices,
-            Theme,
+            theme,
             notificationsEnabled,
             ReduceMotion,
             _useDefaultReceiveFolder ? string.Empty : ReceiveFolder,
             LargerInterface,
-            string.Equals(Language, "Hindi", StringComparison.Ordinal) ? "hi" : "en",
+            language,
             DeveloperOptionsEnabled);
 
         _settings.Save(settings);
         await _history.ApplyRetentionAsync(ct);
         _appearance.Apply(settings);
+        RefreshLocalizedOptions(settings.Theme, settings.Language);
         DeviceName = _identity.DeviceName;
-        IdentityFingerprint = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
+        IdentityFingerprint = FormatIdentityFingerprint();
+#if WINDOWS
+        ReceiveFolderSupport = AppText.Get("ReceiveFolderSupportWindows");
+#else
+        ReceiveFolderSupport = AppText.Get("ReceiveFolderSupportPrivate");
+#endif
+        RaiseComputedLabels();
         return new SettingsSaveResult(
             NotificationPermissionDenied: notificationPermissionDenied,
             LanguageChanged: !string.Equals(previous.Language, settings.Language, StringComparison.Ordinal));
@@ -164,7 +184,7 @@ public sealed class SettingsViewModel : ObservableObject
         await _trustedDevices.ClearAsync(ct);
         await _identity.ResetIdentityAsync();
         DeviceName = _identity.DeviceName;
-        IdentityFingerprint = $"Certificate fingerprint: {Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate))}";
+        IdentityFingerprint = FormatIdentityFingerprint();
     }
 
     public async Task ResetSettingsAsync(CancellationToken ct = default)
@@ -177,6 +197,24 @@ public sealed class SettingsViewModel : ObservableObject
 
     public void UpdateComputedLabels()
         => RaiseComputedLabels();
+
+    private string FormatIdentityFingerprint()
+        => AppText.Format(
+            "CertificateFingerprintFormat",
+            Fingerprint.Pretty(Fingerprint.FromCertificate(_identity.Certificate)));
+
+    private void RefreshLocalizedOptions(string theme, string language)
+    {
+        ThemeOptions = [AppText.Get("System"), AppText.Get("Light"), AppText.Get("Dark")];
+        LanguageOptions = [AppText.Get("English"), AppText.Get("Hindi")];
+        ThemeIndex = theme switch
+        {
+            "Light" => 1,
+            "Dark" => 2,
+            _ => 0
+        };
+        LanguageIndex = string.Equals(language, "hi", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+    }
 
     private void RaiseComputedLabels()
     {

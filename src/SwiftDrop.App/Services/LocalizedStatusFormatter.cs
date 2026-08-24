@@ -18,6 +18,35 @@ public static class LocalizedStatusFormatter
         return AppText.Format(key, value);
     }
 
+    public static string QueueState(TransferQueueState state)
+    {
+        var key = state switch
+        {
+            TransferQueueState.Queued => "QueueStateQueued",
+            TransferQueueState.Running => "QueueStateRunning",
+            TransferQueueState.Completed => "QueueStateCompleted",
+            TransferQueueState.Failed => "QueueStateFailed",
+            TransferQueueState.Cancelled => "QueueStateCancelled",
+            TransferQueueState.Interrupted => "QueueStateInterrupted",
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Unsupported queue state.")
+        };
+        return AppText.Get(key);
+    }
+
+    public static string QueueOperation(TransferQueueOperationKind operation)
+    {
+        var key = operation switch
+        {
+            TransferQueueOperationKind.Transfer => "QueueOperationTransfer",
+            TransferQueueOperationKind.File => "QueueOperationFile",
+            TransferQueueOperationKind.Batch => "QueueOperationBatch",
+            TransferQueueOperationKind.Text => "QueueOperationText",
+            TransferQueueOperationKind.Receive => "QueueOperationReceive",
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported queue operation.")
+        };
+        return AppText.Get(key);
+    }
+
     public static string NearbyCount(int count)
         => count == 1
             ? AppText.Get("NearbyDeviceCountOne")

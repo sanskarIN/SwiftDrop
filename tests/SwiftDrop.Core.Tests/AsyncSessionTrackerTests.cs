@@ -5,6 +5,15 @@ namespace SwiftDrop.Core.Tests;
 public sealed class AsyncSessionTrackerTests
 {
     [Fact]
+    public void Track_RejectsNullSession()
+    {
+        var tracker = new AsyncSessionTracker();
+
+        Assert.Throws<ArgumentNullException>(() => tracker.Track(null!));
+        Assert.Equal(0, tracker.Count);
+    }
+
+    [Fact]
     public async Task Track_RemovesCompletedSession()
     {
         var tracker = new AsyncSessionTracker();
@@ -38,6 +47,17 @@ public sealed class AsyncSessionTrackerTests
         var tracker = new AsyncSessionTracker();
         tracker.Track(Task.FromException(new IOException("synthetic")));
         await tracker.DrainAsync();
+        Assert.Equal(0, tracker.Count);
+    }
+
+    [Fact]
+    public async Task DrainAsync_DrainsCancelledSessionWithoutThrowing()
+    {
+        var tracker = new AsyncSessionTracker();
+        tracker.Track(Task.FromCanceled(new CancellationToken(canceled: true)));
+
+        await tracker.DrainAsync();
+
         Assert.Equal(0, tracker.Count);
     }
 

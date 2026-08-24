@@ -16,6 +16,13 @@ public sealed class DiagnosticPrivacyRedactorTests
     public void Redact_HidesCommonIdentifiers(string input, string expected)
         => Assert.Equal(expected, DiagnosticPrivacyRedactor.Redact(input));
 
+    [Theory]
+    [InlineData("peer\n192.168.1.10\nconnected", "peer [redacted] connected")]
+    [InlineData("peer\t192.168.1.10:47821\tconnected", "peer [redacted] connected")]
+    [InlineData("contact\r\nsanskarin@outlook.in\r\nfailed", "contact [redacted] failed")]
+    public void Redact_HidesIdentifiersSeparatedByNonSpaceWhitespace(string input, string expected)
+        => Assert.Equal(expected, DiagnosticPrivacyRedactor.Redact(input));
+
     [Fact]
     public void Redact_HidesCompactSha256Fingerprint()
     {

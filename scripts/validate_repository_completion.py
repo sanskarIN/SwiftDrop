@@ -50,6 +50,7 @@ REQUIRED_PATHS = (
     "docs/release/store-privacy-declarations.md",
     "docs/release/manual-release-evidence.md",
     "docs/release/manual-release-evidence-generator.md",
+    "docs/release/manual-release-evidence-status.md",
     "docs/release/manual-release-evidence.template.json",
     "docs/release/continuation-status-2026-08-19.md",
     "docs/release/repository-completion-2026-08-19.md",
@@ -67,6 +68,7 @@ REQUIRED_PATHS = (
     "scripts/create_dependency_evidence_manifest.py",
     "scripts/validate_manual_release_evidence.py",
     "scripts/create_manual_release_evidence.py",
+    "scripts/summarize_manual_release_evidence.py",
     "scripts/validate_repository_completion.py",
 )
 
@@ -89,6 +91,7 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
     "scripts/validate_windows_integration.py",
     "scripts/validate_manual_release_evidence.py",
     "scripts/create_manual_release_evidence.py",
+    "scripts/summarize_manual_release_evidence.py",
     "scripts/validate_repository_completion.py",
     "scripts/tests/**",
 )
@@ -102,6 +105,7 @@ DOC_INDEX_LINKS = (
     "../what_changed_2026-08-19_final.md",
     "release/manual-release-evidence.md",
     "release/manual-release-evidence-generator.md",
+    "release/manual-release-evidence-status.md",
 )
 
 SOURCE_SUFFIXES = {

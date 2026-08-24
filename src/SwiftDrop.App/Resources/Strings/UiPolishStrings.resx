@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="PairingQrCodeDescription" xml:space="preserve"><value>SwiftDrop pairing QR code</value></data>
+  <data name="BuyMeACoffeeLogoDescription" xml:space="preserve"><value>Buy Me a Coffee support logo</value></data>
+  <data name="SupportSwiftDrop" xml:space="preserve"><value>Support SwiftDrop</value></data>
+  <data name="SupportOnBuyMeACoffee" xml:space="preserve"><value>Support SwiftDrop on Buy Me a Coffee</value></data>
+  <data name="CertificateFingerprintFormat" xml:space="preserve"><value>Certificate fingerprint: {0}</value></data>
+  <data name="DoNotRetainHistory" xml:space="preserve"><value>Do not retain history</value></data>
+  <data name="RetentionDaysFormat" xml:space="preserve"><value>{0} days</value></data>
+  <data name="ReceiveFolderSupportWindows" xml:space="preserve"><value>Windows uses the system folder picker. SwiftDrop requests access only to the folder you choose.</value></data>
+  <data name="ReceiveFolderSupportPrivate" xml:space="preserve"><value>This platform currently uses SwiftDrop's app-private Received folder. Custom external-folder selection is disabled rather than requesting broad filesystem access.</value></data>
+  <data name="ProtocolVersionFormat" xml:space="preserve"><value>Protocol version: {0}</value></data>
+  <data name="StatusRunning" xml:space="preserve"><value>running</value></data>
+  <data name="StatusUnavailable" xml:space="preserve"><value>unavailable</value></data>
+  <data name="MdnsDiscoveryStatusFormat" xml:space="preserve"><value>mDNS/Bonjour discovery: {0}</value></data>
+  <data name="UdpFallbackStatusFormat" xml:space="preserve"><value>UDP broadcast fallback: {0}</value></data>
+  <data name="AutomaticDiscoveryUnavailableTitle" xml:space="preserve"><value>Automatic discovery could not start</value></data>
+  <data name="AutomaticDiscoveryUnavailableMessage" xml:space="preserve"><value>Automatic discovery is unavailable. QR or pasted pairing invitations can still be used when the receiver address is reachable.</value></data>
+  <data name="DeveloperOptionsDisabled" xml:space="preserve"><value>Developer options are disabled.</value></data>
+  <data name="RunningSyntheticSelfTest" xml:space="preserve"><value>Running synthetic self-test…</value></data>
+  <data name="SelfTestResultFormat" xml:space="preserve"><value>{0} — {1}</value></data>
+  <data name="SelfTestFailedFormat" xml:space="preserve"><value>Self-test failed with {0}.</value></data>
+  <data name="SelfTestPass" xml:space="preserve"><value>PASS</value></data>
+  <data name="SelfTestFail" xml:space="preserve"><value>FAIL</value></data>
+  <data name="SelfTestRoundTripPass" xml:space="preserve"><value>Known-good data completed and matched its SHA-256 digest.</value></data>
+  <data name="SelfTestRoundTripFail" xml:space="preserve"><value>The known-good round-trip verification did not pass.</value></data>
+  <data name="SelfTestChecksumMismatchPass" xml:space="preserve"><value>The checksum mismatch was rejected and invalid output was cleaned up.</value></data>
+  <data name="SelfTestChecksumMismatchFail" xml:space="preserve"><value>The checksum-mismatch protection self-test did not pass.</value></data>
+  <data name="SelfTestInterruptedReceivePass" xml:space="preserve"><value>The interrupted receive remained staged as resumable partial data.</value></data>
+  <data name="SelfTestInterruptedReceiveFail" xml:space="preserve"><value>The interrupted-receive recovery self-test did not pass.</value></data>
+  <data name="QueueStateQueued" xml:space="preserve"><value>Queued</value></data>
+  <data name="QueueStateRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="QueueStateCompleted" xml:space="preserve"><value>Completed</value></data>
+  <data name="QueueStateFailed" xml:space="preserve"><value>Failed</value></data>
+  <data name="QueueStateCancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="QueueStateInterrupted" xml:space="preserve"><value>Interrupted</value></data>
+  <data name="QueueOperationTransfer" xml:space="preserve"><value>Transfer</value></data>
+  <data name="QueueOperationFile" xml:space="preserve"><value>File</value></data>
+  <data name="QueueOperationBatch" xml:space="preserve"><value>Batch</value></data>
+  <data name="QueueOperationText" xml:space="preserve"><value>Text</value></data>
+  <data name="QueueOperationReceive" xml:space="preserve"><value>Receive</value></data>
+</root>

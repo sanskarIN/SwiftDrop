@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 PAIRS = [
     (ROOT / "src/SwiftDrop.App/Resources/Strings/AppStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/AppStrings.hi.resx"),
+    (ROOT / "src/SwiftDrop.App/Resources/Strings/UiPolishStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/UiPolishStrings.hi.resx"),
     (ROOT / "src/SwiftDrop.App/Resources/Strings/MainStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/MainStrings.hi.resx"),
     (ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/DialogStrings.hi.resx"),
     (ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.resx", ROOT / "src/SwiftDrop.App/Resources/Strings/MainRuntimeStrings.hi.resx"),

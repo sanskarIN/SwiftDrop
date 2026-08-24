@@ -32,13 +32,14 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
 
     public void Refresh()
     {
-        var rows = _queue.Snapshot().Select(QueueRow.FromEntry).ToArray();
+        var entries = _queue.Snapshot();
+        var rows = entries.Select(QueueRow.FromEntry).ToArray();
         Items.Clear();
         foreach (var row in rows) Items.Add(row);
-        var running = rows.Count(x => x.State == TransferQueueState.Running.ToString());
-        var queued = rows.Count(x => x.State == TransferQueueState.Queued.ToString());
-        var interrupted = rows.Count(x => x.State == TransferQueueState.Interrupted.ToString());
-        Status = AppText.Format("RunningCountFormat", running, queued, interrupted);
+        var running = entries.Count(x => x.State == TransferQueueState.Running);
+        var queued = entries.Count(x => x.State == TransferQueueState.Queued);
+        var interrupted = entries.Count(x => x.State == TransferQueueState.Interrupted);
+        Status = LocalizedStatusFormatter.QueueCounts(running, queued, interrupted);
     }
 
     public async Task ClearFinishedAsync(CancellationToken ct = default)
@@ -74,13 +75,13 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
     {
         public static QueueRow FromEntry(TransferQueueEntry entry)
         {
-            var timing = entry.State switch
+            var timestamp = entry.State switch
             {
-                TransferQueueState.Queued => AppText.Format("QueuedAtFormat", entry.CreatedUtc.LocalDateTime),
-                TransferQueueState.Running => AppText.Format("StartedAtFormat", entry.StartedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime),
-                TransferQueueState.Interrupted => AppText.Format("InterruptedAtFormat", entry.FinishedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime),
-                _ => AppText.Format("FinishedAtFormat", entry.FinishedUtc?.LocalDateTime ?? entry.CreatedUtc.LocalDateTime)
+                TransferQueueState.Queued => entry.CreatedUtc,
+                TransferQueueState.Running => entry.StartedUtc ?? entry.CreatedUtc,
+                _ => entry.FinishedUtc ?? entry.CreatedUtc
             };
+            var timing = LocalizedStatusFormatter.QueueTiming(entry.State, timestamp);
 
             var progress = entry.ProgressFraction.ToString("P0", System.Globalization.CultureInfo.CurrentCulture);
             if (entry.ItemCount is { } total && entry.CompletedItemCount is { } completed)
@@ -88,8 +89,8 @@ public sealed class QueueViewModel : ObservableObject, IDisposable
 
             return new QueueRow(
                 entry.Label,
-                entry.OperationKind.ToString(),
-                entry.State.ToString(),
+                LocalizedStatusFormatter.QueueOperation(entry.OperationKind),
+                LocalizedStatusFormatter.QueueState(entry.State),
                 entry.ProgressFraction,
                 progress,
                 timing,

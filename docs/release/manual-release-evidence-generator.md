@@ -81,6 +81,18 @@ python3 scripts/validate_manual_release_evidence.py \
 
 That failure is expected until real signed/device/store evidence has been recorded for every required case.
 
+## Review progress without changing evidence
+
+Use the status helper to validate the manifest and report how many external checks still remain:
+
+```bash
+python3 scripts/summarize_manual_release_evidence.py release-evidence/<candidate>.json
+```
+
+Use `--json` when another local release tool needs machine-readable totals. See [Manual Release Evidence Status](manual-release-evidence-status.md) for the output contract and review loop.
+
+The helper is read-only and does not infer passes from CI, source builds, or missing evidence.
+
 ## Candidate workflow
 
 1. Choose the exact source commit to sign.
@@ -90,8 +102,9 @@ That failure is expected until real signed/device/store evidence has been record
 5. Record each case honestly as `passed`, `failed`, `blocked`, `in-progress`, or `not-run`.
 6. Attach stable evidence references for terminal pass/fail cases.
 7. Run structural validation during the process.
-8. Run `--require-complete` only when every required external case has actually passed.
-9. Keep automated CI/security/platform-build evidence separate from manual evidence; both are required where applicable.
+8. Run the status helper to review exact remaining case counts.
+9. Run `--require-complete` only when every required external case has actually passed.
+10. Keep automated CI/security/platform-build evidence separate from manual evidence; both are required where applicable.
 
 ## Privacy rule
 

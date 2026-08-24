@@ -11,6 +11,15 @@
         <Label Text="{services:Localize Tagline}" FontSize="14" Opacity="0.72" />
       </VerticalStackLayout>
 
+      <Border StrokeShape="RoundRectangle 18" Padding="14">
+        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" RowSpacing="10" ColumnSpacing="10">
+          <Button Grid.Row="0" Grid.Column="0" Text="{services:Localize TransferQueue}" Clicked="OpenQueueClicked" />
+          <Button Grid.Row="0" Grid.Column="1" Text="{services:Localize TransferHistory}" Clicked="OpenHistoryClicked" />
+          <Button Grid.Row="1" Grid.Column="0" Text="{services:Localize Settings}" Clicked="OpenSettingsClicked" />
+          <Button Grid.Row="1" Grid.Column="1" Text="{services:Localize About}" Clicked="OpenAboutClicked" />
+        </Grid>
+      </Border>
+
       <Border StrokeShape="RoundRectangle 18" Padding="18">
         <VerticalStackLayout Spacing="10">
           <Label Text="{services:Localize ThisDevice}" FontAttributes="Bold" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
@@ -35,7 +44,7 @@
           </HorizontalStackLayout>
           <Label x:Name="PairingCodeLabel" FontSize="26" FontAttributes="Bold" IsVisible="False" />
           <Label x:Name="PairingCodeExpiryLabel" FontSize="12" IsVisible="False" />
-          <Image x:Name="QrImage" HeightRequest="220" WidthRequest="220" IsVisible="False" SemanticProperties.Description="SwiftDrop pairing QR code" />
+          <Image x:Name="QrImage" HeightRequest="220" WidthRequest="220" IsVisible="False" SemanticProperties.Description="{services:Localize PairingQrCodeDescription}" />
         </VerticalStackLayout>
       </Border>
 
