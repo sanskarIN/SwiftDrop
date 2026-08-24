@@ -1,6 +1,6 @@
 # SwiftDrop Documentation
 
-This directory is the canonical navigation point for SwiftDrop technical, user, security, testing, platform, and release documentation.
+This directory is the canonical navigation point for SwiftDrop technical, user, security, testing, platform, governance, and release documentation.
 
 SwiftDrop is an account-free local-network transfer application built on .NET 10. Android, iOS, Mac Catalyst, and Windows use the .NET MAUI application host; Linux uses the dedicated Avalonia `SwiftDrop.Desktop` host while sharing `SwiftDrop.Core`. Maintained application platforms are Android, iOS, macOS, Windows, and Linux. Transfer payloads are intended to move directly between nearby peers rather than through a SwiftDrop-operated cloud relay.
 
@@ -8,6 +8,7 @@ SwiftDrop is an account-free local-network transfer application built on .NET 10
 
 - [Project overview](../README.md)
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
+- [Repository governance and protected change policy](repository-governance.md)
 - [Installation and source run](installation.md)
 - [User guide](user-guide.md)
 - [Settings reference](configuration.md)
@@ -59,6 +60,7 @@ SwiftDrop is an account-free local-network transfer application built on .NET 10
 
 - [CI reference](testing/ci-reference.md)
 - [Repository completion validation](testing/repository-completion-validation.md)
+- [Repository governance and protected change policy](repository-governance.md)
 - [Deterministic state-model testing](testing/deterministic-state-models.md)
 - [Security test plan](testing/security-test-plan.md)
 - [Manual test matrix](testing/manual-test-matrix.md)
@@ -72,6 +74,7 @@ SwiftDrop is an account-free local-network transfer application built on .NET 10
 - [2.5.18 release preparation](release/2.5.18-preparation.md)
 - [2.5.18 draft release notes](release/2.5.18-release-notes.md)
 - [August 24 2.5.18 continuation ledger](../what_changed_2026-08-24.md)
+- [Governance continuation ledger — 2026-08-20](../what_changed_2026-08-20.md)
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
 - [Final integration ledger — 2026-08-19](../what_changed_2026-08-19_integration.md)
 - [Final UI completion audit — 2026-08-19](audits/final-ui-polish-2026-08-19.md)
@@ -99,6 +102,7 @@ SwiftDrop is an account-free local-network transfer application built on .NET 10
 
 ## Community and legal
 
+- [Repository governance and protected change policy](repository-governance.md)
 - [Support](../SUPPORT.md)
 - [Diagnostics and bug reports](diagnostics-and-bug-reports.md)
 - [Code of Conduct](../CODE_OF_CONDUCT.md)
@@ -139,6 +143,7 @@ When source behavior changes, update the document that owns that contract in the
 - user-visible workflow -> user guide/FAQ/README;
 - settings/defaults -> settings reference;
 - build/tooling -> `BUILDING.md` and development guide;
+- repository ownership/review policy -> `.github/CODEOWNERS` and repository governance guide;
 - architecture/project boundaries -> architecture docs;
 - network/ports/address policy -> networking guide and protocol/security docs;
 - protocol/canonicality -> protocol docs and compatibility policy;
