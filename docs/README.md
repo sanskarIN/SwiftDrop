@@ -69,6 +69,8 @@ SwiftDrop is an account-free local-network transfer application built on .NET 10
 
 ## Release and operations
 
+- [2.5.18 release preparation](release/2.5.18-preparation.md)
+- [August 24 2.5.18 continuation ledger](../what_changed_2026-08-24.md)
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
 - [Repository completion — 2026-08-19](release/repository-completion-2026-08-19.md)
 - [Final repository closure ledger — 2026-08-19](../what_changed_2026-08-19_closure.md)
@@ -112,6 +114,8 @@ A successful source compile is not proof of signed-device, physical-desktop, sto
 
 ## Current maintained identifiers
 
+- Prepared release version: `2.5.18`
+- Coordinated application build: `20518`
 - App ID: `in.sanskar.swiftdrop`
 - Linux desktop application ID: `in.sanskar.swiftdrop.desktop`
 - iOS Share Extension ID: `in.sanskar.swiftdrop.share`
@@ -119,6 +123,8 @@ A successful source compile is not proof of signed-device, physical-desktop, sto
 - Linux protocol handler: `x-scheme-handler/swiftdrop`
 - Canonical solution: `SwiftDrop.slnx`
 - Main repository branch: `main`
+
+The prepared version is a source/release-engineering target until an exact candidate on `main` passes the required automated and signed/manual evidence gates.
 
 ## Documentation maintenance rules
 
