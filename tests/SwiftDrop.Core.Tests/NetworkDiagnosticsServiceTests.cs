@@ -30,7 +30,7 @@ public sealed class NetworkDiagnosticsServiceTests
             "network.ready"
         };
 
-        Assert.Single(diagnostics.Where(item => primaryCodes.Contains(item.Code)));
+        Assert.Single(diagnostics, item => primaryCodes.Contains(item.Code));
     }
 
     [Fact]
