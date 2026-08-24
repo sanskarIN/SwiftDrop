@@ -1,0 +1,32 @@
+# SwiftDrop repository ownership
+#
+# The fallback owner ensures every pull request has a clear maintainer owner.
+# Explicit entries below document the security- and release-sensitive surfaces
+# that must not silently lose ownership as the repository evolves.
+
+* @sanskarIN
+
+# Repository automation and toolchain
+/.github/ @sanskarIN
+/Directory.Build.props @sanskarIN
+/global.json @sanskarIN
+/scripts/ @sanskarIN
+
+# Security, protocol, networking, transfer, and persistence boundaries
+/src/SwiftDrop.Core/Security/ @sanskarIN
+/src/SwiftDrop.Core/Protocol/ @sanskarIN
+/src/SwiftDrop.Core/Networking/ @sanskarIN
+/src/SwiftDrop.Core/Transfer/ @sanskarIN
+/src/SwiftDrop.Core/Storage/ @sanskarIN
+
+# Platform-native integration and Apple share-extension boundary
+/src/SwiftDrop.App/Platforms/ @sanskarIN
+/src/SwiftDrop.ShareExtension/ @sanskarIN
+
+# Security/privacy/legal and release contracts
+/SECURITY.md @sanskarIN
+/PRIVACY.md @sanskarIN
+/THIRD_PARTY_NOTICES.md @sanskarIN
+/docs/security/ @sanskarIN
+/docs/protocol/ @sanskarIN
+/docs/release/ @sanskarIN
