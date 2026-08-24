@@ -30,6 +30,7 @@ REQUIRED_PATHS = (
     ".editorconfig",
     ".gitattributes",
     ".gitignore",
+    ".github/CODEOWNERS",
     ".github/FUNDING.yml",
     ".github/dependabot.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
@@ -43,6 +44,7 @@ REQUIRED_PATHS = (
     ".github/workflows/security-hygiene.yml",
     ".github/workflows/release-readiness.yml",
     "docs/README.md",
+    "docs/repository-governance.md",
     "docs/platforms/linux.md",
     "docs/testing/repository-completion-validation.md",
     "docs/release/2.5.18-preparation.md",
@@ -61,6 +63,7 @@ REQUIRED_PATHS = (
     "packaging/linux/in.sanskar.swiftdrop.desktop",
     "what_changed.md",
     "what_changed_2026-08-24.md",
+    "what_changed_2026-08-20.md",
     "what_changed_2026-08-19.md",
     "what_changed_2026-08-19_final.md",
     "what_changed_2026-08-19_closure.md",
@@ -114,7 +117,9 @@ DOC_INDEX_LINKS = (
     "release/2.5.18-preparation.md",
     "release/2.5.18-release-notes.md",
     "../what_changed_2026-08-24.md",
+    "../what_changed_2026-08-20.md",
     "../FINAL_REPOSITORY_STATUS.md",
+    "repository-governance.md",
     "testing/repository-completion-validation.md",
     "release/repository-completion-2026-08-19.md",
     "../what_changed_2026-08-19_closure.md",
@@ -124,6 +129,31 @@ DOC_INDEX_LINKS = (
     "release/manual-release-evidence-generator.md",
     "release/manual-release-evidence-status.md",
 )
+
+CODEOWNERS_EXPECTATIONS = {
+    "*": "@sanskarIN",
+    "/.github/": "@sanskarIN",
+    "/Directory.Build.props": "@sanskarIN",
+    "/global.json": "@sanskarIN",
+    "/scripts/": "@sanskarIN",
+    "/src/SwiftDrop.Core/Security/": "@sanskarIN",
+    "/src/SwiftDrop.Core/Discovery/": "@sanskarIN",
+    "/src/SwiftDrop.Core/Protocol/": "@sanskarIN",
+    "/src/SwiftDrop.Core/Networking/": "@sanskarIN",
+    "/src/SwiftDrop.Core/Transfer/": "@sanskarIN",
+    "/src/SwiftDrop.Core/Storage/": "@sanskarIN",
+    "/src/SwiftDrop.App/Platforms/": "@sanskarIN",
+    "/src/SwiftDrop.Desktop/": "@sanskarIN",
+    "/src/SwiftDrop.ShareExtension/": "@sanskarIN",
+    "/packaging/linux/": "@sanskarIN",
+    "/SECURITY.md": "@sanskarIN",
+    "/PRIVACY.md": "@sanskarIN",
+    "/THIRD_PARTY_NOTICES.md": "@sanskarIN",
+    "/docs/security/": "@sanskarIN",
+    "/docs/protocol/": "@sanskarIN",
+    "/docs/release/": "@sanskarIN",
+    "/docs/platforms/": "@sanskarIN",
+}
 
 SOURCE_SUFFIXES = {
     ".cs",
@@ -257,6 +287,40 @@ def validate_documentation_index(root: Path) -> list[str]:
     return errors
 
 
+def validate_codeowners(root: Path) -> list[str]:
+    path = root / ".github/CODEOWNERS"
+    if not path.is_file():
+        return ["repository ownership policy is missing: .github/CODEOWNERS"]
+    try:
+        text = _read_text(path)
+    except (OSError, UnicodeError) as exc:
+        return [f"could not read repository ownership policy: {exc}"]
+
+    parsed: dict[str, tuple[str, ...]] = {}
+    errors: list[str] = []
+    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        fields = line.split()
+        if len(fields) < 2:
+            errors.append(f"CODEOWNERS entry has no owner at line {line_number}: {raw_line!r}")
+            continue
+        pattern, *owners = fields
+        parsed[pattern] = tuple(owners)
+
+    for pattern, owner in CODEOWNERS_EXPECTATIONS.items():
+        owners = parsed.get(pattern)
+        if owners is None:
+            errors.append(f"CODEOWNERS is missing protected ownership entry: {pattern}")
+        elif owner not in owners:
+            errors.append(
+                f"CODEOWNERS entry {pattern!r} must retain protected owner {owner}; "
+                f"found {' '.join(owners)}"
+            )
+    return errors
+
+
 def validate_release_template(root: Path) -> list[str]:
     template = root / ALLOWED_PLACEHOLDER_FILE
     if not template.is_file():
@@ -295,6 +359,7 @@ def validate_repository(root: Path) -> list[str]:
     errors.extend(validate_release_readiness_triggers(root))
     errors.extend(validate_portable_verifier_integration(root))
     errors.extend(validate_documentation_index(root))
+    errors.extend(validate_codeowners(root))
     errors.extend(validate_release_template(root))
     errors.extend(validate_no_placeholder_leaks(root))
     return errors
