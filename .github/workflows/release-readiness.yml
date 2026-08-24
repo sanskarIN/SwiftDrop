@@ -29,6 +29,7 @@ on:
       - 'scripts/publish-linux.sh'
       - 'scripts/validate_manual_release_evidence.py'
       - 'scripts/create_manual_release_evidence.py'
+      - 'scripts/summarize_manual_release_evidence.py'
       - 'scripts/validate_repository_completion.py'
       - 'scripts/tests/**'
   pull_request:
@@ -56,6 +57,7 @@ on:
       - 'scripts/publish-linux.sh'
       - 'scripts/validate_manual_release_evidence.py'
       - 'scripts/create_manual_release_evidence.py'
+      - 'scripts/summarize_manual_release_evidence.py'
       - 'scripts/validate_repository_completion.py'
       - 'scripts/tests/**'
 
