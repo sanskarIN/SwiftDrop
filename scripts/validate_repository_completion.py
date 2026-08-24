@@ -45,6 +45,7 @@ REQUIRED_PATHS = (
     "docs/README.md",
     "docs/platforms/linux.md",
     "docs/testing/repository-completion-validation.md",
+    "docs/release/2.5.18-preparation.md",
     "docs/release/release-checklist.md",
     "docs/release/release-process.md",
     "docs/release/dependency-evidence.md",
@@ -57,6 +58,7 @@ REQUIRED_PATHS = (
     "docs/release/repository-completion-2026-08-19.md",
     "packaging/linux/in.sanskar.swiftdrop.desktop",
     "what_changed.md",
+    "what_changed_2026-08-24.md",
     "what_changed_2026-08-19.md",
     "what_changed_2026-08-19_final.md",
     "what_changed_2026-08-19_closure.md",
@@ -105,6 +107,8 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
 )
 
 DOC_INDEX_LINKS = (
+    "release/2.5.18-preparation.md",
+    "../what_changed_2026-08-24.md",
     "../FINAL_REPOSITORY_STATUS.md",
     "testing/repository-completion-validation.md",
     "release/repository-completion-2026-08-19.md",
