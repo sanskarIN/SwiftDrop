@@ -12,11 +12,13 @@ This ledger records the August 24 continuation work without representing queued 
 
 The final hardening/UI integration branch had one failing xUnit analyzer rule in `NetworkDiagnosticsServiceTests.cs`: `xUnit2031` rejected filtering with LINQ `Where(...)` before `Assert.Single(...)`.
 
-The assertion now uses the predicate overload of `Assert.Single`, retaining the same behavioral requirement while satisfying the analyzer. A new exact-head workflow matrix was triggered. CI, CodeQL, and security hygiene subsequently reported success while longer platform/release jobs were still running at the time this ledger section was authored.
+The assertion now uses the predicate overload of `Assert.Single`, retaining the same behavioral requirement while satisfying the analyzer. A new exact-head workflow matrix was triggered. CI, CodeQL, security hygiene, and the maintained platform-build matrix subsequently reported success; the aggregate Release Readiness final gate had not yet completed when this ledger was frozen.
 
 ### Linux PR readiness
 
 PR #35 was moved from draft to ready-for-review after its earlier exact head had successful CI, CodeQL, security hygiene, release readiness, and dedicated Desktop Linux workflow results. New August 24 commits invalidate that older head as final evidence, so the updated head must pass again.
+
+The PR title was updated to `feat: add maintained Linux support and prepare SwiftDrop 2.5.18` so the review surface reflects its expanded release-preparation scope.
 
 ### 2.5.18 coordinated package versions
 
@@ -98,7 +100,9 @@ It now requires:
 - `scripts/validate_version_alignment.py` as a repository-completion artifact;
 - Linux packaging paths in release-readiness triggers;
 - Linux integration, Linux publish, and version-alignment helper trigger coverage;
-- Linux and version validator execution in CI, Bash verification, and PowerShell verification.
+- Linux and version validator execution in CI, Bash verification, and PowerShell verification;
+- the 2.5.18 preparation document, draft release notes, and dated continuation ledger;
+- canonical documentation-index links to the 2.5.18 preparation and release-note records.
 
 The corresponding completion-validator regression test was expanded for those invariants.
 
@@ -116,6 +120,10 @@ It defines:
 - cross-device testing expectations;
 - accessibility/localization/privacy/store evidence;
 - the rule that `v2.5.18` must not be presented as a production release before complete exact-candidate evidence exists.
+
+Added `docs/release/2.5.18-release-notes.md` as draft candidate release notes. The notes cover Linux support, coordinated versioning, stronger release gates, intended hardening/governance integration, platform scope, retained local-first security/privacy principles, the browser-extension deferral, and the signed/manual validation still required before publication.
+
+`docs/README.md` links both 2.5.18 records and identifies `2.5.18` / `20518` as the prepared source identifiers without claiming a production release.
 
 ## Commit sequence created during this continuation
 
@@ -138,7 +146,13 @@ The continuation intentionally used granular commits rather than collapsing unre
 15. `feat(quality): protect Linux and version release contracts`
 16. `test(quality): cover Linux and version completion invariants`
 17. `docs(release): define 2.5.18 preparation contract`
-18. this continuation-ledger commit.
+18. initial continuation-ledger commit
+19. `docs(index): expose 2.5.18 preparation records`
+20. `docs(quality): protect 2.5.18 preparation records`
+21. `docs(release): draft SwiftDrop 2.5.18 release notes`
+22. `docs(index): link 2.5.18 draft release notes`
+23. `docs(quality): protect 2.5.18 draft release notes`
+24. this ledger-refresh commit.
 
 Every newly authored repository commit in this continuation uses:
 
