@@ -38,11 +38,15 @@ REQUIRED_PATHS = (
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/platform-builds.yml",
+    ".github/workflows/desktop-linux.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/security-hygiene.yml",
     ".github/workflows/release-readiness.yml",
     "docs/README.md",
+    "docs/platforms/linux.md",
     "docs/testing/repository-completion-validation.md",
+    "docs/release/2.5.18-preparation.md",
+    "docs/release/2.5.18-release-notes.md",
     "docs/release/release-checklist.md",
     "docs/release/release-process.md",
     "docs/release/dependency-evidence.md",
@@ -50,11 +54,12 @@ REQUIRED_PATHS = (
     "docs/release/store-privacy-declarations.md",
     "docs/release/manual-release-evidence.md",
     "docs/release/manual-release-evidence-generator.md",
-    "docs/release/manual-release-evidence-status.md",
     "docs/release/manual-release-evidence.template.json",
     "docs/release/continuation-status-2026-08-19.md",
     "docs/release/repository-completion-2026-08-19.md",
+    "packaging/linux/in.sanskar.swiftdrop.desktop",
     "what_changed.md",
+    "what_changed_2026-08-24.md",
     "what_changed_2026-08-19.md",
     "what_changed_2026-08-19_final.md",
     "what_changed_2026-08-19_closure.md",
@@ -64,23 +69,27 @@ REQUIRED_PATHS = (
     "scripts/validate_localization.py",
     "scripts/validate_apple_integration.py",
     "scripts/validate_windows_integration.py",
+    "scripts/validate_linux_integration.py",
+    "scripts/validate_version_alignment.py",
     "scripts/validate_nuget_vulnerability_report.py",
     "scripts/create_dependency_evidence_manifest.py",
     "scripts/validate_manual_release_evidence.py",
     "scripts/create_manual_release_evidence.py",
-    "scripts/summarize_manual_release_evidence.py",
+    "scripts/publish-linux.sh",
     "scripts/validate_repository_completion.py",
 )
 
 REQUIRED_PROJECTS = (
     "src/SwiftDrop.Core/SwiftDrop.Core.csproj",
     "src/SwiftDrop.App/SwiftDrop.App.csproj",
+    "src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj",
     "src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj",
     "tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj",
     "benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj",
 )
 
 RELEASE_CRITICAL_TRIGGER_PATHS = (
+    "packaging/linux/**",
     "scripts/verify-core.sh",
     "scripts/verify-core.ps1",
     "scripts/validate_documentation.py",
@@ -89,14 +98,19 @@ RELEASE_CRITICAL_TRIGGER_PATHS = (
     "scripts/validate_nuget_vulnerability_report.py",
     "scripts/create_dependency_evidence_manifest.py",
     "scripts/validate_windows_integration.py",
+    "scripts/validate_linux_integration.py",
+    "scripts/validate_version_alignment.py",
+    "scripts/publish-linux.sh",
     "scripts/validate_manual_release_evidence.py",
     "scripts/create_manual_release_evidence.py",
-    "scripts/summarize_manual_release_evidence.py",
     "scripts/validate_repository_completion.py",
     "scripts/tests/**",
 )
 
 DOC_INDEX_LINKS = (
+    "release/2.5.18-preparation.md",
+    "release/2.5.18-release-notes.md",
+    "../what_changed_2026-08-24.md",
     "../FINAL_REPOSITORY_STATUS.md",
     "testing/repository-completion-validation.md",
     "release/repository-completion-2026-08-19.md",
@@ -105,7 +119,6 @@ DOC_INDEX_LINKS = (
     "../what_changed_2026-08-19_final.md",
     "release/manual-release-evidence.md",
     "release/manual-release-evidence-generator.md",
-    "release/manual-release-evidence-status.md",
 )
 
 SOURCE_SUFFIXES = {
@@ -191,23 +204,36 @@ def validate_release_readiness_triggers(root: Path) -> list[str]:
 
 def validate_portable_verifier_integration(root: Path) -> list[str]:
     expectations = {
-        ".github/workflows/ci.yml": "python3 scripts/validate_repository_completion.py",
-        "scripts/verify-core.sh": "python3 scripts/validate_repository_completion.py",
-        "scripts/verify-core.ps1": "scripts/validate_repository_completion.py",
+        ".github/workflows/ci.yml": (
+            "python3 scripts/validate_repository_completion.py",
+            "python3 scripts/validate_linux_integration.py",
+            "python3 scripts/validate_version_alignment.py",
+        ),
+        "scripts/verify-core.sh": (
+            "python3 scripts/validate_repository_completion.py",
+            "python3 scripts/validate_linux_integration.py",
+            "python3 scripts/validate_version_alignment.py",
+        ),
+        "scripts/verify-core.ps1": (
+            "scripts/validate_repository_completion.py",
+            "scripts/validate_linux_integration.py",
+            "scripts/validate_version_alignment.py",
+        ),
     }
     errors: list[str] = []
-    for relative, needle in expectations.items():
+    for relative, needles in expectations.items():
         path = root / relative
         if not path.is_file():
-            errors.append(f"completion-validator integration target is missing: {relative}")
+            errors.append(f"portable-validator integration target is missing: {relative}")
             continue
         try:
             text = _read_text(path)
         except (OSError, UnicodeError) as exc:
-            errors.append(f"could not read completion-validator integration target {relative}: {exc}")
+            errors.append(f"could not read portable-validator integration target {relative}: {exc}")
             continue
-        if needle not in text:
-            errors.append(f"{relative} does not execute the repository completion validator")
+        for needle in needles:
+            if needle not in text:
+                errors.append(f"{relative} does not execute required portable validator: {needle}")
     return errors
 
 

@@ -4,7 +4,7 @@
          xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
          xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
          IgnorableNamespaces="uap com desktop">
-  <Identity Name="Sanskar.SwiftDrop" Publisher="CN=SwiftDrop" Version="1.0.0.0" />
+  <Identity Name="Sanskar.SwiftDrop" Publisher="CN=SwiftDrop" Version="2.5.18.0" />
   <Properties>
     <DisplayName>SwiftDrop</DisplayName>
     <PublisherDisplayName>Sanskar</PublisherDisplayName>

@@ -1,8 +1,21 @@
 # SwiftDrop
 
-SwiftDrop is an open-source, account-free local-network file and text transfer app built with .NET MAUI and C#. It is designed for direct peer-to-peer transfers across Android, iOS, macOS (Mac Catalyst), and Windows without uploading transfer content to a SwiftDrop-operated cloud service.
+SwiftDrop is an open-source, account-free local-network file and text transfer app built on .NET 10. The existing Android, iOS, macOS (Mac Catalyst), and Windows application uses .NET MAUI; Linux is provided by a dedicated Avalonia desktop host that references the same `SwiftDrop.Core` security, protocol, discovery, storage, and transfer implementation. SwiftDrop is designed for direct peer-to-peer transfers across Android, iOS, macOS, Windows, and Linux without uploading transfer content to a SwiftDrop-operated cloud service.
 
 > **Privacy model:** transfer payloads stay on the local peer-to-peer path. SwiftDrop stores only local metadata needed for settings, trust, history, diagnostics, restart-safe queue status/progress, and verified batch-resume state. See `PRIVACY.md`.
+
+## Maintained application platforms
+
+| Platform | Maintained host | Current architecture |
+| --- | --- | --- |
+| Android | `SwiftDrop.App` | .NET MAUI (`net10.0-android`) |
+| iOS | `SwiftDrop.App` + iOS Share Extension | .NET MAUI (`net10.0-ios`) |
+| macOS | `SwiftDrop.App` | .NET MAUI Mac Catalyst (`net10.0-maccatalyst`) |
+| Windows | `SwiftDrop.App` | .NET MAUI / Windows App SDK (`net10.0-windows10.0.19041.0`) |
+| Linux x64 | `SwiftDrop.Desktop` | Avalonia desktop (`net10.0`, `linux-x64`) |
+| Linux ARM64 | `SwiftDrop.Desktop` | Avalonia desktop (`net10.0`, `linux-arm64`) |
+
+Linux is intentionally not added to the MAUI target-framework list because .NET MAUI does not provide the maintained Linux desktop host used by this repository. Instead, `src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj` supplies the Linux UI/platform boundary while reusing `SwiftDrop.Core` for the security-sensitive local transfer path. See `docs/platforms/linux.md`.
 
 ## Current source capabilities
 
@@ -21,14 +34,14 @@ SwiftDrop is an open-source, account-free local-network file and text transfer a
 
 ### Transport and identity
 
-- Local P-256 ECDSA device certificate/private key stored through platform secure storage.
+- Local P-256 ECDSA device certificate/private key. MAUI targets use platform secure storage; the Linux desktop host uses a private XDG configuration directory and attempts restrictive current-user Unix permissions for identity material.
 - TLS server/client certificate EKUs and explicit certificate renewal/recovery policy.
 - TLS 1.2/1.3 using .NET/platform cryptography.
 - Receiver certificate SHA-256 pinning.
 - Sender client certificate required by receiver.
 - One-time transfer authorization consumed only after strict request/manifest validation and authenticated client-certificate presence.
 - Malformed/noncanonical paths do not burn a valid transfer nonce.
-- Certificate-bound trusted-device persistence/revocation.
+- Certificate-bound trusted-device persistence/revocation in the MAUI application; the Linux desktop host currently concentrates on the interoperable secure transfer/pairing surface.
 
 ### Canonical cross-platform file paths
 
@@ -50,14 +63,14 @@ This prevents Windows `\\` vs Unix `/` path identity drift during cross-platform
 - Multiple files.
 - Recursive folders where platform source selection permits them.
 - Explicit text snippets.
-- Explicit clipboard paste only; no continuous clipboard monitoring.
-- Receiver accept/reject and batch accept-all/selective/reject decisions.
-- Queue/concurrency controls.
-- Progress, batch throughput, and ETA presentation.
-- Local History performance dashboard with measured completed-transfer duration, resume-safe actual-byte throughput, and weighted average throughput; legacy/unmeasured rows are never given invented rates.
+- Explicit clipboard paste/copy actions only; no continuous clipboard monitoring.
+- Receiver accept/reject and batch accept-all/selective/reject decisions where exposed by the host UI.
+- Queue/concurrency controls in the MAUI application.
+- Progress, batch throughput, and ETA presentation in the MAUI application; the Linux desktop host exposes file/batch progress and cancellation.
+- Local History performance dashboard with measured completed-transfer duration, resume-safe actual-byte throughput, and weighted average throughput in the MAUI application; legacy/unmeasured rows are never given invented rates.
 - Local 30-day UTC performance trend derived from completed measured History samples, with an explicit aggregate-only CSV export through the OS share sheet; the export contains UTC date, measured-count, measured-byte, measured-duration, and weighted-rate columns only.
 - Restart-safe queue status/progress/item metadata that never serves as reusable transfer authorization.
-- Pause/cancel/fresh-pair resume.
+- Pause/cancel/fresh-pair resume in the MAUI application; the Linux desktop host supports cancellation plus receiver-provided resume offsets and verified batch-completion reuse.
 - `.swiftdrop.part` staging.
 - SHA-256 final integrity verification.
 - Storage capacity preflight.
@@ -69,7 +82,7 @@ Outgoing source safety also rejects symbolic-link/reparse source files/folders. 
 
 ### Optional native terminal notifications
 
-Completion/failure system notifications are implemented as an explicit **off-by-default** preference on Android, iOS, Mac Catalyst, and Windows.
+Completion/failure system notifications are implemented as an explicit **off-by-default** preference on Android, iOS, Mac Catalyst, and Windows. The current Linux desktop host does not claim native terminal-notification parity.
 
 - Android keeps the existing local terminal-notification path and requests Android 13+ notification permission only after opt-in.
 - iOS and Mac Catalyst use the Apple User Notifications framework. Alert/sound permission is requested only after opt-in, and a retained notification-center delegate allows enabled generic terminal notifications to be presented while SwiftDrop is foregrounded.
@@ -82,7 +95,7 @@ The signed Apple/Windows/Android runtime still requires the notification permiss
 
 ### Idempotent batch resume
 
-Interrupted batches retain a stable random transfer ID using bounded ASCII token syntax. The active app batch controls call the stable-ID API directly; the obsolete implicit fresh-ID compatibility overload has been removed.
+Interrupted batches retain a stable random transfer ID using bounded ASCII token syntax. The active MAUI app batch controls call the stable-ID API directly; the obsolete implicit fresh-ID compatibility overload has been removed. The Linux receiver consumes the same stable transfer-ID protocol and verified completed-item metadata when a sender retries with the same ID.
 
 After each batch item is verified/finalized, SwiftDrop can retain metadata-only completion state in `completed_batch_items`, introduced in SQLite schema v3 and retained in current schema v6.
 
@@ -157,6 +170,17 @@ External file staging on Android share, the iOS Share Extension, and Mac native 
 - Windows local paths are converted into canonical `/` wire manifests before transfer.
 - Optional Windows App SDK completion/failure app notifications with packaged activation registration.
 
+**Linux desktop**
+
+- Dedicated Avalonia desktop host for x64 and ARM64 Linux.
+- Native desktop file/folder pickers for explicit sends and receive-location selection.
+- Strict `swiftdrop://pair` launch handling through the same canonical `PairingCodec` decoder used by Core.
+- Freedesktop launcher and `x-scheme-handler/swiftdrop` registration in the generated user-local package.
+- Explicit incoming file/batch/text/pairing approval dialogs.
+- Accepted incoming text can be copied to the desktop clipboard only after user approval.
+- XDG-aware configuration/data/cache paths with best-effort restrictive current-user Unix permissions for private identity/data files.
+- Self-contained `linux-x64` and `linux-arm64` package generation through `scripts/publish-linux.sh`.
+
 ### Protocol hardening
 
 Application protocol JSON is strict and typed:
@@ -174,7 +198,7 @@ Application protocol JSON is strict and typed:
 - truncated frames fail;
 - idle timeouts and cancellation enforced.
 
-Production sender, pairing client, receiver, and portable tests use the same Core wire records/factories/validators/authorizer.
+Production sender, pairing client, receiver, and portable tests use the same Core wire records/factories/validators/authorizer. The Linux desktop host also references these Core records, validators, authorizer, discovery, TLS, hashing, path-safety, and transfer primitives rather than maintaining a separate wire protocol.
 
 ## Local metadata and privacy
 
@@ -196,21 +220,24 @@ Privacy mode hides peer/file identifiers in history and redacts common identifie
 
 Optional terminal notification text is also deliberately generic and does not place transfer-specific identifiers/content into OS notification history.
 
-Android application backup is disabled for app-local metadata. Windows requests private-network rather than general Internet client capability.
+Android application backup is disabled for app-local metadata. Windows requests private-network rather than general Internet client capability. The Linux desktop host keeps local identity and verified batch-resume metadata under user-scoped XDG paths and does not require a SwiftDrop cloud account/service.
 
 ## UI, MVVM, localization, accessibility
 
-- `MainViewModel` owns primary dashboard presentation state.
-- History, Queue, Nearby Devices, Trusted Devices, Diagnostics, Settings, and About use dedicated view models.
+The established MAUI application keeps its MVVM/localization/accessibility shell, while the Linux desktop host has a focused Avalonia UI that exposes interoperable secure discovery, pairing, sending, receiving, receive-location selection, progress, cancellation, and explicit approvals.
+
+- `MainViewModel` owns primary MAUI dashboard presentation state.
+- History, Queue, Nearby Devices, Trusted Devices, Diagnostics, Settings, and About use dedicated MAUI view models.
 - Queue rows expose operation kind, state, recovered progress/item counts, timing/error context, and a progress bar while persistence remains non-authorizing.
 - Active single/batch send controls use regular-source checks and stable resume state.
 - Obsolete duplicate batch handlers/fresh-ID compatibility overload have been removed.
 - Platform pickers/dialogs/share/drop/lifecycle remain at the UI/platform boundary.
 - Networking/TLS/storage/cryptography/protocol/path/integrity policy remains in services/Core.
-- English/Hindi XAML and runtime resource catalogs.
-- Generic terminal notification status/support/permission messages are localized in English/Hindi.
-- CI validates localization XML, duplicate keys, key parity, and placeholder parity.
-- Theme, larger-interface, reduce-motion, language, history/privacy/trust, concurrency, diagnostics, notifications, receive location, and identity settings.
+- English/Hindi XAML and runtime resource catalogs are maintained for the MAUI app.
+- Generic terminal notification status/support/permission messages are localized in English/Hindi for notification-enabled MAUI targets.
+- CI validates MAUI localization XML, duplicate keys, key parity, and placeholder parity.
+- Theme, larger-interface, reduce-motion, language, history/privacy/trust, concurrency, diagnostics, notifications, receive location, and identity settings remain available in the MAUI application.
+- The current Linux desktop host does not claim one-for-one parity for every MAUI auxiliary dashboard or native notification integration; its maintained scope is the secure interoperable local-transfer application surface described above.
 
 ## Testing and CI
 
@@ -261,16 +288,21 @@ Configured GitHub Actions include:
 - Windows compile;
 - Mac Catalyst containing-app compile;
 - certificate-independent iOS Simulator Share Extension + containing-app compile;
+- Linux desktop integration-contract validation;
+- Linux x64 and ARM64 Avalonia desktop build plus self-contained package generation;
+- Linux desktop direct/transitive dependency vulnerability validation and deterministic evidence manifests;
 - CodeQL/security hygiene;
 - explicit machine-readable direct/transitive vulnerability-report validation;
-- target-specific Android, Windows, Mac Catalyst, iOS app, and iOS Share Extension dependency-audit artifacts;
+- target-specific Android, Windows, Mac Catalyst, iOS app, iOS Share Extension, and Linux desktop dependency-audit artifacts;
 - deterministic SHA-256 manifests for retained dependency-evidence JSON bundles;
 - deterministic SQLite command/resource disposal validated by Windows temp-database cleanup;
 - release-readiness aggregate compile/test/audit gates.
 
 The Windows integration validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration/startup-registration source contracts, placeholder-free notification messages, preservation of `privateNetworkClientServer`, and absence of `internetClient`. It validates repository/package metadata consistency; signed MSIX install/update/activation remains a release test.
 
-Successful source compilation is not equivalent to physical-device/store validation.
+The Linux integration validator checks that the Avalonia desktop project remains in the canonical solution, references `SwiftDrop.Core`, retains both maintained Linux RIDs, preserves the strict pairing-launch path, includes the freedesktop protocol-handler/package surface, and keeps the Linux build/audit workflow wired to the release packaging script.
+
+Successful source compilation or package generation is not equivalent to physical-device/store/distribution validation.
 
 ## Build and test
 
@@ -280,6 +312,20 @@ Canonical solution: `SwiftDrop.slnx`.
 dotnet restore SwiftDrop.slnx
 dotnet build src/SwiftDrop.Core/SwiftDrop.Core.csproj -c Release
 dotnet test tests/SwiftDrop.Core.Tests/SwiftDrop.Core.Tests.csproj -c Release
+```
+
+Linux desktop source build:
+
+```bash
+dotnet restore src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
+dotnet build src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj -c Release --no-restore
+```
+
+Self-contained Linux packages:
+
+```bash
+bash scripts/publish-linux.sh linux-x64
+bash scripts/publish-linux.sh linux-arm64
 ```
 
 Portable verification:
@@ -294,9 +340,9 @@ Windows PowerShell:
 ./scripts/verify-core.ps1
 ```
 
-The verification scripts run Python helper tests; validate documentation integrity, localization, Apple integration metadata, and Windows packaged notification integration metadata; compile/test Core and benchmarks; and reject machine-readable Core vulnerability reports containing findings.
+The verification scripts run Python helper tests; validate documentation integrity, localization, Apple integration metadata, Windows packaged notification integration metadata, and the repository completion contract; compile/test Core and benchmarks; and reject machine-readable Core vulnerability reports containing findings. The dedicated Linux workflow additionally validates and packages the Avalonia desktop host.
 
-See `BUILDING.md` for target-specific build commands and Apple/Windows signed-package requirements.
+See `BUILDING.md` for target-specific build commands and `docs/platforms/linux.md` for Linux build/install/package/security details.
 
 ## Apple provisioning requirement
 
@@ -316,6 +362,8 @@ Do not claim iOS Share Extension, Apple local notifications, or Mac Catalyst pro
 ## Networking notes
 
 SwiftDrop works best when both devices are on the same normal LAN/Wi-Fi. Guest networks, AP/client isolation, multicast filtering, enterprise policies, local-network permission denial, mobile background restrictions, notification policy/settings, and host firewalls can block discovery, inbound connections, or optional notification presentation. QR/manual pairing helps discovery failures but does not bypass network or OS policy.
+
+The current shared TLS receiver retains the repository's existing IPv4 listener behavior. The cross-platform source supports the maintained application hosts above; IPv6-only transport parity is a separate shared-Core transport change and is not implied by the Linux UI host.
 
 ## Repository and support
 
@@ -344,6 +392,7 @@ Financial support is optional and does not unlock features, priority security ha
 - Development guide: `docs/development-guide.md`
 - Project structure: `docs/architecture/project-structure.md`
 - CI reference: `docs/testing/ci-reference.md`
+- Linux platform guide: `docs/platforms/linux.md`
 - Release process: `docs/release/release-process.md`
 - Dependency evidence: `docs/release/dependency-evidence.md`
 - Versioning/compatibility: `docs/versioning-and-compatibility.md`
@@ -366,7 +415,7 @@ Financial support is optional and does not unlock features, priority security ha
 
 ## Production-status boundary
 
-The current master-prompt scope is implemented in repository source, including the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, resume-safe local History performance measurements, and optional local terminal notifications on Android/iOS/Mac Catalyst/Windows. Production verification still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, signed notification permission/activation behavior, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store submission checks.
+The current source scope includes the iOS Share Extension, Mac native drop, strict/canonical pairing, cross-platform canonical manifest paths, link-safe deterministic outgoing sources, shared external staging budgets, typed protocol hostability, idempotent completed-file batch resume, restart-safe non-authorizing queue progress metadata, resume-safe local History performance measurements, optional local terminal notifications on Android/iOS/Mac Catalyst/Windows, and a maintained Linux Avalonia desktop host for secure local discovery/pairing/file/folder/text transfer and receiving on x64/ARM64. Linux CI builds and self-contained package audits are required gates for the exact candidate; physical Linux desktop/distribution validation remains a release requirement. Production verification across all platforms still requires successful current CI runs for the exact candidate, signed packages/the applicable iOS extension, real App Group provisioning, signed notification permission/activation behavior where applicable, physical cross-device/provider/network/low-storage/accessibility tests, exact dependency-license review, and store/distribution submission checks.
 
 ## License
 

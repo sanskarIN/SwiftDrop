@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=SwiftDrop
+Comment=Secure local-network file and text transfer
+Exec=swiftdrop %u
+Icon=swiftdrop
+Terminal=false
+Categories=Network;Utility;
+MimeType=x-scheme-handler/swiftdrop;
+StartupNotify=true
+Keywords=file;transfer;share;local;network;peer-to-peer;
