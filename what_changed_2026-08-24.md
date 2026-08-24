@@ -2,21 +2,23 @@
 
 Repository: https://github.com/sanskarIN/SwiftDrop
 Release preparation target: **2.5.18**
-Status: repository work in progress; signed/device/store release evidence not yet complete.
+Status: repository integration and validation in progress; signed/device/store release evidence not yet complete.
 
 This ledger records the August 24 continuation work without representing queued workflow jobs or external validation as successful evidence.
 
 ## Work completed in this continuation
 
-### PR #34 CI blocker correction
+### PR #34 CI blocker correction and integration
 
 The final hardening/UI integration branch had one failing xUnit analyzer rule in `NetworkDiagnosticsServiceTests.cs`: `xUnit2031` rejected filtering with LINQ `Where(...)` before `Assert.Single(...)`.
 
-The assertion now uses the predicate overload of `Assert.Single`, retaining the same behavioral requirement while satisfying the analyzer. A new exact-head workflow matrix was triggered. CI, CodeQL, security hygiene, and the maintained platform-build matrix subsequently reported success; the aggregate Release Readiness final gate had not yet completed when this ledger was frozen.
+The assertion was changed to the predicate overload of `Assert.Single`, retaining the same behavioral requirement while satisfying the analyzer. CI, CodeQL, security hygiene, and the maintained platform-build matrix subsequently reported success for that head. PR #34 was then merged into `main` with a normal merge so its granular history was preserved. The resulting main merge commit is `c74eead16691ebd133d78c5fa8f279ba4c11acae`.
+
+The aggregate Release Readiness wrapper was still runner-queued at the moment of that merge; it is not represented here as completed evidence.
 
 ### Linux PR readiness
 
-PR #35 was moved from draft to ready-for-review after its earlier exact head had successful CI, CodeQL, security hygiene, release readiness, and dedicated Desktop Linux workflow results. New August 24 commits invalidate that older head as final evidence, so the updated head must pass again.
+PR #35 was moved from draft to ready-for-review after an earlier exact head had successful CI, CodeQL, security hygiene, release readiness, and dedicated Desktop Linux workflow results. Subsequent August 24 commits invalidate that older head as final evidence, so the integrated head must pass again.
 
 The PR title was updated to `feat: add maintained Linux support and prepare SwiftDrop 2.5.18` so the review surface reflects its expanded release-preparation scope.
 
@@ -91,6 +93,8 @@ Release readiness now:
 - uploads per-RID Linux dependency-audit artifacts;
 - requires the Linux matrix to succeed before the aggregate release gate can pass.
 
+The hardening-side manual release evidence summarizer trigger is also retained for both push and pull-request paths, so the integrated workflow does not weaken the evidence tooling already present on `main`.
+
 ### Repository completion protection
 
 `scripts/validate_repository_completion.py` was expanded so future repository edits cannot silently remove the new release protections.
@@ -102,9 +106,10 @@ It now requires:
 - Linux integration, Linux publish, and version-alignment helper trigger coverage;
 - Linux and version validator execution in CI, Bash verification, and PowerShell verification;
 - the 2.5.18 preparation document, draft release notes, and dated continuation ledger;
-- canonical documentation-index links to the 2.5.18 preparation and release-note records.
+- canonical documentation-index links to the 2.5.18 preparation and release-note records;
+- the manual release evidence status document and summarizer inherited from the hardened `main` branch.
 
-The corresponding completion-validator regression test was expanded for those invariants.
+The corresponding completion-validator regression tests cover both the Linux/version invariants and the retained manual-evidence status/summarizer requirements.
 
 ### 2.5.18 release documentation
 
@@ -123,7 +128,20 @@ It defines:
 
 Added `docs/release/2.5.18-release-notes.md` as draft candidate release notes. The notes cover Linux support, coordinated versioning, stronger release gates, intended hardening/governance integration, platform scope, retained local-first security/privacy principles, the browser-extension deferral, and the signed/manual validation still required before publication.
 
-`docs/README.md` links both 2.5.18 records and identifies `2.5.18` / `20518` as the prepared source identifiers without claiming a production release.
+`docs/README.md` links both 2.5.18 records and identifies `2.5.18` / `20518` as the prepared source identifiers without claiming a production release. The integrated index also retains the final hardening/UI ledgers and manual release evidence status document from `main`.
+
+### PR #35 conflict resolution against hardened main
+
+After PR #34 entered `main`, PR #35 had real conflicts in four shared quality surfaces:
+
+1. `.github/workflows/release-readiness.yml`;
+2. `docs/README.md`;
+3. `scripts/validate_repository_completion.py`;
+4. `scripts/tests/test_validate_repository_completion.py`.
+
+The integration was resolved without rebasing or squashing away either history. A true two-parent merge commit, `de79916b52818a141d24429a5d0b51b354c69026`, joins hardened `main` (`c74eead16691ebd133d78c5fa8f279ba4c11acae`) with the previous PR #35 head (`fbc0f66682459aedf03dbd29cad1e88666f5ee55`).
+
+The four overlapping files were then explicitly reconciled in granular follow-up commits so the stronger requirements from both sides remain visible and auditable. PR #35 is mergeable after this reconciliation.
 
 ## Commit sequence created during this continuation
 
@@ -152,21 +170,27 @@ The continuation intentionally used granular commits rather than collapsing unre
 21. `docs(release): draft SwiftDrop 2.5.18 release notes`
 22. `docs(index): link 2.5.18 draft release notes`
 23. `docs(quality): protect 2.5.18 draft release notes`
-24. this ledger-refresh commit.
+24. first ledger-refresh commit
+25. `merge: integrate Linux and 2.5.18 preparation onto hardened main`
+26. `docs(integration): preserve hardening records in 2.5.18 index`
+27. `fix(integration): preserve manual evidence completion requirements`
+28. `test(integration): cover combined completion invariants`
+29. `ci(integration): preserve manual evidence trigger with Linux gate`
+30. this ledger-refresh commit.
 
 Every newly authored repository commit in this continuation uses:
 
 `Signed-off-by: Sanskar <sanskarin@outlook.in>`
 
-## Integration queue still to resolve
+## Current integration queue
 
-The repository currently has three post-baseline workstreams that must become one consistent `main` history before an exact 2.5.18 candidate can be frozen:
+The source integration queue has materially narrowed:
 
-- PR #34 — final hardening/UI integration;
-- PR #35 — Linux + 2.5.18 preparation and release-gate hardening;
-- PR #36 — CODEOWNERS/repository governance hardening.
+- PR #34 — **merged into `main`** as `c74eead16691ebd133d78c5fa8f279ba4c11acae`;
+- PR #35 — **reconciled with hardened `main`, mergeable, and awaiting fresh exact-head validation**;
+- PR #36 — CODEOWNERS/repository governance hardening still needs to be reconciled against the new 2.5.18/Linux/hardening source state.
 
-Their overlapping documentation/completion-validator changes must be reconciled without discarding the stronger checks from any branch.
+The exact PR #35 head before this ledger refresh was `e2efe229165b9072d080d28d7c6d4627948e2878`. CI, Security hygiene, Platform builds, Desktop Linux, CodeQL, and Release readiness were all queued for that head. Because this ledger refresh creates another commit, those runs are historical rather than final evidence; the new head must be evaluated instead.
 
 ## Evidence still external
 
