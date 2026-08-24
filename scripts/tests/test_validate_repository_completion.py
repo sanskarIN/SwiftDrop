@@ -53,6 +53,7 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             integration_errors = completion.validate_portable_verifier_integration(root)
 
             self.assertTrue(any("validate_manual_release_evidence.py" in error for error in trigger_errors))
+            self.assertTrue(any("summarize_manual_release_evidence.py" in error for error in trigger_errors))
             self.assertTrue(any("validate_repository_completion.py" in error for error in trigger_errors))
             self.assertTrue(any("validate_linux_integration.py" in error for error in trigger_errors))
             self.assertTrue(any("validate_version_alignment.py" in error for error in trigger_errors))
@@ -86,6 +87,13 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             self.assertTrue(any("validate_version_alignment.py" in error for error in required_errors))
             self.assertTrue(any("FINAL_REPOSITORY_STATUS.md" in error for error in index_errors))
             self.assertTrue(any("repository-completion-validation.md" in error for error in index_errors))
+            self.assertTrue(any("manual-release-evidence-status.md" in error for error in index_errors))
+
+    def test_release_evidence_status_assets_are_completion_requirements(self) -> None:
+        self.assertIn("scripts/summarize_manual_release_evidence.py", completion.REQUIRED_PATHS)
+        self.assertIn("docs/release/manual-release-evidence-status.md", completion.REQUIRED_PATHS)
+        self.assertIn("scripts/summarize_manual_release_evidence.py", completion.RELEASE_CRITICAL_TRIGGER_PATHS)
+        self.assertIn("release/manual-release-evidence-status.md", completion.DOC_INDEX_LINKS)
 
     def test_manual_release_template_must_remain_structurally_valid(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
