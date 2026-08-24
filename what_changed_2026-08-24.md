@@ -211,6 +211,12 @@ It now records:
 
 The notes remain explicitly **draft** and cannot be treated as published production release notes until the exact approved candidate is selected and validated.
 
+### Canonical changelog synchronized
+
+`CHANGELOG.md` now begins with a `2.5.18 candidate preparation - 2026-08-24` section that records coordinated versions, maintained Linux support, hardened integration, governance integration, and the release-evidence boundary.
+
+The entry explicitly states that 2.5.18 is not yet a published production release. All pre-existing changelog history remains below the new candidate-preparation entry.
+
 ### PR #35 review surface updated
 
 PR #35 is now titled:
@@ -219,7 +225,7 @@ PR #35 is now titled:
 
 Its body documents the integrated source scope, both preservation merges, version identifiers, Linux release gates, governance enforcement, external validation boundary, and browser-extension deferral.
 
-At the metadata update it was mergeable and contained 157 commits across 83 changed files. Additional ledger commits increase the exact head afterward, so final counts must be read from GitHub for the frozen head rather than copied from this intermediate observation.
+At the metadata update it was mergeable and contained 157 commits across 83 changed files. Additional ledger/changelog commits increase the exact head afterward, so final counts must be read from GitHub for the frozen head rather than copied from this intermediate observation.
 
 ## Granular continuation commit sequence
 
@@ -265,7 +271,9 @@ The August 24 continuation intentionally used focused commits rather than collap
 38. `docs(testing): document combined completion contract`
 39. `docs(release): mark governance integrated in 2.5.18 preparation`
 40. `docs(release): finalize integrated 2.5.18 draft scope`
-41. this final August 24 ledger synchronization commit.
+41. first governance-complete August 24 ledger synchronization
+42. `docs(changelog): add 2.5.18 candidate preparation entry`
+43. this final August 24 ledger correction.
 
 Every newly authored repository commit in this continuation uses:
 
@@ -279,7 +287,7 @@ The source integration queue is now consolidated:
 - PR #35 — **active integrated 2.5.18 candidate**, containing Linux, hardened-main reconciliation, and preserved PR #36 governance history; requires fresh exact-head validation before merge;
 - PR #36 — its 13-commit governance history is already contained in the PR #35 candidate through `cfeb728682c11c0f20eaaf9c63de775ae3d26716`; the standalone PR should be closed as integrated/superseded after the combined candidate reaches `main`.
 
-No earlier successful run is final evidence for a newer head. The head created by this ledger commit is the next candidate to evaluate if no defect requires another source change.
+No earlier successful run is final evidence for a newer head. The head created by this ledger correction is the exact candidate to evaluate unless a real validator/build defect requires another source change.
 
 ## Evidence still external
 
