@@ -1,134 +1,213 @@
 # SwiftDrop — Final Repository Status
 
-Updated: 2026-08-19
+Updated: 2026-08-24
 
-This file is the canonical **current repository-side status** for SwiftDrop. Older dated sections in `PROJECT_STATUS.md`, `NEXT_STEPS.md`, `CHANGELOG.md`, and the engineering ledgers remain historical evidence and should not be read as newer than this record.
+This file is the canonical **current repository-side status** for SwiftDrop. Older dated sections in `PROJECT_STATUS.md`, `NEXT_STEPS.md`, `CHANGELOG.md`, and the engineering ledgers are historical evidence and must not be read as newer than this record.
 
-## Repository-side status
+## Current repository-side status
 
-**SOURCE-COMPLETE for the maintained repository scope, pending exact-head hosted validation and merge of final integration PR #34.**
+**SwiftDrop is source-complete for the currently maintained application scope and is being stabilized as the 2.5.18 release candidate.**
 
-Final integration PR #34 combines the two remaining independent post-completion branches without squashing either history:
+The final August 19 hardening/UI integration was merged through PR #34 into `main` as `c74eead16691ebd133d78c5fa8f279ba4c11acae` after the substantive Core/test, Android, Windows, Apple, CI, CodeQL, and security checks succeeded.
 
-- PR #32 post-v1 Core/security/release-evidence hardening — 37 granular commits at `eca8571c9703f0d04be55fa2862118c7c95e91f7`;
-- PR #33 final navigation/localization/accessibility polish — 24 granular commits at `cc84f819a2dd4f0ad02cee480c69de9a3ecd21b2`;
-- two-parent integration commit `747b054e1be362425f4eb1d505c2ffcdade955dd`;
-- focused integration ledger/index/status commits on `final/integrated-completion-20260819`.
+The active 2.5.18 integration branch then preserved and combined:
 
-The integration branch contains the union of both parent changes. The shared `docs/README.md` index was reconciled manually so unique hardening/release-evidence and UI-polish documentation remains discoverable. See `what_changed_2026-08-19_integration.md`.
+- the hardened `main` history;
+- PR #35 Linux/Avalonia cross-platform work and 2.5.18 release preparation;
+- PR #36 repository-governance/CODEOWNERS history;
+- explicit conflict-resolution commits that retain the stricter requirements from all workstreams.
 
-No open issue currently identifies another known mandatory application feature, source implementation, open-source/community artifact, automated verification tool, maintained platform project, or canonical documentation category that is intentionally unfinished in the repository.
+No history was intentionally collapsed merely to simplify integration. The Linux/hardening union uses two-parent merge commit `de79916b52818a141d24429a5d0b51b354c69026`. The governance history is joined by two-parent merge commit `cfeb728682c11c0f20eaaf9c63de775ae3d26716`.
 
-Future repository changes should be driven only by a reproducible defect, dependency/platform/toolchain change, security finding, deliberately approved post-v1 feature, or release evidence showing that real target behavior differs from maintained source assumptions.
+The active candidate must still pass fresh exact-head hosted validation after the final integration/documentation commits. Queued, superseded, or earlier successful workflow runs are not treated as evidence for a newer head.
 
-Do not create artificial source work merely to make a completed repository appear active.
+## Prepared 2.5.18 identifiers
+
+The maintained package surfaces are coordinated for the requested 2.5.18 candidate:
+
+- MAUI application display version: `2.5.18`;
+- MAUI application build/version code: `20518`;
+- iOS Share Extension display version: `2.5.18`;
+- iOS Share Extension build/version code: `20518`;
+- Windows package identity version: `2.5.18.0`;
+- Avalonia desktop version: `2.5.18`.
+
+`scripts/validate_version_alignment.py` treats this alignment as a machine-enforced invariant. The prepared identifiers do **not** mean `v2.5.18` has been released. A production tag/release must wait for the exact candidate to satisfy the automated and external signed/manual evidence described below.
 
 ## Maintained application scope
 
-SwiftDrop maintains Android, iOS containing app, iOS Share Extension, Mac Catalyst containing app/native drop, Windows, shared `SwiftDrop.Core`, portable Core tests, and benchmarks.
+SwiftDrop currently maintains:
 
-The implemented capabilities are documented in `README.md`, user/configuration guides, architecture/protocol/security documentation, platform integration documentation, storage schema, and release documents.
+- Android through the .NET MAUI application host;
+- iOS containing app through .NET MAUI;
+- iOS Share Extension;
+- macOS through Mac Catalyst, including native drop integration;
+- Windows through .NET MAUI/Windows integration;
+- Linux through the Avalonia `SwiftDrop.Desktop` host;
+- shared `SwiftDrop.Core` security, discovery, protocol, networking, transfer, storage, and diagnostics logic;
+- portable Core tests;
+- benchmark tooling;
+- release, dependency, documentation, localization, platform-integration, version-alignment, and repository-completion validators.
 
-## Integrated Core/security/release hardening — 2026-08-19
+Linux release readiness covers both `linux-x64` and `linux-arm64` self-contained package paths. Linux is a maintained source/build target, while representative real-distribution execution remains an external release-evidence requirement.
 
-The final integration preserves the post-v1 hardening branch, including:
+## Integrated Core/security/release hardening
+
+The integrated source preserves the post-v1 hardening work, including:
 
 - receive-root/path/storage/hash/text/network/concurrency/session/settings regression coverage;
-- removal of the unused duplicate security-namespace text-snippet validator so protocol validation has one canonical implementation;
-- diagnostic privacy redaction across all whitespace token boundaries;
-- explicit malformed null receive-folder validation;
-- manual release-evidence status tooling with human, JSON, and remaining-only output;
-- explicit fail-closed handling of the all-zero template release-candidate commit;
-- release-evidence `complete` derived from the authoritative `validate_document(..., require_complete=True)` contract so future complete-mode requirements fail closed automatically;
-- release-readiness path filters, repository-completion invariants, tests, and documentation for that tooling.
+- canonical protocol text validation without the former duplicate security-namespace implementation;
+- diagnostic privacy redaction across whitespace token boundaries;
+- explicit malformed receive-folder validation;
+- manual release-evidence generation, strict validation, and status summarization;
+- fail-closed handling of the all-zero template release-candidate commit;
+- completion state derived from the authoritative strict manual-evidence validator;
+- release-readiness path filters and completion invariants for release-evidence tooling.
 
-## Integrated UI/navigation/localization closure — 2026-08-19
+## Integrated UI/navigation/localization closure
 
-The final integration also preserves:
+The candidate also preserves the final UI/navigation/localization work, including:
 
 - localized direct home navigation to Transfer Queue, Transfer History, Settings, and About;
-- a localized pairing-QR accessibility description;
+- localized pairing-QR accessibility description;
 - localized Buy Me a Coffee support copy/accessibility text while retaining the canonical support URL;
-- Settings Picker display text separated from canonical persisted values (`System`/`Light`/`Dark`, `en`/`hi`);
-- localized certificate-fingerprint, retention, and receive-folder guidance text;
-- localized Diagnostics protocol/discovery/self-test runtime presentation;
-- localized stable-code self-test outcome summaries while original technical Core messages remain in safe diagnostic logs;
-- localized Queue state and operation labels without deriving counts from translated strings;
-- a focused `UiPolishStrings` English/Hindi resource pair included in localization parity validation;
-- `scripts/tests/test_ui_localization_contract.py` to prevent regression of these boundaries.
+- Settings display text separated from canonical persisted values;
+- localized certificate-fingerprint, retention, receive-folder, diagnostics, discovery, self-test, queue-state, and operation presentation;
+- English/Hindi resource parity validation;
+- focused UI-localization contract regression coverage.
 
-## Final source audit result
+## Maintained Linux desktop integration
 
-The prior completion sweep found no maintained production-source `TODO`, `FIXME`, `TBD`, `NotImplementedException`, or `#warning` unfinished marker and no maintained `HACK` or `NotSupportedException` placeholder path. The latest continuation work was driven by reproducible defects and regression/release-evidence gaps rather than invented feature scope.
+The 2.5.18 candidate includes the dedicated Avalonia `src/SwiftDrop.Desktop` host while continuing to share `SwiftDrop.Core` protocol/security/transfer behavior.
 
-The maintained repository includes the expected application/test/benchmark projects; CI, CodeQL, security-hygiene, hosted platform-build, and release-readiness workflows; Dependabot; funding metadata; issue forms/routing; pull-request template; open-source legal/community/security/support files; canonical technical/user/release documentation; and release-evidence generator/validator/status tooling.
+Repository-side Linux support includes:
 
-## Permanent completion contract
+- desktop discovery, pairing, identity, receive-server, transfer-client, and batch-resume services;
+- Linux desktop entry/protocol-handler metadata;
+- self-contained packaging helper `scripts/publish-linux.sh`;
+- `linux-x64` and `linux-arm64` package verification in aggregate release readiness;
+- dependency/vulnerability evidence for the Linux desktop host;
+- `scripts/validate_linux_integration.py` in common CI, Bash verification, PowerShell verification, and dedicated Linux workflow coverage;
+- Linux build/install/security documentation.
 
-`scripts/validate_repository_completion.py` enforces repository-side completeness instead of relying only on status prose. It verifies required projects/files, UTF-8 production text, unfinished markers, release-readiness trigger coverage, portable verification wiring, canonical documentation records, and release-evidence tooling/invariants.
+This establishes maintained Linux source/build support without falsely claiming every target distribution has been physically exercised.
 
-`scripts/validate_localization.py` validates English/Hindi key and format-placeholder parity, including the final UI-polish catalog.
+## Repository governance hardening
 
-The manual release-evidence status helper structurally validates evidence before reporting and delegates the actual completion decision to the strict complete-mode validator rather than reimplementing completion policy.
+The candidate includes `.github/CODEOWNERS` with `@sanskarIN` as the repository fallback owner and explicit ownership for sensitive boundaries.
+
+Machine-protected ownership includes:
+
+- GitHub automation, toolchain configuration, and verification scripts;
+- Core Security, Discovery, Protocol, Networking, Transfer, and Storage code;
+- native MAUI platform integration;
+- the Avalonia desktop host;
+- the iOS Share Extension;
+- Linux packaging;
+- security/privacy/third-party/release/protocol/platform documentation surfaces.
+
+`scripts/validate_repository_completion.py` parses CODEOWNERS and rejects missing or reassigned protected entries. The regression suite deliberately tests ownership erosion, including Linux desktop/package paths.
+
+`docs/repository-governance.md` defines the protected-change policy and the safe review model for a repository whose current CODEOWNER set has one maintainer.
+
+### Remote protection boundary
+
+CODEOWNERS is source-side ownership metadata. It does not by itself prove GitHub is enforcing Code Owner approval or protected-branch rules.
+
+The most recently inspected remote state reported `main` as **not protected**. Enabling feasible pull-request/check/conversation/force-push/deletion protections is therefore still a GitHub repository-administration action. An approval rule that requires an independent approval should not be configured until a trusted independent reviewer exists, because the pull-request author cannot provide an independent self-review.
+
+Remote branch/ruleset enforcement must not be represented as enabled until it is actually configured and rechecked.
+
+## Permanent repository-completion contract
+
+`scripts/validate_repository_completion.py` protects the repository-side completion state instead of relying only on status prose. Its current contract verifies, among other things:
+
+- required application/test/benchmark/community/governance/release files exist and are non-empty;
+- maintained production source/configuration text is readable UTF-8;
+- unfinished production markers remain absent;
+- CODEOWNERS retains fallback and sensitive ownership entries;
+- release-readiness watches release-critical helpers on both push and pull requests;
+- Linux packaging, Linux integration, version alignment, manual-evidence validation/generation/status tooling, and repository completion remain release-critical;
+- common CI, Bash verification, and PowerShell verification execute required portable validators;
+- the canonical documentation index exposes current 2.5.18, governance, completion, and manual-evidence records;
+- the manual release-evidence template remains structurally valid;
+- the all-zero release-candidate placeholder does not leak into another JSON evidence record.
+
+Additional dedicated validators protect documentation, English/Hindi localization parity, Apple integration metadata, Windows integration metadata, Linux integration, package-version alignment, NuGet vulnerability reports, and release evidence.
 
 ## Hosted validation boundary
 
-PR #34 changes both Core/release tooling and `src/SwiftDrop.App/**`, so its exact head must be evaluated by the maintained pull-request workflows before the combined head is described as hosted-platform validated:
+The exact current 2.5.18 candidate must complete the maintained hosted validation surface after its final source/documentation commit. The relevant automated surface includes:
 
-- CI;
+- common CI and portable verification;
+- Core/xUnit and Python helper tests;
 - CodeQL;
 - Security hygiene;
-- Release readiness;
-- Android Release build/audit;
-- focused Windows Release build/audit;
-- Mac Catalyst Release build/audit;
-- iOS Simulator Share Extension build/audit;
-- iOS Simulator containing-app build/audit.
+- Android Release build/dependency audit;
+- Windows Release build/dependency audit;
+- Mac Catalyst Release build/dependency audit;
+- iOS Simulator Share Extension build/dependency audit;
+- iOS Simulator containing-app build/dependency audit;
+- dedicated Desktop Linux validation;
+- `linux-x64` and `linux-arm64` packaging/dependency audit;
+- aggregate Release Readiness.
 
-This status document intentionally does **not** pre-claim queued, pending, cancelled, superseded, or unexecuted workflows as successful.
+Earlier green heads demonstrate useful historical behavior but are not final proof for a later commit. This document intentionally does **not** upgrade queued, in-progress, cancelled, skipped, superseded, or unexecuted jobs to successful evidence.
 
-## Last completed hosted baseline
+## Source audit result
 
-The previously recorded successful baseline remains PR #28 validation:
+The maintained completion sweep rejects production-source `TODO`, `FIXME`, `TBD`, `NotImplementedException`, and `#warning` markers through the completion validator. Earlier audits also found no maintained `HACK` or `NotSupportedException` placeholder path in the source scope.
 
-- CI `32206294595` — success;
-- CodeQL `32206294593` — success;
-- Security hygiene `32206294615` — success;
-- Release readiness `32206294591` — success.
-
-That historical evidence included 580/580 xUnit tests, 54/54 Python helper tests, zero Core vulnerability findings, zero Core/benchmark build warnings or errors, documentation/localization/Apple/Windows metadata validation, and Windows portable verification.
-
-Later branches add substantial regression coverage and helper tests. Exact integrated totals and platform-build results must be taken from PR #34's final GitHub Actions head rather than inferred from historical counts.
+The current continuation work is driven by real integration, Linux cross-platform support, version coordination, release validation, and governance requirements rather than artificial feature churn.
 
 ## Documentation status
 
-Canonical documentation includes project/build/contribution/security/privacy/support/legal files; architecture/networking/protocol/platform/storage documents; user/FAQ/troubleshooting/diagnostics/glossary/development guides; CI/deterministic/security/manual/accessibility/performance/completion testing guides; release process/checklist/signing/store privacy/dependency/manual-evidence/generator/status documents; dated hardening/UI audit ledgers; and the final integration ledger.
+Canonical documentation covers:
 
-`scripts/validate_documentation.py` validates the maintained documentation set and local Markdown links. The completion validator independently protects the broader project/community/release surface.
+- project/build/contribution/security/privacy/support/legal/community material;
+- repository governance and protected-change policy;
+- architecture/networking/protocol/platform/storage behavior;
+- Linux build/install/security behavior;
+- user/FAQ/troubleshooting/diagnostics/glossary/development guidance;
+- CI/deterministic/security/manual/accessibility/performance/completion testing;
+- release process/checklist/signing/store privacy/dependency/manual-evidence status tooling;
+- 2.5.18 preparation and draft release notes;
+- dated audit, hardening, UI, governance, integration, and continuation ledgers.
 
-## Repository queue
+`scripts/validate_documentation.py` validates maintained documentation and local Markdown links. The completion validator separately protects the broader required documentation/governance/release surface.
 
-The authoritative repository-side integration is PR #34. PR #32 and PR #33 are parent workstreams fully contained in #34 and may be closed as superseded after confirming the integration PR references both parent heads.
+## Current repository integration queue
 
-There are currently no open issues identifying additional source work.
+- PR #34 — merged into `main` as `c74eead16691ebd133d78c5fa8f279ba4c11acae`.
+- PR #35 — active integrated 2.5.18 candidate containing Linux support, hardened-main reconciliation, and the preserved governance history; fresh exact-head checks are required before merge.
+- PR #36 — its 13-commit governance history is already preserved inside the PR #35 candidate through merge commit `cfeb728682c11c0f20eaaf9c63de775ae3d26716`; the standalone PR should be closed as integrated/superseded after the combined candidate reaches `main`.
 
-## What is not a missing repository feature
+There is no known open application-runtime feature gap that should be invented merely to create more source activity.
 
-The following remain external release execution gates, not unfinished source work:
+## What is still external release work
 
-- signed Android AAB/APK installation/upgrade and real share-provider/background/notification/LAN behavior;
+The following are **not** completed by repository edits or unsigned hosted compilation:
+
+- production signing keys/certificates/provisioning profiles;
+- signed Android AAB/APK installation, upgrade, share-provider, background, notification, and LAN behavior;
 - signed Windows MSIX install/update, protocol/app-notification activation, firewall/network/picker/drop behavior;
-- Apple Developer provisioning/App Group configuration, signed iOS containing app + Share Extension behavior, real `NSItemProvider`, signed/notarized Mac Catalyst behavior;
+- Apple Developer provisioning/App Group configuration, signed iOS containing app + Share Extension behavior, real `NSItemProvider`, and signed/notarized Mac Catalyst behavior;
+- representative Linux distribution install/run/desktop/protocol-handler behavior for the actual packaged artifacts;
 - representative physical cross-device pairing and file/folder/text transfers;
-- physical pause/cancel/resume, network switching, low-storage, lifecycle and target-filesystem behavior;
+- physical pause/cancel/resume, network switching, low-storage, lifecycle, and target-filesystem behavior;
 - real screen-reader, large-text, high-contrast, and Hindi UI/runtime validation;
 - exact signed-candidate dependency/license/notice/provenance reconciliation;
-- final store metadata, screenshots, privacy declarations, signing, notarization, submission, and review.
+- final store/distribution metadata, screenshots, privacy declarations, signing/notarization, submission, and review;
+- remote GitHub branch-protection/ruleset enforcement for `main`.
 
-Those cannot truthfully be completed by editing repository files. Use the checked-in manual release-evidence generator, strict validator, and status helper against the exact signed candidate.
+These must be recorded against the exact candidate with the checked-in release-evidence tooling or the relevant external administration/store evidence. They must not be inferred from source code.
 
-## Final rule
+## Browser extension boundary
 
-After PR #34 passes the maintained exact-head checks and is merged, there is no known intentionally unfinished mandatory repository-side feature or tool to continue.
+Browser-extension work remains deliberately outside the 2.5.18 stabilization scope. It is a subsequent feature milestone, not a reason to destabilize the current release candidate.
 
-If no new reproducible defect, dependency/platform change, security finding, or deliberately approved feature exists, do not invent additional source work. The next legitimate milestone is external signed-device/store validation for an exact release candidate.
+## Current rule
+
+The next repository-side milestone is to finish exact-head automated validation of the integrated PR #35 candidate and merge that validated history into `main` without losing the granular Linux, hardening, or governance histories.
+
+Do **not** create or publish `v2.5.18` merely because the source metadata says 2.5.18. Tagging/release publication belongs after the exact merged candidate and the required signed/manual evidence satisfy the release contract.

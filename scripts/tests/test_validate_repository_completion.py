@@ -47,7 +47,7 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             for relative in (".github/workflows/ci.yml", "scripts/verify-core.sh", "scripts/verify-core.ps1"):
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("missing completion call\n", encoding="utf-8")
+                path.write_text("missing required validator calls\n", encoding="utf-8")
 
             trigger_errors = completion.validate_release_readiness_triggers(root)
             integration_errors = completion.validate_portable_verifier_integration(root)
@@ -55,7 +55,13 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             self.assertTrue(any("validate_manual_release_evidence.py" in error for error in trigger_errors))
             self.assertTrue(any("summarize_manual_release_evidence.py" in error for error in trigger_errors))
             self.assertTrue(any("validate_repository_completion.py" in error for error in trigger_errors))
-            self.assertEqual(3, len(integration_errors))
+            self.assertTrue(any("validate_linux_integration.py" in error for error in trigger_errors))
+            self.assertTrue(any("validate_version_alignment.py" in error for error in trigger_errors))
+            self.assertTrue(any("publish-linux.sh" in error for error in trigger_errors))
+            self.assertTrue(any("packaging/linux/**" in error for error in trigger_errors))
+            self.assertEqual(9, len(integration_errors))
+            self.assertTrue(any("validate_linux_integration.py" in error for error in integration_errors))
+            self.assertTrue(any("validate_version_alignment.py" in error for error in integration_errors))
 
     def test_required_surface_and_final_documentation_links_are_enforced(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -68,6 +74,7 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             (root / "SECURITY.md").unlink()
             (root / "NOTICE").write_text("", encoding="utf-8")
             (root / "src/SwiftDrop.ShareExtension/SwiftDrop.ShareExtension.csproj").unlink()
+            (root / "scripts/validate_version_alignment.py").unlink()
             index = root / "docs/README.md"
             index.write_text("# Docs\n", encoding="utf-8")
 
@@ -77,9 +84,44 @@ class RepositoryCompletionValidatorTests(unittest.TestCase):
             self.assertTrue(any("SECURITY.md" in error and "missing" in error for error in required_errors))
             self.assertTrue(any("NOTICE" in error and "empty" in error for error in required_errors))
             self.assertTrue(any("SwiftDrop.ShareExtension.csproj" in error for error in required_errors))
+            self.assertTrue(any("validate_version_alignment.py" in error for error in required_errors))
             self.assertTrue(any("FINAL_REPOSITORY_STATUS.md" in error for error in index_errors))
+            self.assertTrue(any("repository-governance.md" in error for error in index_errors))
             self.assertTrue(any("repository-completion-validation.md" in error for error in index_errors))
             self.assertTrue(any("manual-release-evidence-status.md" in error for error in index_errors))
+            self.assertTrue(any("what_changed_2026-08-20.md" in error for error in index_errors))
+
+    def test_codeowners_requires_fallback_and_all_sensitive_ownership(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            codeowners = root / ".github" / "CODEOWNERS"
+            codeowners.parent.mkdir(parents=True)
+            codeowners.write_text(
+                "* @someone-else\n"
+                "/.github/ @sanskarIN\n"
+                "/src/SwiftDrop.Core/Security/ @someone-else\n"
+                "/src/SwiftDrop.Core/Discovery/ @sanskarIN\n",
+                encoding="utf-8",
+            )
+
+            errors = completion.validate_codeowners(root)
+
+            self.assertTrue(any("'*'" in error and "@sanskarIN" in error for error in errors))
+            self.assertTrue(any("Security" in error and "@sanskarIN" in error for error in errors))
+            self.assertTrue(any("/src/SwiftDrop.Core/Protocol/" in error and "missing" in error for error in errors))
+            self.assertTrue(any("/src/SwiftDrop.Desktop/" in error and "missing" in error for error in errors))
+            self.assertTrue(any("/packaging/linux/" in error and "missing" in error for error in errors))
+            self.assertTrue(any("/docs/platforms/" in error and "missing" in error for error in errors))
+
+    def test_linux_governance_assets_are_completion_requirements(self) -> None:
+        self.assertIn(".github/CODEOWNERS", completion.REQUIRED_PATHS)
+        self.assertIn("docs/repository-governance.md", completion.REQUIRED_PATHS)
+        self.assertIn("what_changed_2026-08-20.md", completion.REQUIRED_PATHS)
+        self.assertIn("repository-governance.md", completion.DOC_INDEX_LINKS)
+        self.assertIn("/src/SwiftDrop.Core/Discovery/", completion.CODEOWNERS_EXPECTATIONS)
+        self.assertIn("/src/SwiftDrop.Desktop/", completion.CODEOWNERS_EXPECTATIONS)
+        self.assertIn("/packaging/linux/", completion.CODEOWNERS_EXPECTATIONS)
+        self.assertIn("/docs/platforms/", completion.CODEOWNERS_EXPECTATIONS)
 
     def test_release_evidence_status_assets_are_completion_requirements(self) -> None:
         self.assertIn("scripts/summarize_manual_release_evidence.py", completion.REQUIRED_PATHS)

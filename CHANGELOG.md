@@ -1,5 +1,50 @@
 # Changelog
 
+## 2.5.18 candidate preparation - 2026-08-24
+
+Status: **integrated source candidate; not yet a published production release**.
+
+### Coordinated release identifiers
+
+- Prepared the maintained MAUI application as `2.5.18` with build/version code `20518`.
+- Aligned the iOS Share Extension to `2.5.18` / `20518`.
+- Aligned the Windows package identity to `2.5.18.0`.
+- Aligned the Avalonia desktop host to `2.5.18`.
+- Added `scripts/validate_version_alignment.py` plus regression coverage so maintained package surfaces cannot silently drift.
+
+### Maintained Linux desktop support
+
+- Added the dedicated Avalonia `SwiftDrop.Desktop` host while continuing to share security/protocol/transfer behavior through `SwiftDrop.Core`.
+- Added Linux desktop discovery, pairing, identity, receive-server, transfer-client, and batch-resume integration.
+- Added XDG-aware local data/identity handling, desktop-entry metadata, and `swiftdrop://` protocol handling.
+- Added self-contained `linux-x64` and `linux-arm64` package assembly through `scripts/publish-linux.sh`.
+- Promoted Linux integration validation into common CI plus Bash and PowerShell portable verification.
+- Added dedicated Desktop Linux workflow coverage and Linux package/dependency/vulnerability auditing to aggregate Release Readiness.
+- Added Linux build/install/security documentation and made the desktop host/package surface part of repository completion and CODEOWNERS governance.
+
+### Hardened integration and release evidence
+
+- Preserved the final Core/security/release-evidence and UI/localization/accessibility history already merged through PR #34 as `c74eead16691ebd133d78c5fa8f279ba4c11acae`.
+- Reconciled hardened `main` with the Linux/2.5.18 history through two-parent merge `de79916b52818a141d24429a5d0b51b354c69026` without squashing the workstreams.
+- Retained manual release-evidence validation, generation, status summarization, strict complete-mode behavior, and all-zero template fail-closed handling in the combined release contract.
+- Added Linux to the aggregate release-readiness final gate alongside Core/tests, Android, Windows, and Apple compilation/audit gates.
+
+### Repository governance integration
+
+- Preserved PR #36's 13-commit governance history through two-parent merge `cfeb728682c11c0f20eaaf9c63de775ae3d26716` without restoring its historical pre-2.5.18 version metadata.
+- Added `.github/CODEOWNERS` with repository fallback ownership and explicit sensitive ownership.
+- Extended ownership coverage to Core Discovery, the Avalonia desktop host, Linux packaging, and platform documentation introduced after the original governance branch.
+- Made CODEOWNERS expectations machine-enforced through `scripts/validate_repository_completion.py` and regression tests.
+- Added/updated repository governance, repository-completion, final-status, 2.5.18 preparation, draft release notes, and August 24 engineering-ledger documentation.
+- Kept remote GitHub branch/ruleset enforcement as separate administration evidence; source-side CODEOWNERS must not be represented as remote approval enforcement by itself.
+
+### Release boundary
+
+- `v2.5.18` is **not** declared released by this changelog entry.
+- The exact final merged candidate must pass fresh CI, CodeQL, security hygiene, Android/Windows/Apple/Linux platform gates, Linux x64/arm64 packaging, dependency audits, and aggregate Release Readiness.
+- Signed Android/iOS/Mac Catalyst/Windows artifacts, representative Linux distribution execution, physical cross-platform transfer testing, accessibility/Hindi runtime validation, signing/notarization, exact signed-artifact dependency/license/provenance reconciliation, store/distribution evidence, and applicable remote repository protection remain external release requirements.
+- Browser-extension implementation is deliberately deferred beyond the 2.5.18 stabilization scope.
+
 ## Unreleased - 2026-08-18
 
 ### Deterministic state-machine regression hardening

@@ -11,6 +11,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'benchmarks/**'
+      - 'packaging/linux/**'
       - 'SwiftDrop.slnx'
       - 'Directory.Build.props'
       - 'global.json'
@@ -23,6 +24,9 @@ on:
       - 'scripts/validate_nuget_vulnerability_report.py'
       - 'scripts/create_dependency_evidence_manifest.py'
       - 'scripts/validate_windows_integration.py'
+      - 'scripts/validate_linux_integration.py'
+      - 'scripts/validate_version_alignment.py'
+      - 'scripts/publish-linux.sh'
       - 'scripts/validate_manual_release_evidence.py'
       - 'scripts/create_manual_release_evidence.py'
       - 'scripts/summarize_manual_release_evidence.py'
@@ -35,6 +39,7 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'benchmarks/**'
+      - 'packaging/linux/**'
       - 'SwiftDrop.slnx'
       - 'Directory.Build.props'
       - 'global.json'
@@ -47,6 +52,9 @@ on:
       - 'scripts/validate_nuget_vulnerability_report.py'
       - 'scripts/create_dependency_evidence_manifest.py'
       - 'scripts/validate_windows_integration.py'
+      - 'scripts/validate_linux_integration.py'
+      - 'scripts/validate_version_alignment.py'
+      - 'scripts/publish-linux.sh'
       - 'scripts/validate_manual_release_evidence.py'
       - 'scripts/create_manual_release_evidence.py'
       - 'scripts/summarize_manual_release_evidence.py'
@@ -227,6 +235,49 @@ jobs:
           name: apple-dependency-audit
           path: artifacts/apple/
 
+  linux-desktop-compile:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [linux-x64, linux-arm64]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Validate Linux integration contracts
+        run: python3 scripts/validate_linux_integration.py
+      - name: Restore desktop host
+        run: dotnet restore src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
+      - name: Build desktop host
+        run: dotnet build src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj -c Release --no-restore
+      - name: Build self-contained ${{ matrix.rid }} package
+        run: bash scripts/publish-linux.sh ${{ matrix.rid }}
+      - name: Verify Linux package output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "artifacts/linux/${{ matrix.rid }}/package/bin/SwiftDrop.Desktop"
+          test -f "artifacts/linux/${{ matrix.rid }}/package/share/applications/in.sanskar.swiftdrop.desktop"
+          test -f "artifacts/linux/SwiftDrop-${{ matrix.rid }}.tar.gz"
+      - name: Capture and validate Linux desktop dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "artifacts/linux/${{ matrix.rid }}/audit"
+          dotnet package list --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj --framework net10.0 --include-transitive --no-restore --format json --output-version 1 > "artifacts/linux/${{ matrix.rid }}/audit/packages.json"
+          dotnet package list --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj --framework net10.0 --include-transitive --vulnerable --no-restore --format json --output-version 1 > "artifacts/linux/${{ matrix.rid }}/audit/vulnerabilities.json"
+          python3 scripts/validate_nuget_vulnerability_report.py "artifacts/linux/${{ matrix.rid }}/audit/vulnerabilities.json"
+          python3 scripts/create_dependency_evidence_manifest.py "artifacts/linux/${{ matrix.rid }}/audit" "artifacts/linux/${{ matrix.rid }}/audit/manifest.json"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux-desktop-${{ matrix.rid }}-dependency-audit
+          path: artifacts/linux/${{ matrix.rid }}/audit/
+
   release-gate:
     if: always()
     runs-on: ubuntu-latest
@@ -235,6 +286,7 @@ jobs:
       - android-compile
       - windows-compile
       - apple-compile
+      - linux-desktop-compile
     steps:
       - name: Require successful compile and test gates
         env:
@@ -242,10 +294,12 @@ jobs:
           ANDROID_RESULT: ${{ needs.android-compile.result }}
           WINDOWS_RESULT: ${{ needs.windows-compile.result }}
           APPLE_RESULT: ${{ needs.apple-compile.result }}
+          LINUX_RESULT: ${{ needs.linux-desktop-compile.result }}
         run: |
           test "$CORE_RESULT" = "success"
           test "$ANDROID_RESULT" = "success"
           test "$WINDOWS_RESULT" = "success"
           test "$APPLE_RESULT" = "success"
-          echo "Source, protocol tests, portable benchmark compilation, dependency audits, and all maintained platform compile gates passed."
-          echo "Signed Windows MSIX, physical-device testing, Apple signing/notarization/App Group provisioning, Share Extension behavior, native notification behavior, and store checks are still required."
+          test "$LINUX_RESULT" = "success"
+          echo "Source, protocol tests, portable benchmark compilation, dependency audits, and all maintained Android/Windows/Apple/Linux compile gates passed."
+          echo "Signed Windows MSIX, signed Android/Apple artifacts, physical-device testing, Apple signing/notarization/App Group provisioning, Share Extension behavior, native notification behavior, Linux distribution testing, and store checks are still required."

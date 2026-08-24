@@ -1,13 +1,14 @@
 # SwiftDrop Documentation
 
-This directory is the canonical navigation point for SwiftDrop technical, user, security, testing, platform, and release documentation.
+This directory is the canonical navigation point for SwiftDrop technical, user, security, testing, platform, governance, and release documentation.
 
-SwiftDrop is an account-free local-network transfer application built with .NET MAUI and C#. The maintained application targets are Android, iOS, Mac Catalyst, and Windows. Transfer payloads are intended to move directly between nearby peers rather than through a SwiftDrop-operated cloud relay.
+SwiftDrop is an account-free local-network transfer application built on .NET 10. Android, iOS, Mac Catalyst, and Windows use the .NET MAUI application host; Linux uses the dedicated Avalonia `SwiftDrop.Desktop` host while sharing `SwiftDrop.Core`. Maintained application platforms are Android, iOS, macOS, Windows, and Linux. Transfer payloads are intended to move directly between nearby peers rather than through a SwiftDrop-operated cloud relay.
 
 ## Start here
 
 - [Project overview](../README.md)
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
+- [Repository governance and protected change policy](repository-governance.md)
 - [Installation and source run](installation.md)
 - [User guide](user-guide.md)
 - [Settings reference](configuration.md)
@@ -16,6 +17,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 - [Troubleshooting](troubleshooting.md)
 - [Diagnostics and bug reports](diagnostics-and-bug-reports.md)
 - [Building SwiftDrop](../BUILDING.md)
+- [Linux desktop guide](platforms/linux.md)
 - [Development guide](development-guide.md)
 - [Contributing](../CONTRIBUTING.md)
 
@@ -42,6 +44,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 ## Platform integration
 
 - [Platform integration status](platform/integration-status.md)
+- [Linux desktop build/install/security guide](platforms/linux.md)
 - [Permissions and entitlements](platform-permissions.md)
 - [Networking and firewall guide](networking.md)
 - [Signing configuration](release/signing-configuration.md)
@@ -57,6 +60,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 - [CI reference](testing/ci-reference.md)
 - [Repository completion validation](testing/repository-completion-validation.md)
+- [Repository governance and protected change policy](repository-governance.md)
 - [Deterministic state-model testing](testing/deterministic-state-models.md)
 - [Security test plan](testing/security-test-plan.md)
 - [Manual test matrix](testing/manual-test-matrix.md)
@@ -67,6 +71,10 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 ## Release and operations
 
+- [2.5.18 release preparation](release/2.5.18-preparation.md)
+- [2.5.18 draft release notes](release/2.5.18-release-notes.md)
+- [August 24 2.5.18 continuation ledger](../what_changed_2026-08-24.md)
+- [Governance continuation ledger — 2026-08-20](../what_changed_2026-08-20.md)
 - [Final repository status](../FINAL_REPOSITORY_STATUS.md)
 - [Final integration ledger — 2026-08-19](../what_changed_2026-08-19_integration.md)
 - [Final UI completion audit — 2026-08-19](audits/final-ui-polish-2026-08-19.md)
@@ -94,6 +102,7 @@ SwiftDrop is an account-free local-network transfer application built with .NET 
 
 ## Community and legal
 
+- [Repository governance and protected change policy](repository-governance.md)
 - [Support](../SUPPORT.md)
 - [Diagnostics and bug reports](diagnostics-and-bug-reports.md)
 - [Code of Conduct](../CODE_OF_CONDUCT.md)
@@ -109,17 +118,23 @@ Documentation distinguishes four different evidence levels:
 1. **Implemented in source** — code/configuration exists in the repository.
 2. **Portable-tested** — relevant portable automated tests have executed successfully.
 3. **Hosted-platform compiled** — source compiled on the maintained GitHub-hosted platform gate.
-4. **Signed/device validated** — a signed package has been exercised on the real target environment with its real permissions, entitlements, filesystem, providers, networking, lifecycle, accessibility, and packaging behavior.
+4. **Signed/device validated** — a signed/packageable artifact has been exercised on the real target environment with its real permissions, entitlements, filesystem, providers, networking, lifecycle, accessibility, desktop integration, and packaging behavior.
 
-A successful source compile is not proof of signed-device or store readiness. The release checklist is the authoritative production-readiness boundary.
+A successful source compile is not proof of signed-device, physical-desktop, store, or distribution readiness. The release checklist and target-specific platform guides are the authoritative production-readiness boundary.
 
 ## Current maintained identifiers
 
+- Prepared release version: `2.5.18`
+- Coordinated application build: `20518`
 - App ID: `in.sanskar.swiftdrop`
+- Linux desktop application ID: `in.sanskar.swiftdrop.desktop`
 - iOS Share Extension ID: `in.sanskar.swiftdrop.share`
 - Apple App Group: `group.in.sanskar.swiftdrop`
+- Linux protocol handler: `x-scheme-handler/swiftdrop`
 - Canonical solution: `SwiftDrop.slnx`
 - Main repository branch: `main`
+
+The prepared version is a source/release-engineering target until an exact candidate on `main` passes the required automated and signed/manual evidence gates.
 
 ## Documentation maintenance rules
 
@@ -128,15 +143,16 @@ When source behavior changes, update the document that owns that contract in the
 - user-visible workflow -> user guide/FAQ/README;
 - settings/defaults -> settings reference;
 - build/tooling -> `BUILDING.md` and development guide;
+- repository ownership/review policy -> `.github/CODEOWNERS` and repository governance guide;
 - architecture/project boundaries -> architecture docs;
 - network/ports/address policy -> networking guide and protocol/security docs;
 - protocol/canonicality -> protocol docs and compatibility policy;
 - terminology -> technical glossary where the term is project-specific or security-relevant;
 - local metadata -> database schema and privacy policy;
-- platform permissions/entitlements -> platform permissions/integration status;
+- platform permissions/entitlements/desktop integration -> platform permissions/integration status and the Linux guide where applicable;
 - tests/CI -> testing docs and CI reference;
 - dependency/audit artifact format -> dependency evidence reference;
-- release/signing/store behavior -> release docs;
+- release/signing/store/distribution behavior -> release docs;
 - significant continuation work -> changelog/status/engineering ledger.
 
 Do not change documentation merely to make an unsafe implementation look intended. Resolve the source contract, tests, and documentation together.

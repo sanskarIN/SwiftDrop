@@ -8,8 +8,8 @@
     <InfoPlist>Info.plist</InfoPlist>
     <ApplicationTitle>SwiftDrop Share</ApplicationTitle>
     <ApplicationId>in.sanskar.swiftdrop.share</ApplicationId>
-    <ApplicationDisplayVersion>1.0.0</ApplicationDisplayVersion>
-    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>2.5.18</ApplicationDisplayVersion>
+    <ApplicationVersion>20518</ApplicationVersion>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <CodesignEntitlements>Platforms/iOS/Entitlements.plist</CodesignEntitlements>
     <CodesignConfigureDependsOn>$(CodesignConfigureDependsOn);DisableCodesignInSimulator</CodesignConfigureDependsOn>

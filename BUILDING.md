@@ -1,8 +1,8 @@
 # Building SwiftDrop
 
-Updated: 2026-08-18
+Updated: 2026-08-20
 
-SwiftDrop targets .NET 10 and .NET MAUI.
+SwiftDrop targets .NET 10. Android, iOS, Mac Catalyst, and Windows use .NET MAUI; Linux uses the dedicated Avalonia `SwiftDrop.Desktop` host while sharing `SwiftDrop.Core`.
 
 ## Canonical solution
 
@@ -18,7 +18,8 @@ dotnet build benchmarks/SwiftDrop.Benchmarks/SwiftDrop.Benchmarks.csproj -c Rele
 The solution contains:
 
 - `SwiftDrop.Core`;
-- `SwiftDrop.App`;
+- the .NET MAUI `SwiftDrop.App` host for Android/iOS/Mac Catalyst/Windows;
+- the Avalonia `SwiftDrop.Desktop` host for Linux and portable desktop compilation;
 - the iOS-only `SwiftDrop.ShareExtension`;
 - portable tests;
 - synthetic benchmarks.
@@ -42,6 +43,7 @@ These verify:
 - .NET environment;
 - Python validation-helper regression tests;
 - canonical documentation files and local Markdown link integrity;
+- repository-completion invariants, including the maintained Linux support surface;
 - English/Hindi localization catalogs and placeholder parity;
 - Apple App Group/iOS Share Extension project/entitlement/version invariants;
 - Windows package protocol/private-network/app-notification registration/source invariants;
@@ -51,9 +53,11 @@ These verify:
 - machine-readable Core direct/transitive vulnerable-package JSON using schema version 1;
 - explicit rejection of any vulnerability entries or malformed vulnerability-report structure.
 
-The helper suite currently contains **26 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, Windows packaged-notification integration validation, and the cross-layer schema-v6 performance-history contract (storage/analyzer/resume-byte attribution/UI-localization wiring). The Windows validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration ordering, startup registration for an already-enabled preference, placeholder-free English/Hindi terminal notification messages, preservation of `privateNetworkClientServer`, and rejection of `internetClient`.
+The helper suite currently contains **26 Python tests**, covering the machine-readable NuGet vulnerability validator, deterministic dependency-evidence manifests, Windows packaged-notification integration validation, repository-completion validation, and the cross-layer schema-v6 performance-history contract (storage/analyzer/resume-byte attribution/UI-localization wiring). The Windows validator checks matching notification toast/COM CLSIDs, activation arguments, handler-before-registration ordering, startup registration for an already-enabled preference, placeholder-free English/Hindi terminal notification messages, preservation of `privateNetworkClientServer`, and rejection of `internetClient`.
 
 Normal `ci.yml` executes this portable contract on both Ubuntu and Windows: the Ubuntu job runs the individual canonical gates directly and the Windows job executes `scripts/verify-core.ps1`. Windows execution is required because it exercises PowerShell parsing/native exit handling, Windows filesystem semantics, and Microsoft.Data.Sqlite native-handle behavior that Linux execution alone cannot prove.
+
+The dedicated `.github/workflows/desktop-linux.yml` workflow separately validates the Linux desktop integration contract, builds the Avalonia host, creates the actual self-contained x64/ARM64 packages, validates dependency vulnerability reports, generates deterministic evidence manifests, and uploads the resulting archives/evidence.
 
 The Unix verifier uses a temporary audit file with automatic cleanup. The PowerShell verifier explicitly checks native-command exit codes so a nonzero `dotnet`/Python result cannot be mistaken for success merely because the host shell did not convert it into a terminating exception.
 
@@ -67,13 +71,15 @@ python3 scripts/validate_documentation.py
 python3 scripts/validate_localization.py
 python3 scripts/validate_apple_integration.py
 python3 scripts/validate_windows_integration.py
+python3 scripts/validate_linux_integration.py
+python3 scripts/validate_repository_completion.py
 ```
 
 ## Stable compiler policy
 
 Repository-wide `Directory.Build.props` uses stable `LangVersion=latest`, nullable reference types, current analyzers, deterministic builds, and warnings-as-errors for portable projects.
 
-MAUI/Apple platform projects keep platform SDK availability/obsolete warnings visible while still failing common nullable-safety warnings.
+MAUI/Apple platform projects keep platform SDK availability/obsolete warnings visible while still failing common nullable-safety warnings. `SwiftDrop.Desktop` inherits the repository-wide warnings-as-errors/analyzer policy.
 
 ## Dependency security policy
 
@@ -123,6 +129,78 @@ dotnet build src/SwiftDrop.App/SwiftDrop.App.csproj -f net10.0-android -c Releas
 The maintained platform/release workflows additionally capture and validate the `net10.0-android` containing-app direct/transitive dependency graph and upload its package/vulnerability JSON plus hash manifest.
 
 Android production release still requires a private release keystore, signing configuration, AAB/APK generation, install/upgrade testing, Play Console/store checks, and physical notification permission/delivery validation when optional terminal notifications are enabled.
+
+## Linux desktop
+
+Linux does not use the MAUI target-framework list. The maintained host is:
+
+`src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj`
+
+It references `SwiftDrop.Core` so discovery, pairing validation, mutual TLS, certificate pinning, protocol framing, canonical paths, source safety, hashing, receive verification, and batch-resume verification remain shared with the rest of SwiftDrop.
+
+### Source build
+
+Requirements:
+
+- Linux x64 or ARM64 desktop system;
+- .NET 10 SDK compatible with `global.json`;
+- a graphical Linux desktop session to launch/test the UI.
+
+```bash
+dotnet restore src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj
+dotnet build src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj -c Release --no-restore
+```
+
+Run from source:
+
+```bash
+dotnet run --project src/SwiftDrop.Desktop/SwiftDrop.Desktop.csproj -c Release
+```
+
+### Self-contained Linux packages
+
+For x64:
+
+```bash
+bash scripts/publish-linux.sh linux-x64
+```
+
+For ARM64:
+
+```bash
+bash scripts/publish-linux.sh linux-arm64
+```
+
+These commands produce:
+
+```text
+artifacts/linux/SwiftDrop-linux-x64.tar.gz
+artifacts/linux/SwiftDrop-linux-arm64.tar.gz
+```
+
+Each archive contains the self-contained desktop executable/runtime, a user-local installer, freedesktop launcher/protocol registration, and application icon. After extracting the matching archive:
+
+```bash
+bash install.sh
+```
+
+The installer uses `${XDG_DATA_HOME:-$HOME/.local/share}` for installed application data, `$HOME/.local/bin/swiftdrop` as a CLI convenience symlink, and an absolute installed executable path in the `.desktop` entry so desktop activation does not depend on the session `PATH`.
+
+The package declares `x-scheme-handler/swiftdrop`; launch arguments are accepted only for `swiftdrop://pair` and are passed unchanged to Core's strict canonical pairing decoder.
+
+### Linux validation
+
+Run the source/package integration contract directly:
+
+```bash
+python3 scripts/validate_linux_integration.py
+```
+
+Maintained GitHub Actions validates both `linux-x64` and `linux-arm64`. For each RID it builds the desktop project with warnings-as-errors, runs the same `scripts/publish-linux.sh` release path, verifies package structure, captures direct/transitive package evidence, rejects vulnerable-package findings, creates an evidence manifest, and uploads the package/evidence artifact.
+
+Hosted build/package success is not physical Linux certification. Before a tagged Linux release, test the generated archive on representative physical systems, including GNOME/KDE, X11/XWayland, file/folder pickers, clipboard approval, `swiftdrop:` activation, firewall/LAN discovery, cross-platform transfer, low-storage/integrity failure, and x64/ARM64 hardware where available.
+
+See `docs/platforms/linux.md` for the full Linux install, XDG storage, networking, security, pairing, send/receive, and release-validation guide.
 
 ## Windows
 
@@ -260,9 +338,13 @@ GitHub Actions is configured for:
 
 - 26 validation-helper regression tests;
 - documentation integrity validation;
+- repository-completion validation including the Linux desktop support surface;
 - localization validation;
 - Apple integration metadata validation;
 - Windows packaged notification/protocol/capability metadata validation;
+- Linux desktop integration-contract validation;
+- Linux x64/ARM64 Avalonia build plus self-contained package generation;
+- Linux direct/transitive dependency evidence, vulnerable-package rejection, and deterministic evidence manifests;
 - two-OS portable Core/test/benchmark/audit verification (Ubuntu and Windows PowerShell);
 - CodeQL/security hygiene;
 - direct/transitive NuGet vulnerability auditing on restore;
@@ -282,17 +364,18 @@ A configured workflow is not proof it passed. Confirm the exact release-candidat
 
 Successful source compilation and dependency-audit evidence do not replace:
 
-- signed install/upgrade checks;
+- signed/installable package checks on the applicable platform;
 - Apple App Group provisioning;
 - physical-device iOS Share Extension/native-drop behavior;
 - signed Android/iOS/Mac Catalyst/Windows optional notification permission, registration, presentation, and system-settings behavior;
-- real peer-to-peer transfer/network/resume tests;
+- physical Linux x64/ARM64 package launch/install/desktop-integration validation on representative distributions/desktops;
+- real peer-to-peer cross-platform transfer/network/resume tests;
 - accessibility/localization validation;
-- exact final signed-artifact dependency/license/provenance review;
-- store declarations/screenshots/metadata.
+- exact final signed/artifact dependency/license/provenance review;
+- store/distribution declarations/screenshots/metadata where applicable.
 
-Follow `NEXT_STEPS.md`, `docs/testing/manual-test-matrix.md`, `docs/release/release-checklist.md`, and `docs/release/dependency-evidence.md`.
+Follow `NEXT_STEPS.md`, `docs/platforms/linux.md`, `docs/testing/manual-test-matrix.md`, `docs/release/release-checklist.md`, and `docs/release/dependency-evidence.md`.
 
 ## Current portable final-audit contract
 
-The maintained portable verifier currently runs **26 Python helper tests** and **572 xUnit tests**. In addition to the aggregate History performance-trend/export contract, the final regression set covers resume side-effect boundaries, regular-file staging enforcement, exact one-time credential expiry, bounded concurrent security-state admission, discovery expiry, and strict mDNS RDATA isolation. The August 18 continuation adds deterministic seeded reference-model state machines for the attempt rate limiter, one-time authorization store, and discovery registry without adding a new test dependency or changing runtime source.
+The maintained portable verifier currently runs **26 Python helper tests** and **572 xUnit tests**. In addition to the aggregate History performance-trend/export contract, the final regression set covers resume side-effect boundaries, regular-file staging enforcement, exact one-time credential expiry, bounded concurrent security-state admission, discovery expiry, and strict mDNS RDATA isolation. The August 18 continuation adds deterministic seeded reference-model state machines for the attempt rate limiter, one-time authorization store, and discovery registry without adding a new test dependency or changing runtime source. Linux desktop integration/package validation is maintained as its own target-specific workflow because it validates the Avalonia application and distributable Linux archives in addition to the portable Core contract.
