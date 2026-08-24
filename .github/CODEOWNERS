@@ -12,16 +12,19 @@
 /global.json @sanskarIN
 /scripts/ @sanskarIN
 
-# Security, protocol, networking, transfer, and persistence boundaries
+# Security, discovery, protocol, networking, transfer, and persistence boundaries
 /src/SwiftDrop.Core/Security/ @sanskarIN
+/src/SwiftDrop.Core/Discovery/ @sanskarIN
 /src/SwiftDrop.Core/Protocol/ @sanskarIN
 /src/SwiftDrop.Core/Networking/ @sanskarIN
 /src/SwiftDrop.Core/Transfer/ @sanskarIN
 /src/SwiftDrop.Core/Storage/ @sanskarIN
 
-# Platform-native integration and Apple share-extension boundary
+# Platform-native, desktop, Apple extension, and Linux packaging boundaries
 /src/SwiftDrop.App/Platforms/ @sanskarIN
+/src/SwiftDrop.Desktop/ @sanskarIN
 /src/SwiftDrop.ShareExtension/ @sanskarIN
+/packaging/linux/ @sanskarIN
 
 # Security/privacy/legal and release contracts
 /SECURITY.md @sanskarIN
@@ -30,3 +33,4 @@
 /docs/security/ @sanskarIN
 /docs/protocol/ @sanskarIN
 /docs/release/ @sanskarIN
+/docs/platforms/ @sanskarIN
