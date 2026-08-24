@@ -24,7 +24,7 @@ elseif (Get-Command py -ErrorAction SilentlyContinue) {
     $pythonPrefix = @('-3')
 }
 else {
-    throw 'Python 3 is required to validate repository completion, documentation, localization, Apple/Windows integration metadata, release-version alignment, and NuGet audit reports.'
+    throw 'Python 3 is required to validate repository completion, documentation, localization, Apple/Windows/Linux integration metadata, release-version alignment, and NuGet audit reports.'
 }
 
 function Invoke-Python {
@@ -41,6 +41,7 @@ try {
     Invoke-Python -CommandArguments @('scripts/validate_localization.py')
     Invoke-Python -CommandArguments @('scripts/validate_apple_integration.py')
     Invoke-Python -CommandArguments @('scripts/validate_windows_integration.py')
+    Invoke-Python -CommandArguments @('scripts/validate_linux_integration.py')
     Invoke-Python -CommandArguments @('scripts/validate_version_alignment.py')
 
     Invoke-CheckedNative -FilePath 'dotnet' -CommandArguments @('restore', 'src/SwiftDrop.Core/SwiftDrop.Core.csproj')
